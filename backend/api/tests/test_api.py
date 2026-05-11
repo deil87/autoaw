@@ -138,6 +138,25 @@ def test_list_datasets(client, tmp_path):
     assert "ds_a" in ids
 
 
+def test_get_dataset_returns_records(client):
+    import os, json
+
+    datasets_dir = os.environ.get("DATASETS_DIR", "datasets")
+    os.makedirs(datasets_dir, exist_ok=True)
+    records = [{"input": "hello", "expected": "world"}]
+    with open(os.path.join(datasets_dir, "myds.json"), "w") as f:
+        json.dump(records, f)
+    resp = client.get("/datasets/myds")
+    assert resp.status_code == 200
+    assert resp.json() == records
+
+
+def test_get_dataset_not_found(client):
+    resp = client.get("/datasets/nonexistent")
+    assert resp.status_code == 404
+    assert "nonexistent" in resp.json()["detail"]
+
+
 def test_list_trials(client):
     payload = {
         "name": "exp_trials",

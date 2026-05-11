@@ -42,7 +42,7 @@ app = FastAPI(title="AutoAW", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -185,3 +185,12 @@ def list_datasets():
     os.makedirs(_DATASETS_DIR, exist_ok=True)
     files = [f for f in os.listdir(_DATASETS_DIR) if f.endswith(".json")]
     return [{"dataset_id": os.path.splitext(f)[0]} for f in sorted(files)]
+
+
+@app.get("/datasets/{dataset_id}")
+def get_dataset(dataset_id: str):
+    path = os.path.join(_DATASETS_DIR, f"{dataset_id}.json")
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail=f"Dataset {dataset_id!r} not found")
+    with open(path) as f:
+        return json.load(f)
