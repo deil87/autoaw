@@ -9,3 +9,7 @@ out/
 *.egg-info/
 dist/
 .DS_Store
+
+# Local runtime
+autoaw.db
+datasets/*.json
