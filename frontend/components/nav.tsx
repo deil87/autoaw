@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/experiments", label: "Experiments" },
+  { href: "/datasets", label: "Datasets" },
 ];
 
 export function Nav() {
