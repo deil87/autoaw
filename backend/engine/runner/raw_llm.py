@@ -1,11 +1,31 @@
 from __future__ import annotations
-import os
+import logging
+import re
 import time
 from typing import Any
+from openai import RateLimitError
 from backend.shared.gene import Gene, TopologyType
 from backend.shared.results import RunResult
 from backend.engine.runner.base import WorkflowRunner
 from backend.engine.llm_client import ProviderConfig, make_client, provider_from_env
+
+logger = logging.getLogger(__name__)
+
+_MAX_RETRIES = 5
+_RETRY_BASE_DELAY = 5.0  # seconds — first backoff before retry
+_RETRY_MAX_DELAY = 300.0  # cap per-attempt wait at 5 minutes
+
+
+def _parse_retry_after(error: RateLimitError) -> float | None:
+    """Extract suggested wait seconds from the 429 error message, if present."""
+    try:
+        msg = str(error)
+        match = re.search(r"Please wait (\d+) seconds", msg)
+        if match:
+            return float(match.group(1))
+    except Exception:
+        pass
+    return None
 
 
 # Cost per 1k tokens (prompt/completion) by model prefix
@@ -34,12 +54,33 @@ class RawLLMRunner(WorkflowRunner):
     def __init__(self, provider_config: ProviderConfig | None = None) -> None:
         self._provider_config = provider_config  # None = lazy env lookup on first call
 
-    def _call_llm(self, model: str, messages: list[dict], temperature: float) -> Any:
+    def _call_llm_once(
+        self, model: str, messages: list[dict], temperature: float
+    ) -> Any:
+        """Single LLM call with no retry. Override in tests."""
         cfg = self._provider_config or provider_from_env()
         client = make_client(cfg)
         return client.chat.completions.create(
             model=model, messages=messages, temperature=temperature
         )
+
+    def _call_llm(self, model: str, messages: list[dict], temperature: float) -> Any:
+        delay = _RETRY_BASE_DELAY
+        for attempt in range(_MAX_RETRIES + 1):
+            try:
+                return self._call_llm_once(model, messages, temperature)
+            except RateLimitError as exc:
+                if attempt == _MAX_RETRIES:
+                    raise
+                wait = min(_parse_retry_after(exc) or delay, _RETRY_MAX_DELAY)
+                logger.warning(
+                    "Rate limited on attempt %d/%d; waiting %.0fs before retry.",
+                    attempt + 1,
+                    _MAX_RETRIES,
+                    wait,
+                )
+                time.sleep(wait)
+                delay = min(delay * 2, _RETRY_MAX_DELAY)
 
     def run(self, gene: Gene, input: str) -> RunResult:
         start = time.monotonic()
