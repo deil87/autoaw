@@ -1,22 +1,39 @@
 from __future__ import annotations
 import json
+import os
 import re
 from typing import Any
 from backend.shared.results import Score
 from backend.engine.evaluator.base import Evaluator
+from backend.engine.llm_client import ProviderConfig, make_client
+
+
+def _provider_from_env() -> ProviderConfig:
+    github_token = os.environ.get("GITHUB_TOKEN")
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    if github_token:
+        return ProviderConfig(provider="github", api_key=github_token)
+    if openai_key:
+        return ProviderConfig(provider="openai", api_key=openai_key)
+    raise ValueError("No LLM provider configured. Set GITHUB_TOKEN or OPENAI_API_KEY.")
 
 
 class LLMJudgeEvaluator(Evaluator):
     """Scores workflow output using an LLM judge with a user-defined rubric."""
 
-    def __init__(self, model: str, rubric: str) -> None:
+    def __init__(
+        self,
+        model: str,
+        rubric: str,
+        provider_config: ProviderConfig | None = None,
+    ) -> None:
         self.model = model
         self.rubric = rubric
+        self._provider_config = provider_config  # None = lazy env lookup
 
     def _call_llm(self, model: str, messages: list[dict], temperature: float) -> Any:
-        import openai
-
-        client = openai.OpenAI()
+        cfg = self._provider_config or _provider_from_env()
+        client = make_client(cfg)
         return client.chat.completions.create(
             model=model, messages=messages, temperature=temperature
         )
