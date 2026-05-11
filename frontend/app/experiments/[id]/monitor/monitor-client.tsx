@@ -81,6 +81,7 @@ export default function MonitorPage({ params }: { params: { id: string } }) {
           {experiment.status === "pending" && (
             <button onClick={handleStart} className={cn(buttonVariants())}>Start</button>
           )}
+          <Link href={`/experiments/new?from=${id}`} className={cn(buttonVariants({ variant: "outline" }))}>Fork</Link>
           <Link href={`/experiments/${id}/leaderboard`} className={cn(buttonVariants({ variant: "outline" }))}>Leaderboard</Link>
         </div>
       </div>
