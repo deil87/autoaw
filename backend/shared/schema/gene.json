@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Gene",
+  "type": "object",
+  "required": ["id", "topology", "agents", "edges", "topology_params"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "topology": {
+      "type": "string",
+      "enum": ["fixed_pipeline", "ai_orchestrated", "debate", "parallel_reduce", "human_in_loop", "hybrid"]
+    },
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "role", "model", "system_prompt"],
+        "additionalProperties": false,
+        "properties": {
+          "id":            { "type": "string", "minLength": 1 },
+          "role":          { "type": "string", "minLength": 1 },
+          "model":         { "type": "string", "minLength": 1 },
+          "system_prompt": { "type": "string", "minLength": 1 },
+          "tools":         { "type": "array", "items": { "type": "string" } },
+          "temperature":   { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "from": { "type": "string" },
+          "to":   { "type": "string" },
+          "type": { "type": "string", "enum": ["sequential", "broadcast", "reduce", "conditional"] }
+        }
+      }
+    },
+    "topology_params": { "type": "object" }
+  }
+}
