@@ -1,0 +1,42 @@
+[
+  {
+    "input": "Student history: confused 'de' vs 'het' in 8 of 10 recent sentences. Strong with verb conjugation. Generate a diagnosis of weak areas.",
+    "expected": "The response identifies article gender (de/het) as the primary weak area, notes verb conjugation as a strength, and suggests focusing on noun gender rules."
+  },
+  {
+    "input": "Student profile: weak on de/het articles, intermediate level. Generate a targeted practice exercise.",
+    "expected": "The exercise contains 8-12 fill-in-the-blank sentences requiring de or het, covers common nouns with varying gender, and includes an answer key."
+  },
+  {
+    "input": "Student history: makes errors with separable verbs (e.g. 'opbellen', 'meenemen') in 6 of 8 sentences. Diagnose weak areas.",
+    "expected": "The response identifies separable verb placement as the primary weakness — specifically that the prefix separates in main clauses — and notes this is a common intermediate stumbling block."
+  },
+  {
+    "input": "Student profile: weak on separable verbs, intermediate level. Generate a targeted practice exercise.",
+    "expected": "The exercise provides 8-10 sentences requiring correct placement of the separable prefix, mixes present tense and perfect tense contexts, and includes an answer key."
+  },
+  {
+    "input": "Student history: strong vocabulary, but struggles with word order in subordinate clauses (verb-final rule). Diagnose weak areas.",
+    "expected": "The response identifies verb-final word order in subordinate clauses (SOV structure) as the primary weakness, distinguishes it from main-clause word order, and recommends subordinating-conjunction practice."
+  },
+  {
+    "input": "Student profile: weak on subordinate clause word order, upper-beginner. Generate a targeted practice exercise.",
+    "expected": "The exercise has 8-10 sentences to rewrite or complete with correct verb-final subordinate clause order, uses common conjunctions (omdat, dat, als, wanneer), and includes an answer key."
+  },
+  {
+    "input": "Exercise: Fill in de or het — '___ huis is groot. ___ auto is rood. ___ kind speelt.' Evaluate whether this exercise is appropriately challenging for an intermediate learner who struggles with articles.",
+    "expected": "The evaluation notes the exercise is too easy — 'huis', 'auto', and 'kind' are among the most common nouns and easily memorised. It recommends replacing with less frequent nouns and mixing with plural forms."
+  },
+  {
+    "input": "Exercise: Conjugate the verb 'werken' for: ik, jij, hij, wij, jullie, zij. Evaluate whether this exercise is appropriately challenging for a learner whose weakness is separable verbs.",
+    "expected": "The evaluation notes this exercise does not target the stated weakness (separable verbs) and has no diagnostic value for that skill gap. It recommends replacing with separable verb exercises."
+  },
+  {
+    "input": "Exercise: Rewrite these sentences using 'omdat': '1. Het regent. Ik blijf thuis. 2. Zij is ziek. Ze gaat niet naar school.' Evaluate whether this is appropriately challenging for an upper-beginner working on subordinate clause word order.",
+    "expected": "The evaluation notes the exercise is well-targeted and appropriate in difficulty — it requires applying the verb-final rule in a realistic context with a common conjunction. It may suggest adding one more complex sentence with a modal verb to stretch the learner."
+  },
+  {
+    "input": "Student history: consistently correct on present-tense conjugation, de/het articles improving (70% accuracy), still weak on perfect tense (hebben vs zijn as auxiliary). Diagnose current status and suggest next exercise focus.",
+    "expected": "The response recognises progress on articles, identifies perfect tense auxiliary selection (hebben vs zijn) as the active weakness, and recommends an exercise contrasting motion/state verbs with zijn against action verbs with hebben."
+  }
+]
