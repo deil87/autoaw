@@ -30,6 +30,7 @@ export function ExperimentCard({ experiment }: { experiment: Experiment }) {
       <CardFooter className="gap-2">
         <Link href={`/experiments/${experiment.id}/monitor`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Monitor</Link>
         <Link href={`/experiments/${experiment.id}/leaderboard`} className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>Leaderboard</Link>
+        <Link href={`/experiments/new?from=${experiment.id}`} className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>Fork</Link>
       </CardFooter>
     </Card>
   );
