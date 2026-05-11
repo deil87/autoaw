@@ -1,6 +1,23 @@
 from __future__ import annotations
+import os
 from dataclasses import dataclass, field
 from typing import Any
+
+
+def _provider_from_env():
+    """Import here to avoid circular imports; returns a ProviderConfig."""
+    from backend.engine.llm_client import ProviderConfig
+
+    github_token = os.environ.get("GITHUB_TOKEN")
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    if github_token:
+        return ProviderConfig(provider="github", api_key=github_token)
+    if openai_key:
+        return ProviderConfig(provider="openai", api_key=openai_key)
+    raise ValueError(
+        "No LLM provider configured. Set GITHUB_TOKEN or OPENAI_API_KEY, "
+        "or include 'provider' in experiment config."
+    )
 
 
 @dataclass
@@ -47,6 +64,10 @@ class ExperimentConfig:
     budget_max_usd: float | None = None
     convergence_patience: int = 10
     concurrency: int = 5
+    provider: Any = field(
+        default=None
+    )  # ProviderConfig (typed as Any to avoid import at module level)
+    allowed_models: list[str] = field(default_factory=lambda: ["gpt-4o-mini", "gpt-4o"])
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -60,10 +81,19 @@ class ExperimentConfig:
             "budget_max_usd": self.budget_max_usd,
             "convergence_patience": self.convergence_patience,
             "concurrency": self.concurrency,
+            "provider": self.provider.to_dict() if self.provider else None,
+            "allowed_models": list(self.allowed_models),
         }
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> ExperimentConfig:
+        from backend.engine.llm_client import ProviderConfig
+
+        provider_dict = d.get("provider")
+        if provider_dict:
+            provider = ProviderConfig.from_dict(provider_dict)
+        else:
+            provider = _provider_from_env()
         return cls(
             name=d["name"],
             task_description=d["task_description"],
@@ -75,4 +105,6 @@ class ExperimentConfig:
             budget_max_usd=d.get("budget_max_usd"),
             convergence_patience=d.get("convergence_patience", 10),
             concurrency=d.get("concurrency", 5),
+            provider=provider,
+            allowed_models=d.get("allowed_models", ["gpt-4o-mini", "gpt-4o"]),
         )

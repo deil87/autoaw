@@ -41,6 +41,7 @@ def main() -> None:
                 LLMJudgeEvaluator(
                     model=ev_config.params["model"],
                     rubric=ev_config.params["rubric"],
+                    provider_config=config.provider,
                 )
             )
         elif ev_config.type == "function":
@@ -51,7 +52,7 @@ def main() -> None:
             mod = importlib.import_module(module_path)
             evaluators.append(FunctionEvaluator(fn=getattr(mod, fn_name)))
 
-    runner = RawLLMRunner()
+    runner = RawLLMRunner(provider_config=config.provider)
 
     def on_trial(result):
         store.put_trial_result(experiment_id, result)

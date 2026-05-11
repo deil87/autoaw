@@ -34,7 +34,8 @@ def test_experiment_config_defaults():
     assert config.convergence_patience == 10
 
 
-def test_experiment_config_roundtrip():
+def test_experiment_config_roundtrip(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
     config = ExperimentConfig(
         name="test-exp",
         task_description="Summarize documents",

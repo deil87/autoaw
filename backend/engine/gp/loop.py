@@ -164,10 +164,18 @@ class GPLoop:
                     ["mutate_structure", "mutate_prompt", "mutate_param", "crossover"]
                 )
                 if op == "mutate_structure":
-                    new_population.append(mutate_structure(parent1))
+                    new_population.append(
+                        mutate_structure(
+                            parent1,
+                            provider_config=self.config.provider,
+                            allowed_models=self.config.allowed_models,
+                        )
+                    )
                 elif op == "mutate_prompt":
                     try:
-                        new_population.append(mutate_prompt(parent1))
+                        new_population.append(
+                            mutate_prompt(parent1, provider_config=self.config.provider)
+                        )
                     except Exception:
                         new_population.append(mutate_param(parent1))
                 elif op == "mutate_param":
