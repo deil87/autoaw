@@ -1,0 +1,61 @@
+import type { Experiment, ExperimentConfig, Trial } from "@/lib/types";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const resp = await fetch(`${API_BASE}${path}`, {
+    headers: { "Content-Type": "application/json" },
+    ...init,
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+    throw new Error(err.detail ?? `HTTP ${resp.status}`);
+  }
+  return resp.json() as Promise<T>;
+}
+
+export const api = {
+  experiments: {
+    /** Returns a plain array of experiments */
+    list: () => request<Experiment[]>("/experiments"),
+
+    get: (id: string) => request<Experiment>(`/experiments/${id}`),
+
+    create: (config: ExperimentConfig) =>
+      request<Experiment>("/experiments", {
+        method: "POST",
+        body: JSON.stringify(config),
+      }),
+
+    delete: (id: string) =>
+      request<void>(`/experiments/${id}`, { method: "DELETE" }),
+
+    start: (id: string) =>
+      request<{ status: string; experiment_id: string }>(`/experiments/${id}/start`, {
+        method: "POST",
+      }),
+  },
+
+  trials: {
+    /** Returns a plain array of trials */
+    list: (experimentId: string, page = 1, limit = 200) =>
+      request<Trial[]>(
+        `/experiments/${experimentId}/trials?page=${page}&limit=${limit}`
+      ),
+  },
+
+  datasets: {
+    list: () => request<{ dataset_id: string }[]>("/datasets"),
+
+    upload: async (file: File): Promise<{ dataset_id: string; records: number }> => {
+      const form = new FormData();
+      form.append("file", file);
+      const resp = await fetch(`${API_BASE}/datasets`, { method: "POST", body: form });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+        throw new Error(err.detail ?? `HTTP ${resp.status}`);
+      }
+      return resp.json();
+    },
+  },
+};
