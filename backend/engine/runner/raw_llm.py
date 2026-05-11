@@ -1,9 +1,22 @@
 from __future__ import annotations
+import os
 import time
 from typing import Any
 from backend.shared.gene import Gene, TopologyType
 from backend.shared.results import RunResult
 from backend.engine.runner.base import WorkflowRunner
+from backend.engine.llm_client import ProviderConfig, make_client
+
+
+def _provider_from_env() -> ProviderConfig:
+    github_token = os.environ.get("GITHUB_TOKEN")
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    if github_token:
+        return ProviderConfig(provider="github", api_key=github_token)
+    if openai_key:
+        return ProviderConfig(provider="openai", api_key=openai_key)
+    raise ValueError("No LLM provider configured. Set GITHUB_TOKEN or OPENAI_API_KEY.")
+
 
 # Cost per 1k tokens (prompt/completion) by model prefix
 _COST_TABLE: dict[str, tuple[float, float]] = {
@@ -28,10 +41,12 @@ class RawLLMRunner(WorkflowRunner):
     Other topologies fall back to sequential execution.
     """
 
-    def _call_llm(self, model: str, messages: list[dict], temperature: float) -> Any:
-        import openai
+    def __init__(self, provider_config: ProviderConfig | None = None) -> None:
+        self._provider_config = provider_config  # None = lazy env lookup on first call
 
-        client = openai.OpenAI()
+    def _call_llm(self, model: str, messages: list[dict], temperature: float) -> Any:
+        cfg = self._provider_config or _provider_from_env()
+        client = make_client(cfg)
         return client.chat.completions.create(
             model=model, messages=messages, temperature=temperature
         )
