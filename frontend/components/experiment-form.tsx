@@ -18,17 +18,33 @@ import type { ExperimentConfig, ObjectiveWeights } from "@/lib/types";
 
 const DEFAULT_WEIGHTS: ObjectiveWeights = { quality: 0.6, cost: 0.2, speed: 0.2 };
 
-export function ExperimentForm() {
+interface ExperimentFormProps {
+  initialValues?: Partial<{
+    name: string;
+    task_description: string;
+    dataset_id: string;
+    rubric: string;
+    objective_weights: ObjectiveWeights;
+    population_size: number;
+    budget_max_trials: number;
+  }>;
+}
+
+export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [taskDescription, setTaskDescription] = useState("");
-  const [datasetId, setDatasetId] = useState("");
+  const [name, setName] = useState(initialValues?.name ?? "");
+  const [taskDescription, setTaskDescription] = useState(initialValues?.task_description ?? "");
+  const [datasetId, setDatasetId] = useState(initialValues?.dataset_id ?? "");
   const [datasetOptions, setDatasetOptions] = useState<string[]>([]);
   const [judgeModel, setJudgeModel] = useState("gpt-4o-mini");
-  const [rubric, setRubric] = useState("Rate the output 0 to 1 on accuracy, completeness, and clarity.");
-  const [weights, setWeights] = useState<ObjectiveWeights>(DEFAULT_WEIGHTS);
-  const [populationSize, setPopulationSize] = useState(20);
-  const [budgetTrials, setBudgetTrials] = useState(200);
+  const [rubric, setRubric] = useState(
+    initialValues?.rubric ?? "Rate the output 0 to 1 on accuracy, completeness, and clarity."
+  );
+  const [weights, setWeights] = useState<ObjectiveWeights>(
+    initialValues?.objective_weights ?? DEFAULT_WEIGHTS
+  );
+  const [populationSize, setPopulationSize] = useState(initialValues?.population_size ?? 20);
+  const [budgetTrials, setBudgetTrials] = useState(initialValues?.budget_max_trials ?? 200);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
