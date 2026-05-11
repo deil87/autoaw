@@ -82,3 +82,18 @@ def test_trial_result_records_pareto_point():
     )
     best = loop.run()
     assert isinstance(best, Gene)
+
+
+def test_gp_loop_parallel_evaluation():
+    """concurrency > 1 should evaluate genes in parallel and still return a Gene."""
+    config = make_config()
+    config.concurrency = 3
+    loop = GPLoop(
+        config=config,
+        runner=make_mock_runner(),
+        evaluators=[make_mock_evaluator()],
+        dataset=[{"input": "doc1", "expected": "summary1"}],
+        on_trial_complete=None,
+    )
+    best = loop.run()
+    assert isinstance(best, Gene)

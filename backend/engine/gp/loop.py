@@ -1,5 +1,7 @@
 from __future__ import annotations
 import random
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import Callable
 from deap import base, creator, tools, algorithms
@@ -46,13 +48,16 @@ class GPLoop:
         self.on_trial_complete = on_trial_complete
         self._trial_count = 0
         self._total_cost = 0.0
+        self._lock = threading.Lock()
 
     def _evaluate_gene(self, gene: Gene, generation: int) -> tuple[float, ParetoPoint]:
-        """Evaluate a gene on a random sample from the dataset. Returns (fitness, pareto)."""
+        """Evaluate a gene on a random sample from the dataset. Thread-safe."""
         sample = random.choice(self.dataset)
         run_result = self.runner.run(gene, sample["input"])
-        self._trial_count += 1
-        self._total_cost += run_result.cost_usd
+
+        with self._lock:
+            self._trial_count += 1
+            self._total_cost += run_result.cost_usd
 
         scores = [
             ev.score(sample["input"], run_result.output, sample.get("expected"))
@@ -87,17 +92,39 @@ class GPLoop:
         return fitness, pareto
 
     def _budget_exceeded(self) -> bool:
-        if (
-            self.config.budget_max_trials
-            and self._trial_count >= self.config.budget_max_trials
-        ):
-            return True
-        if (
-            self.config.budget_max_usd
-            and self._total_cost >= self.config.budget_max_usd
-        ):
-            return True
+        with self._lock:
+            if (
+                self.config.budget_max_trials
+                and self._trial_count >= self.config.budget_max_trials
+            ):
+                return True
+            if (
+                self.config.budget_max_usd
+                and self._total_cost >= self.config.budget_max_usd
+            ):
+                return True
         return False
+
+    def _evaluate_generation(
+        self, population: list[Gene], generation: int
+    ) -> list[tuple[Gene, float]]:
+        """Evaluate all genes in a generation, up to config.concurrency in parallel."""
+        concurrency = max(1, self.config.concurrency)
+        scored: list[tuple[Gene, float]] = []
+
+        with ThreadPoolExecutor(max_workers=concurrency) as executor:
+            future_to_gene = {
+                executor.submit(self._evaluate_gene, gene, generation): gene
+                for gene in population
+                if not self._budget_exceeded()
+            }
+            for future in as_completed(future_to_gene):
+                if self._budget_exceeded():
+                    break
+                fitness, _ = future.result()
+                scored.append((future_to_gene[future], fitness))
+
+        return scored
 
     def run(self) -> Gene:
         """Run the GP loop and return the best gene found."""
@@ -110,20 +137,16 @@ class GPLoop:
             if self._budget_exceeded():
                 break
 
-            # Evaluate
-            scored: list[tuple[Gene, float]] = []
-            for gene in population:
-                if self._budget_exceeded():
-                    break
-                fitness, _ = self._evaluate_gene(gene, generation)
-                scored.append((gene, fitness))
+            scored = self._evaluate_generation(population, generation)
+
+            if not scored:
+                break
+
+            for gene, fitness in scored:
                 if fitness > best_fitness:
                     best_fitness = fitness
                     best_gene = gene
                     no_improvement = 0
-
-            if not scored:
-                break
 
             if no_improvement >= self.config.convergence_patience:
                 break
@@ -146,7 +169,6 @@ class GPLoop:
                     try:
                         new_population.append(mutate_prompt(parent1))
                     except Exception:
-                        # mutate_prompt requires an LLM; fall back to param mutation
                         new_population.append(mutate_param(parent1))
                 elif op == "mutate_param":
                     new_population.append(mutate_param(parent1))
