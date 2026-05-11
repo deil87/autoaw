@@ -1,14 +1,25 @@
 from __future__ import annotations
-import copy
+import os
 import random
 from backend.shared.gene import Gene, Agent, Edge, TopologyType
+from backend.engine.llm_client import ProviderConfig, make_client
+
+_DEFAULT_ALLOWED_MODELS = ["gpt-4o-mini", "gpt-4o"]
 
 
-def _rewrite_prompt_with_llm(prompt: str) -> str:
+def _provider_from_env() -> ProviderConfig:
+    github_token = os.environ.get("GITHUB_TOKEN")
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    if github_token:
+        return ProviderConfig(provider="github", api_key=github_token)
+    if openai_key:
+        return ProviderConfig(provider="openai", api_key=openai_key)
+    raise ValueError("No LLM provider configured. Set GITHUB_TOKEN or OPENAI_API_KEY.")
+
+
+def _rewrite_prompt_with_llm(prompt: str, provider_config: ProviderConfig) -> str:
     """Call an LLM to rewrite a system prompt with diversity directive."""
-    import openai
-
-    client = openai.OpenAI()
+    client = make_client(provider_config)
     meta_prompt = (
         "Rewrite the following system prompt to achieve the same goal but with a "
         "different phrasing, structure, and strategy. The rewrite must be meaningfully "
@@ -23,8 +34,13 @@ def _rewrite_prompt_with_llm(prompt: str) -> str:
     return response.choices[0].message.content.strip()
 
 
-def mutate_structure(gene: Gene) -> Gene:
+def mutate_structure(
+    gene: Gene,
+    provider_config: ProviderConfig | None = None,
+    allowed_models: list[str] | None = None,
+) -> Gene:
     """Randomly apply one structural mutation: add agent, remove agent, swap topology, or rewire edge."""
+    models = allowed_models if allowed_models else _DEFAULT_ALLOWED_MODELS
     g = gene.copy()
     choices = ["add_agent", "swap_topology"]
     if len(g.agents) > 1:
@@ -42,7 +58,7 @@ def mutate_structure(gene: Gene) -> Gene:
                 role=random.choice(
                     ["analyst", "critic", "writer", "researcher", "synthesizer"]
                 ),
-                model=random.choice(["gpt-4o-mini", "gpt-4o"]),
+                model=random.choice(models),
                 system_prompt="You assist with tasks assigned to you. Be helpful and precise.",
                 temperature=round(random.uniform(0.3, 0.9), 2),
             )
@@ -77,11 +93,16 @@ def mutate_structure(gene: Gene) -> Gene:
     return g
 
 
-def mutate_prompt(gene: Gene) -> Gene:
+def mutate_prompt(
+    gene: Gene,
+    provider_config: ProviderConfig | None = None,
+    allowed_models: list[str] | None = None,
+) -> Gene:
     """Select one random agent and rewrite its system prompt via LLM."""
+    cfg = provider_config or _provider_from_env()
     g = gene.copy()
     agent = random.choice(g.agents)
-    agent.system_prompt = _rewrite_prompt_with_llm(agent.system_prompt)
+    agent.system_prompt = _rewrite_prompt_with_llm(agent.system_prompt, cfg)
     return g
 
 

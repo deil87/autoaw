@@ -41,12 +41,13 @@ def test_mutate_param_changes_temperature():
 def test_mutate_prompt_calls_llm(monkeypatch):
     gene = make_gene()
 
-    def fake_rewrite(prompt: str) -> str:
+    def fake_rewrite(prompt: str, provider_config) -> str:
         return "Rewritten: " + prompt
 
     monkeypatch.setattr(
         "backend.engine.gp.operators._rewrite_prompt_with_llm", fake_rewrite
     )
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
     mutated = mutate_prompt(gene)
     assert mutated is not gene
     # At least one system prompt should be different
