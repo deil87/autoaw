@@ -1,4 +1,5 @@
 import { ExperimentForm } from "@/components/experiment-form";
+import type { ExperimentFormInitialValues } from "@/components/experiment-form";
 import { api } from "@/lib/api";
 import type { ExperimentConfig } from "@/lib/types";
 
@@ -7,7 +8,7 @@ interface PageProps {
 }
 
 export default async function NewExperimentPage({ searchParams }: PageProps) {
-  let initialValues: Parameters<typeof ExperimentForm>[0]["initialValues"] = undefined;
+  let initialValues: ExperimentFormInitialValues | undefined = undefined;
 
   if (searchParams.from) {
     try {

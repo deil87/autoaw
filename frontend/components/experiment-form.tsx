@@ -18,16 +18,18 @@ import type { ExperimentConfig, ObjectiveWeights } from "@/lib/types";
 
 const DEFAULT_WEIGHTS: ObjectiveWeights = { quality: 0.6, cost: 0.2, speed: 0.2 };
 
+export interface ExperimentFormInitialValues {
+  name?: string;
+  task_description?: string;
+  dataset_id?: string;
+  rubric?: string;
+  objective_weights?: ObjectiveWeights;
+  population_size?: number;
+  budget_max_trials?: number;
+}
+
 interface ExperimentFormProps {
-  initialValues?: Partial<{
-    name: string;
-    task_description: string;
-    dataset_id: string;
-    rubric: string;
-    objective_weights: ObjectiveWeights;
-    population_size: number;
-    budget_max_trials: number;
-  }>;
+  initialValues?: ExperimentFormInitialValues;
 }
 
 export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
