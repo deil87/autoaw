@@ -1,10 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ObjectiveSliders } from "@/components/objective-sliders";
 import { api } from "@/lib/api";
 import type { ExperimentConfig, ObjectiveWeights } from "@/lib/types";
@@ -16,6 +23,7 @@ export function ExperimentForm() {
   const [name, setName] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [datasetId, setDatasetId] = useState("");
+  const [datasetOptions, setDatasetOptions] = useState<string[]>([]);
   const [judgeModel, setJudgeModel] = useState("gpt-4o-mini");
   const [rubric, setRubric] = useState("Rate the output 0 to 1 on accuracy, completeness, and clarity.");
   const [weights, setWeights] = useState<ObjectiveWeights>(DEFAULT_WEIGHTS);
@@ -23,6 +31,16 @@ export function ExperimentForm() {
   const [budgetTrials, setBudgetTrials] = useState(200);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.datasets.list().then((list) => {
+      const ids = list.map((d) => d.dataset_id);
+      setDatasetOptions(ids);
+      if (ids.length > 0 && !datasetId) setDatasetId(ids[0]);
+    }).catch(() => {
+      // silently fall back to text input
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,8 +80,26 @@ export function ExperimentForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="dataset">Dataset ID</Label>
-        <Input id="dataset" value={datasetId} onChange={(e) => setDatasetId(e.target.value)} required placeholder="e.g. ds_summarize_001" />
+        <Label htmlFor="dataset">Dataset</Label>
+        {datasetOptions.length > 0 ? (
+          <Select value={datasetId} onValueChange={(v) => v && setDatasetId(v)} required>
+            <SelectTrigger id="dataset">
+              <SelectValue placeholder="Select a dataset" />
+            </SelectTrigger>
+            <SelectContent>
+              {datasetOptions.map((id) => (
+                <SelectItem key={id} value={id}>{id}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="space-y-1">
+            <Input id="dataset" value={datasetId} onChange={(e) => setDatasetId(e.target.value)} required placeholder="e.g. ds1" />
+            <p className="text-xs text-muted-foreground">
+              No datasets found. <a href="/datasets" className="underline">Upload one</a> or enter an ID manually.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
