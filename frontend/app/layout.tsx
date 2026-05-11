@@ -1,23 +1,22 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Nav } from "@/components/nav";
 import "./globals.css";
-import { cn } from "@/lib/utils";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AutoAW",
-  description: "AutoML-style framework for multi-agent workflows",
+  title: "AutoAW — AutoML for Agentic Workflows",
+  description: "Automatically discover optimal multi-agent workflow configurations.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={cn("font-sans", inter.variable)}>
-      <body className="antialiased">{children}</body>
+    <html lang="en">
+      <body className={inter.className}>
+        <Nav />
+        <main className="max-w-7xl mx-auto px-4 py-6">{children}</main>
+      </body>
     </html>
   );
 }
