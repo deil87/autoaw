@@ -5,7 +5,12 @@ import re
 from typing import Any
 from backend.shared.results import Score
 from backend.engine.evaluator.base import Evaluator
-from backend.engine.llm_client import ProviderConfig, make_client, provider_from_env
+from backend.engine.llm_client import (
+    ProviderConfig,
+    make_client,
+    provider_from_env,
+    chat_with_retry,
+)
 
 
 class LLMJudgeEvaluator(Evaluator):
@@ -24,8 +29,8 @@ class LLMJudgeEvaluator(Evaluator):
     def _call_llm(self, model: str, messages: list[dict], temperature: float) -> Any:
         cfg = self._provider_config or provider_from_env()
         client = make_client(cfg)
-        return client.chat.completions.create(
-            model=model, messages=messages, temperature=temperature
+        return chat_with_retry(
+            client, model=model, messages=messages, temperature=temperature
         )
 
     def score(self, input: str, output: str, expected: str | None) -> Score:

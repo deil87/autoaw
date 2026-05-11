@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
+from openai import RateLimitError
 from backend.engine.evaluator.base import Evaluator
 from backend.engine.evaluator.llm_judge import LLMJudgeEvaluator
 from backend.engine.evaluator.function_eval import FunctionEvaluator
@@ -65,3 +66,43 @@ def test_function_evaluator_clamps_out_of_range():
     evaluator = FunctionEvaluator(fn=bad_scorer)
     score = evaluator.score(input="q", output="a", expected="e")
     assert score.quality == 1.0  # clamped to 1.0
+
+
+def _make_rate_limit_error(message: str) -> RateLimitError:
+    mock_resp = MagicMock()
+    mock_resp.status_code = 429
+    mock_resp.json.return_value = {"error": {"message": message}}
+    mock_resp.headers = {}
+    return RateLimitError(message, response=mock_resp, body=None)
+
+
+def test_llm_judge_retries_on_rate_limit():
+    """LLMJudgeEvaluator retries via chat_with_retry on RateLimitError."""
+    evaluator = LLMJudgeEvaluator(model="gpt-4o-mini", rubric="Rate 0-1.")
+
+    good_response = MagicMock(
+        choices=[MagicMock(message=MagicMock(content='{"score": 0.9, "reason": "ok"}'))]
+    )
+    rate_err = _make_rate_limit_error("Please wait 1 seconds before retrying.")
+    call_results = iter([rate_err, good_response])
+
+    def fake_create(**kwargs):
+        val = next(call_results)
+        if isinstance(val, Exception):
+            raise val
+        return val
+
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.side_effect = fake_create
+
+    with (
+        patch(
+            "backend.engine.evaluator.llm_judge.make_client", return_value=mock_client
+        ),
+        patch("backend.engine.evaluator.llm_judge.provider_from_env"),
+        patch("backend.engine.llm_client.time.sleep") as mock_sleep,
+    ):
+        score = evaluator.score(input="q", output="a", expected=None)
+
+    assert score.quality == pytest.approx(0.9)
+    assert mock_sleep.call_count == 1  # one sleep before the retry

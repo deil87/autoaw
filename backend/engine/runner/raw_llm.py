@@ -1,31 +1,22 @@
 from __future__ import annotations
-import logging
-import re
 import time
 from typing import Any
 from openai import RateLimitError
 from backend.shared.gene import Gene, TopologyType
 from backend.shared.results import RunResult
 from backend.engine.runner.base import WorkflowRunner
-from backend.engine.llm_client import ProviderConfig, make_client, provider_from_env
+from backend.engine.llm_client import (
+    ProviderConfig,
+    make_client,
+    provider_from_env,
+    _parse_retry_after,
+    _MAX_RETRIES,
+    _RETRY_BASE_DELAY,
+    _RETRY_MAX_DELAY,
+)
+import logging
 
 logger = logging.getLogger(__name__)
-
-_MAX_RETRIES = 5
-_RETRY_BASE_DELAY = 5.0  # seconds — first backoff before retry
-_RETRY_MAX_DELAY = 300.0  # cap per-attempt wait at 5 minutes
-
-
-def _parse_retry_after(error: RateLimitError) -> float | None:
-    """Extract suggested wait seconds from the 429 error message, if present."""
-    try:
-        msg = str(error)
-        match = re.search(r"Please wait (\d+) seconds", msg)
-        if match:
-            return float(match.group(1))
-    except Exception:
-        pass
-    return None
 
 
 # Cost per 1k tokens (prompt/completion) by model prefix
@@ -57,7 +48,7 @@ class RawLLMRunner(WorkflowRunner):
     def _call_llm_once(
         self, model: str, messages: list[dict], temperature: float
     ) -> Any:
-        """Single LLM call with no retry. Override in tests."""
+        """Single LLM call with no retry. Separated from _call_llm for testability."""
         cfg = self._provider_config or provider_from_env()
         client = make_client(cfg)
         return client.chat.completions.create(
@@ -65,6 +56,7 @@ class RawLLMRunner(WorkflowRunner):
         )
 
     def _call_llm(self, model: str, messages: list[dict], temperature: float) -> Any:
+        """Call _call_llm_once with exponential-backoff retry on RateLimitError."""
         delay = _RETRY_BASE_DELAY
         for attempt in range(_MAX_RETRIES + 1):
             try:
