@@ -25,20 +25,20 @@ cp .env.example .env
 # Edit .env and add your OPENAI_API_KEY
 ```
 
-### 3. Start the backend
+### 3. Install frontend dependencies
 
 ```bash
-uvicorn backend.api.app:app --reload --port 8000
+npm install          # installs concurrently at the root
+npm install --prefix frontend
 ```
 
-### 4. Start the frontend
+### 4. Start everything
 
 ```bash
-cd frontend
-npm install
 npm run dev
 ```
 
+This starts the FastAPI backend (port 8000) and Next.js frontend (port 3000) together.
 Open [http://localhost:3000](http://localhost:3000).
 
 ## Running experiments via API
