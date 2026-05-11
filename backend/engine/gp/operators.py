@@ -2,19 +2,9 @@ from __future__ import annotations
 import os
 import random
 from backend.shared.gene import Gene, Agent, Edge, TopologyType
-from backend.engine.llm_client import ProviderConfig, make_client
+from backend.engine.llm_client import ProviderConfig, make_client, provider_from_env
 
 _DEFAULT_ALLOWED_MODELS = ["gpt-4o-mini", "gpt-4o"]
-
-
-def _provider_from_env() -> ProviderConfig:
-    github_token = os.environ.get("GITHUB_TOKEN")
-    openai_key = os.environ.get("OPENAI_API_KEY")
-    if github_token:
-        return ProviderConfig(provider="github", api_key=github_token)
-    if openai_key:
-        return ProviderConfig(provider="openai", api_key=openai_key)
-    raise ValueError("No LLM provider configured. Set GITHUB_TOKEN or OPENAI_API_KEY.")
 
 
 def _rewrite_prompt_with_llm(prompt: str, provider_config: ProviderConfig) -> str:
@@ -99,7 +89,7 @@ def mutate_prompt(
     allowed_models: list[str] | None = None,
 ) -> Gene:
     """Select one random agent and rewrite its system prompt via LLM."""
-    cfg = provider_config or _provider_from_env()
+    cfg = provider_config or provider_from_env()
     g = gene.copy()
     agent = random.choice(g.agents)
     agent.system_prompt = _rewrite_prompt_with_llm(agent.system_prompt, cfg)

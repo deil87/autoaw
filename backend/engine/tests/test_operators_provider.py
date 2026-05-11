@@ -59,7 +59,10 @@ def test_mutate_structure_single_allowed_model():
 
 
 def test_mutate_prompt_no_provider_falls_back_to_env(monkeypatch):
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-env")
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
     fake_response = MagicMock()
     fake_response.choices[0].message.content = "env prompt"
 

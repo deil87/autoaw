@@ -30,7 +30,10 @@ def test_runner_uses_provider_client():
 
 
 def test_runner_no_provider_config_falls_back_to_env(monkeypatch):
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-env-test")
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
     runner = RawLLMRunner()
     gene = Gene.from_dict(load_fixture("fixed_pipeline"))
 

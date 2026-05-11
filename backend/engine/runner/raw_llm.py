@@ -5,17 +5,7 @@ from typing import Any
 from backend.shared.gene import Gene, TopologyType
 from backend.shared.results import RunResult
 from backend.engine.runner.base import WorkflowRunner
-from backend.engine.llm_client import ProviderConfig, make_client
-
-
-def _provider_from_env() -> ProviderConfig:
-    github_token = os.environ.get("GITHUB_TOKEN")
-    openai_key = os.environ.get("OPENAI_API_KEY")
-    if github_token:
-        return ProviderConfig(provider="github", api_key=github_token)
-    if openai_key:
-        return ProviderConfig(provider="openai", api_key=openai_key)
-    raise ValueError("No LLM provider configured. Set GITHUB_TOKEN or OPENAI_API_KEY.")
+from backend.engine.llm_client import ProviderConfig, make_client, provider_from_env
 
 
 # Cost per 1k tokens (prompt/completion) by model prefix
@@ -45,7 +35,7 @@ class RawLLMRunner(WorkflowRunner):
         self._provider_config = provider_config  # None = lazy env lookup on first call
 
     def _call_llm(self, model: str, messages: list[dict], temperature: float) -> Any:
-        cfg = self._provider_config or _provider_from_env()
+        cfg = self._provider_config or provider_from_env()
         client = make_client(cfg)
         return client.chat.completions.create(
             model=model, messages=messages, temperature=temperature

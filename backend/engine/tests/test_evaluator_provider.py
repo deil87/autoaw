@@ -30,7 +30,10 @@ def test_evaluator_uses_provider_client():
 
 
 def test_evaluator_no_provider_falls_back_to_env(monkeypatch):
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-env")
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
     evaluator = LLMJudgeEvaluator(model="gpt-4o-mini", rubric="Rate 0-1.")
 
     with patch("backend.engine.llm_client.openai.OpenAI") as mock_cls:

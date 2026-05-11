@@ -5,19 +5,10 @@ from typing import Any
 
 
 def _provider_from_env():
-    """Import here to avoid circular imports; returns a ProviderConfig."""
-    from backend.engine.llm_client import ProviderConfig
+    """Thin wrapper; import deferred to avoid circular imports at module load."""
+    from backend.engine.llm_client import provider_from_env
 
-    github_token = os.environ.get("GITHUB_TOKEN")
-    openai_key = os.environ.get("OPENAI_API_KEY")
-    if github_token:
-        return ProviderConfig(provider="github", api_key=github_token)
-    if openai_key:
-        return ProviderConfig(provider="openai", api_key=openai_key)
-    raise ValueError(
-        "No LLM provider configured. Set GITHUB_TOKEN or OPENAI_API_KEY, "
-        "or include 'provider' in experiment config."
-    )
+    return provider_from_env()
 
 
 @dataclass
