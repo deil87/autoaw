@@ -5,10 +5,12 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FitnessChart } from "@/components/fitness-chart";
+import { ExperimentDetails } from "@/components/experiment-details";
 import { api } from "@/lib/api";
 import { useExperimentSocket } from "@/lib/websocket";
-import type { Experiment, Trial } from "@/lib/types";
+import type { Experiment, Trial, ExperimentConfig } from "@/lib/types";
 
 interface FitnessPoint { trial: number; fitness: number; quality: number; }
 
@@ -61,6 +63,13 @@ export default function MonitorPage({ params }: { params: { id: string } }) {
 
   if (!experiment) return <p className="text-muted-foreground">Loading...</p>;
 
+  let config: ExperimentConfig | null = null;
+  try {
+    if (experiment.config_json) config = JSON.parse(experiment.config_json) as ExperimentConfig;
+  } catch {
+    // config remains null — ExperimentDetails handles graceful fallback
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -69,42 +78,55 @@ export default function MonitorPage({ params }: { params: { id: string } }) {
           <Badge className="mt-1">{experiment.status}</Badge>
         </div>
         <div className="flex gap-2">
-          {(experiment.status === "pending") && (
+          {experiment.status === "pending" && (
             <button onClick={handleStart} className={cn(buttonVariants())}>Start</button>
           )}
           <Link href={`/experiments/${id}/leaderboard`} className={cn(buttonVariants({ variant: "outline" }))}>Leaderboard</Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Trials</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{trials.length}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Best Fitness</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {experiment.best_fitness != null ? experiment.best_fitness.toFixed(3) : trials.length > 0 ? Math.max(...trials.map((t) => t.fitness)).toFixed(3) : "—"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Cost</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              ${trials.reduce((sum, t) => sum + t.cost_usd, 0).toFixed(4)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Tabs defaultValue="monitor">
+        <TabsList>
+          <TabsTrigger value="monitor">Monitor</TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader><CardTitle>Fitness Over Trials</CardTitle></CardHeader>
-        <CardContent>
-          <FitnessChart data={chartData} />
-        </CardContent>
-      </Card>
+        <TabsContent value="monitor" className="space-y-4 mt-4">
+          <div className="grid grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Trials</CardTitle></CardHeader>
+              <CardContent><p className="text-2xl font-bold">{trials.length}</p></CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Best Fitness</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">
+                  {experiment.best_fitness != null ? experiment.best_fitness.toFixed(3) : trials.length > 0 ? Math.max(...trials.map((t) => t.fitness)).toFixed(3) : "—"}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Cost</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">
+                  ${trials.reduce((sum, t) => sum + t.cost_usd, 0).toFixed(4)}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader><CardTitle>Fitness Over Trials</CardTitle></CardHeader>
+            <CardContent>
+              <FitnessChart data={chartData} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="details" className="mt-4">
+          <ExperimentDetails config={config} experiment={experiment} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
