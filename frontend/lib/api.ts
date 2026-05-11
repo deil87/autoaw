@@ -47,6 +47,9 @@ export const api = {
   datasets: {
     list: () => request<{ dataset_id: string }[]>("/datasets"),
 
+    get: (id: string) =>
+      request<{ input: string; expected: string }[]>(`/datasets/${id}`),
+
     upload: async (file: File): Promise<{ dataset_id: string; records: number }> => {
       const form = new FormData();
       form.append("file", file);
