@@ -34,6 +34,21 @@ def test_health(client):
     assert resp.json() == {"status": "ok"}
 
 
+def test_get_benchmarks(client):
+    resp = client.get("/benchmarks")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    wb = next((b for b in data if b["id"] == "workbench"), None)
+    assert wb is not None
+    assert wb["runner_type"] == "workbench"
+    assert wb["evaluator_type"] == "workbench"
+    assert wb["dataset_id"] == "workbench"
+    assert wb["task_count"] == 690
+    assert "default_objective" in wb
+
+
 def test_create_experiment(client):
     payload = {
         "name": "test experiment",

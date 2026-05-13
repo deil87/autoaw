@@ -85,6 +85,32 @@ class CreateExperimentRequest(BaseModel):
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+_BENCHMARKS = [
+    {
+        "id": "workbench",
+        "name": "WorkBench",
+        "description": (
+            "690 workplace tasks (calendar, email, database, files). "
+            "Evaluated by tool-call trace matching."
+        ),
+        "paper_url": "https://arxiv.org/abs/2405.00823",
+        "dataset_id": "workbench",
+        "runner_type": "workbench",
+        "evaluator_type": "workbench",
+        "default_objective": {
+            "quality_weight": 0.7,
+            "cost_weight": 0.2,
+            "speed_weight": 0.1,
+        },
+        "task_count": 690,
+    }
+]
+
+
+@app.get("/benchmarks")
+def list_benchmarks():
+    return _BENCHMARKS
+
 
 @app.get("/health")
 def health():
