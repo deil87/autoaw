@@ -54,26 +54,62 @@ class GPLoop:
         self._total_cost = 0.0
         self._lock = threading.Lock()
 
-    def _evaluate_gene(self, gene: Gene, generation: int) -> tuple[float, ParetoPoint]:
-        """Evaluate a gene on a random sample from the dataset. Thread-safe."""
-        sample = random.choice(self.dataset)
-        run_result = self.runner.run(gene, sample["input"])
+    def _evaluate_gene(
+        self,
+        gene: Gene,
+        generation: int,
+        parent_gene_ids: list[str] | None = None,
+        mutation_op: str = "seed",
+    ) -> tuple[float, ParetoPoint, list[EvalRowResult]]:
+        """Evaluate a gene on ALL dataset rows. Thread-safe."""
+        eval_rows: list[EvalRowResult] = []
+        total_quality = 0.0
+        total_cost = 0.0
+        total_latency = 0
+        last_scores: list[Score] = []
 
-        with self._lock:
-            self._trial_count += 1
-            self._total_cost += run_result.cost_usd
+        for idx, sample in enumerate(self.dataset):
+            run_result = self.runner.run(gene, sample["input"])
 
-        scores = [
-            ev.score(sample["input"], run_result.output, sample.get("expected"))
-            for ev in self.evaluators
-        ]
-        avg_quality = sum(s.quality for s in scores) / len(scores) if scores else 0.0
+            with self._lock:
+                self._trial_count += 1
+                self._total_cost += run_result.cost_usd
 
+            scores = [
+                ev.score(sample["input"], run_result.output, sample.get("expected"))
+                for ev in self.evaluators
+            ]
+            last_scores = scores
+            avg_quality = (
+                sum(s.quality for s in scores) / len(scores) if scores else 0.0
+            )
+            reasoning = scores[0].metadata.get("reason", "") if scores else ""
+
+            eval_rows.append(
+                EvalRowResult(
+                    row_index=idx,
+                    input_json=json.dumps(sample),
+                    output_text=run_result.output,
+                    score=avg_quality,
+                    score_reasoning=reasoning,
+                    latency_ms=run_result.latency_ms,
+                    cost_usd=run_result.cost_usd,
+                )
+            )
+            total_quality += avg_quality
+            total_cost += run_result.cost_usd
+            total_latency += run_result.latency_ms
+
+            if self._budget_exceeded():
+                break
+
+        n = len(eval_rows) or 1
+        avg_quality = total_quality / n
         max_cost = self.config.budget_max_usd or 1.0
         pareto = ParetoPoint(
             quality=avg_quality,
-            cost_usd=run_result.cost_usd,
-            latency_ms=run_result.latency_ms,
+            cost_usd=total_cost / n,
+            latency_ms=int(total_latency / n),
         )
         fitness = pareto.scalar_fitness(
             self.config.objective_weights,
@@ -81,19 +117,29 @@ class GPLoop:
             max_latency_ms=30000,
         )
 
+        first_run = RunResult(
+            output=eval_rows[0].output_text if eval_rows else "",
+            token_usage={},
+            latency_ms=eval_rows[0].latency_ms if eval_rows else 0,
+            cost_usd=eval_rows[0].cost_usd if eval_rows else 0.0,
+        )
+
         if self.on_trial_complete:
             self.on_trial_complete(
                 TrialResult(
                     gene=gene,
                     generation=generation,
-                    input=sample["input"],
-                    run_result=run_result,
-                    scores=scores,
+                    input=self.dataset[0]["input"] if self.dataset else "",
+                    run_result=first_run,
+                    scores=last_scores,
                     pareto=pareto,
                     fitness=fitness,
+                    parent_gene_ids=parent_gene_ids or [],
+                    mutation_op=mutation_op,
+                    eval_rows=eval_rows,
                 )
             )
-        return fitness, pareto
+        return fitness, pareto, eval_rows
 
     def _budget_exceeded(self) -> bool:
         with self._lock:
@@ -110,7 +156,9 @@ class GPLoop:
         return False
 
     def _evaluate_generation(
-        self, population: list[Gene], generation: int
+        self,
+        population: list[tuple[Gene, list[str], str]],
+        generation: int,
     ) -> list[tuple[Gene, float]]:
         """Evaluate all genes in a generation, up to config.concurrency in parallel."""
         concurrency = max(1, self.config.concurrency)
@@ -118,22 +166,28 @@ class GPLoop:
 
         with ThreadPoolExecutor(max_workers=concurrency) as executor:
             future_to_gene = {
-                executor.submit(self._evaluate_gene, gene, generation): gene
-                for gene in population
+                executor.submit(
+                    self._evaluate_gene, gene, generation, parent_ids, mut_op
+                ): gene
+                for gene, parent_ids, mut_op in population
                 if not self._budget_exceeded()
             }
             for future in as_completed(future_to_gene):
                 if self._budget_exceeded():
                     break
-                fitness, _ = future.result()
+                fitness, _, _ = future.result()
                 scored.append((future_to_gene[future], fitness))
 
         return scored
 
     def run(self) -> Gene:
         """Run the GP loop and return the best gene found."""
-        population = seed_population(self.config)
-        best_gene = population[0]
+        seed_genes = seed_population(self.config)
+        # Wrap: (gene, parent_ids, mutation_op)
+        population: list[tuple[Gene, list[str], str]] = [
+            (g, [], "seed") for g in seed_genes
+        ]
+        best_gene = seed_genes[0]
         best_fitness = float("-inf")
         no_improvement = 0
 
@@ -161,37 +215,44 @@ class GPLoop:
             survivors = [g for g, _ in scored[: max(1, len(scored) // 2)]]
 
             # Reproduce: fill population back to size
-            new_population = list(survivors)
+            new_population: list[tuple[Gene, list[str], str]] = [
+                (g, [], "survived") for g in survivors
+            ]
             while len(new_population) < self.config.population_size:
                 parent1 = random.choice(survivors)
                 op = random.choice(
                     ["mutate_structure", "mutate_prompt", "mutate_param", "crossover"]
                 )
                 if op == "mutate_structure":
-                    new_population.append(
-                        mutate_structure(
-                            parent1,
-                            provider_config=self.config.provider,
-                            allowed_models=self.config.allowed_models,
-                        )
+                    child = mutate_structure(
+                        parent1,
+                        provider_config=self.config.provider,
+                        allowed_models=self.config.allowed_models,
                     )
+                    new_population.append((child, [parent1.id], "mutate_structure"))
                 elif op == "mutate_prompt":
                     try:
-                        new_population.append(
-                            mutate_prompt(parent1, provider_config=self.config.provider)
+                        child = mutate_prompt(
+                            parent1, provider_config=self.config.provider
                         )
+                        new_population.append((child, [parent1.id], "mutate_prompt"))
                     except Exception:
-                        new_population.append(mutate_param(parent1))
+                        child = mutate_param(parent1)
+                        new_population.append((child, [parent1.id], "mutate_param"))
                 elif op == "mutate_param":
-                    new_population.append(mutate_param(parent1))
+                    child = mutate_param(parent1)
+                    new_population.append((child, [parent1.id], "mutate_param"))
                 elif op == "crossover" and len(survivors) > 1:
                     parent2 = random.choice(
                         [s for s in survivors if s is not parent1] or survivors
                     )
                     child1, _ = crossover_subgraph(parent1, parent2)
-                    new_population.append(child1)
+                    new_population.append(
+                        (child1, [parent1.id, parent2.id], "crossover_subgraph")
+                    )
                 else:
-                    new_population.append(mutate_param(parent1))
+                    child = mutate_param(parent1)
+                    new_population.append((child, [parent1.id], "mutate_param"))
 
             population = new_population[: self.config.population_size]
 
