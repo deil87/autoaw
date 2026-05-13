@@ -85,6 +85,7 @@ export default function MonitorPage({ params }: { params: { id: string } }) {
           )}
           <Link href={`/experiments/new?from=${id}`} className={cn(buttonVariants({ variant: "outline" }))}>Fork</Link>
           <Link href={`/experiments/${id}/leaderboard`} className={cn(buttonVariants({ variant: "outline" }))}>Leaderboard</Link>
+          <Link href={`/experiments/${id}/evolution`} className={cn(buttonVariants({ variant: "outline" }))}>Evolution</Link>
         </div>
       </div>
 
