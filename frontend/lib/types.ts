@@ -40,6 +40,22 @@ export interface EvaluatorConfig {
   params: Record<string, unknown>;
 }
 
+export interface BenchmarkDescriptor {
+  id: string;
+  name: string;
+  description: string;
+  paper_url: string;
+  dataset_id: string;
+  runner_type: string;
+  evaluator_type: string;
+  default_objective: {
+    quality_weight: number;
+    cost_weight: number;
+    speed_weight: number;
+  };
+  task_count: number;
+}
+
 export interface ExperimentConfig {
   name: string;
   task_description: string;
@@ -51,6 +67,8 @@ export interface ExperimentConfig {
   budget_max_usd?: number;
   convergence_patience: number;
   concurrency: number;
+  runner_type?: string;
+  evaluator_type?: string;
 }
 
 export type ExperimentStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
