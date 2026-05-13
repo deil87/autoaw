@@ -1,11 +1,22 @@
 from __future__ import annotations
+import logging
+import re
+import time
 from dataclasses import dataclass
+from typing import Any
 import openai
+from openai import RateLimitError
+
+logger = logging.getLogger(__name__)
 
 _PROVIDER_BASE_URLS: dict[str, str | None] = {
     "openai": None,
     "github": "https://models.inference.ai.azure.com",
 }
+
+_MAX_RETRIES = 5
+_RETRY_BASE_DELAY = 5.0
+_RETRY_MAX_DELAY = 300.0
 
 
 @dataclass
@@ -70,3 +81,42 @@ def make_client(cfg: ProviderConfig) -> openai.OpenAI:
         cfg.base_url if cfg.base_url is not None else _PROVIDER_BASE_URLS[cfg.provider]
     )
     return openai.OpenAI(api_key=cfg.api_key, base_url=base_url)
+
+
+def _parse_retry_after(error: RateLimitError) -> float | None:
+    """Extract suggested wait seconds from the 429 error message, if present."""
+    try:
+        match = re.search(r"Please wait (\d+) seconds", str(error))
+        if match:
+            return float(match.group(1))
+    except Exception:
+        pass
+    return None
+
+
+def chat_with_retry(
+    client: openai.OpenAI,
+    *,
+    model: str,
+    messages: list[dict],
+    temperature: float,
+) -> Any:
+    """Call client.chat.completions.create with exponential-backoff retry on 429."""
+    delay = _RETRY_BASE_DELAY
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            return client.chat.completions.create(
+                model=model, messages=messages, temperature=temperature
+            )
+        except RateLimitError as exc:
+            if attempt == _MAX_RETRIES:
+                raise
+            wait = min(_parse_retry_after(exc) or delay, _RETRY_MAX_DELAY)
+            logger.warning(
+                "Rate limited on attempt %d/%d; waiting %.0fs before retry.",
+                attempt + 1,
+                _MAX_RETRIES,
+                wait,
+            )
+            time.sleep(wait)
+            delay = min(delay * 2, _RETRY_MAX_DELAY)

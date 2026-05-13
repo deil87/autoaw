@@ -37,7 +37,7 @@ export function TrialTable({ trials, experimentId }: Props) {
             <TableCell>${trial.cost_usd.toFixed(5)}</TableCell>
             <TableCell>{trial.latency_ms}ms</TableCell>
             <TableCell>
-              <Link href={`/experiments/${experimentId}/trial/${trial.gene_id}`} className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>Inspect</Link>
+              <Link href={`/experiments/${experimentId}/trial/${trial.id}`} className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>Inspect</Link>
             </TableCell>
           </TableRow>
         ))}
