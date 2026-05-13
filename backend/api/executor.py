@@ -5,9 +5,13 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 
 from backend.shared.experiment import ExperimentConfig
+from backend.engine.runner.base import WorkflowRunner
+from backend.engine.evaluator.base import Evaluator
 from backend.engine.runner.raw_llm import RawLLMRunner
 from backend.engine.evaluator.llm_judge import LLMJudgeEvaluator
 from backend.engine.evaluator.function_eval import FunctionEvaluator
+from backend.engine.workbench.runner import WorkBenchRunner
+from backend.engine.workbench.evaluator import WorkBenchEvaluator
 from backend.engine.gp.loop import GPLoop
 from backend.engine.smbo.polish import smbo_polish
 from backend.api.store import LocalStore
@@ -15,7 +19,15 @@ from backend.api.store import LocalStore
 log = logging.getLogger(__name__)
 
 
-def _build_evaluators(config: ExperimentConfig):
+def _build_runner(config: ExperimentConfig) -> WorkflowRunner:
+    if config.runner_type == "workbench":
+        return WorkBenchRunner()
+    return RawLLMRunner()
+
+
+def _build_evaluators(config: ExperimentConfig) -> list[Evaluator]:
+    if config.evaluator_type == "workbench":
+        return [WorkBenchEvaluator()]
     evaluators = []
     for ev_config in config.evaluators:
         if ev_config.type == "llm_judge":
@@ -48,8 +60,8 @@ def _run_experiment(
         with open(dataset_path) as f:
             dataset = json.load(f)
 
+        runner = _build_runner(config)
         evaluators = _build_evaluators(config)
-        runner = RawLLMRunner()
 
         def on_trial(result):
             store.put_trial_result(experiment_id, result)

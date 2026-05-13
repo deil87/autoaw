@@ -189,3 +189,52 @@ def test_create_experiment_workbench_fields(client):
     config = json.loads(exp["config_json"])
     assert config["runner_type"] == "workbench"
     assert config["evaluator_type"] == "workbench"
+
+
+def test_executor_uses_workbench_runner(tmp_path):
+    """_run_experiment instantiates WorkBenchRunner when runner_type='workbench'."""
+    from unittest.mock import patch, MagicMock
+    from backend.api.store import LocalStore
+    from backend.api.executor import _run_experiment
+    from backend.shared.experiment import (
+        ExperimentConfig,
+        ObjectiveWeights,
+        EvaluatorConfig,
+    )
+
+    db_path = str(tmp_path / "test.db")
+    datasets_dir = str(tmp_path / "datasets")
+    os.makedirs(datasets_dir)
+
+    dataset = [{"input": "task1", "expected": "[]", "id": "wb_001"}]
+    with open(os.path.join(datasets_dir, "workbench.json"), "w") as f:
+        json.dump(dataset, f)
+
+    store = LocalStore(db_path=db_path)
+    store.init_db()
+
+    config = ExperimentConfig(
+        name="wb",
+        task_description="test",
+        dataset_id="workbench",
+        evaluators=[EvaluatorConfig(type="workbench", params={})],
+        objective_weights=ObjectiveWeights(quality=0.7, cost=0.2, speed=0.1),
+        population_size=2,
+        budget_max_trials=1,
+        runner_type="workbench",
+        evaluator_type="workbench",
+    )
+    exp_id = "exp_wb_test"
+    store.create_experiment(exp_id, config)
+
+    with (
+        patch("backend.api.executor.WorkBenchRunner") as mock_runner_cls,
+        patch("backend.api.executor.GPLoop") as mock_gp_cls,
+        patch("backend.api.executor.smbo_polish") as mock_polish,
+        patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}),
+    ):
+        mock_runner_cls.return_value = MagicMock()
+        mock_gp_cls.return_value.run.return_value = MagicMock(id="gene_abc")
+        mock_polish.return_value = MagicMock(id="gene_abc")
+        _run_experiment(exp_id, store, datasets_dir)
+        mock_runner_cls.assert_called_once()
