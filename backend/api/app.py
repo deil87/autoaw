@@ -171,6 +171,19 @@ def start_experiment(experiment_id: str):
     return {"status": "submitted", "experiment_id": experiment_id}
 
 
+@app.post("/experiments/{experiment_id}/stop")
+def stop_experiment(experiment_id: str):
+    try:
+        _store.get_experiment(experiment_id)
+    except KeyError:
+        raise HTTPException(
+            status_code=404, detail=f"Experiment {experiment_id!r} not found"
+        )
+    _executor.stop(experiment_id)
+    _store.update_experiment_status(experiment_id, "cancelled")
+    return {"status": "stopping", "experiment_id": experiment_id}
+
+
 @app.delete("/experiments/{experiment_id}", status_code=204)
 def delete_experiment(experiment_id: str):
     try:

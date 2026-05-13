@@ -35,6 +35,11 @@ export const api = {
         method: "POST",
       }),
 
+    stop: (id: string) =>
+      request<{ status: string; experiment_id: string }>(`/experiments/${id}/stop`, {
+        method: "POST",
+      }),
+
     lineage: (id: string) =>
       request<LineageNode[]>(`/experiments/${id}/lineage`),
   },
