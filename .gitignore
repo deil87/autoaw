@@ -15,6 +15,8 @@ dist/
 
 # Local runtime
 autoaw.db
+autoaw.db-shm
+autoaw.db-wal
 datasets/*.json
 !datasets/ds1.json
 .env.local
