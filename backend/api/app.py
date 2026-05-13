@@ -79,6 +79,8 @@ class CreateExperimentRequest(BaseModel):
     budget_max_usd: float | None = None
     convergence_patience: int = 10
     concurrency: int = 5
+    runner_type: str = "raw_llm"
+    evaluator_type: str = "llm_judge"
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -109,6 +111,8 @@ def create_experiment(req: CreateExperimentRequest):
         budget_max_usd=req.budget_max_usd,
         convergence_patience=req.convergence_patience,
         concurrency=req.concurrency,
+        runner_type=req.runner_type,
+        evaluator_type=req.evaluator_type,
     )
     _store.create_experiment(exp_id, config)
     return _store.get_experiment(exp_id)

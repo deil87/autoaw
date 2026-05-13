@@ -170,3 +170,22 @@ def test_list_trials(client):
     resp = client.get(f"/experiments/{exp_id}/trials")
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
+
+
+def test_create_experiment_workbench_fields(client):
+    """runner_type and evaluator_type round-trip through config."""
+    payload = {
+        "name": "wb test",
+        "task_description": "workplace tasks",
+        "dataset_id": "workbench",
+        "evaluators": [{"type": "workbench", "params": {}}],
+        "objective_weights": {"quality": 0.7, "cost": 0.2, "speed": 0.1},
+        "runner_type": "workbench",
+        "evaluator_type": "workbench",
+    }
+    resp = client.post("/experiments", json=payload)
+    assert resp.status_code == 201
+    exp = resp.json()
+    config = json.loads(exp["config_json"])
+    assert config["runner_type"] == "workbench"
+    assert config["evaluator_type"] == "workbench"

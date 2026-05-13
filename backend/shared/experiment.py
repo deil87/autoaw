@@ -59,6 +59,8 @@ class ExperimentConfig:
         default=None
     )  # ProviderConfig (typed as Any to avoid import at module level)
     allowed_models: list[str] = field(default_factory=lambda: ["gpt-4o-mini", "gpt-4o"])
+    runner_type: str = "raw_llm"
+    evaluator_type: str = "llm_judge"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -74,6 +76,8 @@ class ExperimentConfig:
             "concurrency": self.concurrency,
             "provider": self.provider.to_dict() if self.provider else None,
             "allowed_models": list(self.allowed_models),
+            "runner_type": self.runner_type,
+            "evaluator_type": self.evaluator_type,
         }
 
     @classmethod
@@ -98,4 +102,6 @@ class ExperimentConfig:
             concurrency=d.get("concurrency", 5),
             provider=provider,
             allowed_models=d.get("allowed_models", ["gpt-4o-mini", "gpt-4o"]),
+            runner_type=d.get("runner_type", "raw_llm"),
+            evaluator_type=d.get("evaluator_type", "llm_judge"),
         )
