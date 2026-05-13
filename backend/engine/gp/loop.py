@@ -1,14 +1,15 @@
 from __future__ import annotations
+import json
 import random
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 from deap import base, creator, tools, algorithms
 
 from backend.shared.gene import Gene
 from backend.shared.experiment import ExperimentConfig
-from backend.shared.results import RunResult, Score, ParetoPoint
+from backend.shared.results import RunResult, Score, ParetoPoint, EvalRowResult
 from backend.engine.runner.base import WorkflowRunner
 from backend.engine.evaluator.base import Evaluator
 from backend.engine.gp.operators import (
@@ -30,6 +31,9 @@ class TrialResult:
     scores: list[Score]
     pareto: ParetoPoint
     fitness: float
+    parent_gene_ids: list[str] = field(default_factory=list)
+    mutation_op: str = "seed"
+    eval_rows: list[EvalRowResult] = field(default_factory=list)
 
 
 class GPLoop:
