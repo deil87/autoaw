@@ -10,7 +10,8 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-load_dotenv()
+load_dotenv(".env.local", override=True)
+load_dotenv(".env")  # fallback for CI/prod where .env.local may not exist
 
 from backend.shared.experiment import (
     ExperimentConfig,
@@ -42,7 +43,11 @@ app = FastAPI(title="AutoAW", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3032",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -145,6 +150,48 @@ def delete_experiment(experiment_id: str):
             status_code=404, detail=f"Experiment {experiment_id!r} not found"
         )
     _store.update_experiment_status(experiment_id, "cancelled")
+
+
+@app.get("/experiments/{experiment_id}/trials/{trial_id}")
+def get_trial(experiment_id: str, trial_id: str):
+    try:
+        _store.get_experiment(experiment_id)
+    except KeyError:
+        raise HTTPException(
+            status_code=404, detail=f"Experiment {experiment_id!r} not found"
+        )
+    trial = _store.get_trial(experiment_id, trial_id)
+    if trial is None:
+        raise HTTPException(status_code=404, detail=f"Trial {trial_id!r} not found")
+    return trial
+
+
+@app.get("/experiments/{experiment_id}/trials/{trial_id}/eval-rows")
+def get_trial_eval_rows(experiment_id: str, trial_id: str):
+    try:
+        _store.get_experiment(experiment_id)
+    except KeyError:
+        raise HTTPException(
+            status_code=404, detail=f"Experiment {experiment_id!r} not found"
+        )
+    trial = _store.get_trial(experiment_id, trial_id)
+    if trial is None:
+        raise HTTPException(status_code=404, detail=f"Trial {trial_id!r} not found")
+    return _store.get_eval_rows(trial_id)
+
+
+@app.get("/experiments/{experiment_id}/lineage")
+def get_experiment_lineage(experiment_id: str):
+    try:
+        _store.get_experiment(experiment_id)
+    except KeyError:
+        raise HTTPException(
+            status_code=404, detail=f"Experiment {experiment_id!r} not found"
+        )
+    trials = _store.list_trials_lineage(experiment_id)
+    for t in trials:
+        t["parent_gene_ids"] = json.loads(t.get("parent_gene_ids") or "[]")
+    return trials
 
 
 @app.get("/experiments/{experiment_id}/trials")
