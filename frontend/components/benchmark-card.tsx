@@ -5,11 +5,12 @@ import type { BenchmarkDescriptor } from "@/lib/types";
 interface BenchmarkCardProps {
   benchmark: BenchmarkDescriptor;
   onSelect: (b: BenchmarkDescriptor) => void;
+  comingSoon?: boolean;
 }
 
-export function BenchmarkCard({ benchmark, onSelect }: BenchmarkCardProps) {
+export function BenchmarkCard({ benchmark, onSelect, comingSoon }: BenchmarkCardProps) {
   return (
-    <div className="border rounded-lg p-4 space-y-2 bg-card">
+    <div className={`border rounded-lg p-4 space-y-2 bg-card${comingSoon ? " opacity-60" : ""}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="font-semibold text-base">{benchmark.name}</h3>
@@ -26,9 +27,15 @@ export function BenchmarkCard({ benchmark, onSelect }: BenchmarkCardProps) {
             </a>
           </p>
         </div>
-        <Button size="sm" onClick={() => onSelect(benchmark)}>
-          Use this benchmark
-        </Button>
+        {comingSoon ? (
+          <span className="text-xs font-medium px-2 py-1 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
+            Coming Soon
+          </span>
+        ) : (
+          <Button size="sm" onClick={() => onSelect(benchmark)}>
+            Use this benchmark
+          </Button>
+        )}
       </div>
     </div>
   );
