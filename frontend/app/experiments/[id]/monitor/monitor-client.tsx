@@ -48,6 +48,8 @@ export default function MonitorPage({ params }: { params: { id: string } }) {
           cost_usd: event.cost_usd,
           latency_ms: event.latency_ms,
           created_at: new Date().toISOString(),
+          parent_gene_ids: [],
+          mutation_op: "",
         };
         return [newTrial, ...prev];
       });

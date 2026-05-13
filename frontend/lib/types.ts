@@ -80,4 +80,31 @@ export interface Trial {
   cost_usd: number;
   latency_ms: number;
   created_at: string;
+  parent_gene_ids: string[];
+  mutation_op: string;
+}
+
+export interface EvalRow {
+  id: string;
+  trial_id: string;
+  row_index: number;
+  input_json: string;
+  output_text: string;
+  score: number;
+  score_reasoning: string;
+  latency_ms: number;
+  cost_usd: number;
+}
+
+export interface LineageNode {
+  id: string;
+  gene_id: string;
+  generation: number;
+  fitness: number;
+  quality: number;
+  cost_usd: number;
+  latency_ms: number;
+  parent_gene_ids: string[];
+  mutation_op: string;
+  created_at: string;
 }

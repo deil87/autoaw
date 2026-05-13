@@ -1,4 +1,4 @@
-import type { Experiment, ExperimentConfig, Trial } from "@/lib/types";
+import type { Experiment, ExperimentConfig, Trial, EvalRow, LineageNode } from "@/lib/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -34,6 +34,9 @@ export const api = {
       request<{ status: string; experiment_id: string }>(`/experiments/${id}/start`, {
         method: "POST",
       }),
+
+    lineage: (id: string) =>
+      request<LineageNode[]>(`/experiments/${id}/lineage`),
   },
 
   trials: {
@@ -41,6 +44,14 @@ export const api = {
     list: (experimentId: string, page = 1, limit = 200) =>
       request<Trial[]>(
         `/experiments/${experimentId}/trials?page=${page}&limit=${limit}`
+      ),
+
+    get: (experimentId: string, trialId: string) =>
+      request<Trial>(`/experiments/${experimentId}/trials/${trialId}`),
+
+    evalRows: (experimentId: string, trialId: string) =>
+      request<EvalRow[]>(
+        `/experiments/${experimentId}/trials/${trialId}/eval-rows`
       ),
   },
 
