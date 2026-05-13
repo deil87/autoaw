@@ -26,6 +26,8 @@ export interface ExperimentFormInitialValues {
   objective_weights?: ObjectiveWeights;
   population_size?: number;
   budget_max_trials?: number;
+  runner_type?: string;
+  evaluator_type?: string;
 }
 
 interface ExperimentFormProps {
@@ -47,6 +49,8 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   );
   const [populationSize, setPopulationSize] = useState(initialValues?.population_size ?? 20);
   const [budgetTrials, setBudgetTrials] = useState(initialValues?.budget_max_trials ?? 200);
+  const [runnerType, setRunnerType] = useState(initialValues?.runner_type ?? "raw_llm");
+  const [evaluatorType, setEvaluatorType] = useState(initialValues?.evaluator_type ?? "llm_judge");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +78,8 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
       budget_max_trials: budgetTrials,
       convergence_patience: 10,
       concurrency: 5,
+      runner_type: runnerType,
+      evaluator_type: evaluatorType,
     };
     try {
       const exp = await api.experiments.create(config);
