@@ -44,12 +44,14 @@ class GPLoop:
         evaluators: list[Evaluator],
         dataset: list[dict],  # list of {"input": str, "expected": str | None}
         on_trial_complete: Callable[[TrialResult], None] | None = None,
+        stop_event: threading.Event | None = None,
     ) -> None:
         self.config = config
         self.runner = runner
         self.evaluators = evaluators
         self.dataset = dataset
         self.on_trial_complete = on_trial_complete
+        self._stop_event = stop_event or threading.Event()
         self._trial_count = 0
         self._total_cost = 0.0
         self._lock = threading.Lock()
@@ -142,6 +144,8 @@ class GPLoop:
         return fitness, pareto, eval_rows
 
     def _budget_exceeded(self) -> bool:
+        if self._stop_event.is_set():
+            return True
         with self._lock:
             if (
                 self.config.budget_max_trials
