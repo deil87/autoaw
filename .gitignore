@@ -10,7 +10,11 @@ out/
 dist/
 .DS_Store
 
+# Git worktrees
+.worktrees/
+
 # Local runtime
 autoaw.db
 datasets/*.json
 !datasets/ds1.json
+.env.local
