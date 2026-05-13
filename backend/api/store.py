@@ -39,6 +39,28 @@ CREATE TABLE IF NOT EXISTS trials (
 )
 """
 
+_ALTER_TRIALS_PARENT = """
+ALTER TABLE trials ADD COLUMN parent_gene_ids TEXT NOT NULL DEFAULT '[]'
+"""
+
+_ALTER_TRIALS_MUTATION_OP = """
+ALTER TABLE trials ADD COLUMN mutation_op TEXT NOT NULL DEFAULT 'seed'
+"""
+
+_CREATE_EVAL_ROWS = """
+CREATE TABLE IF NOT EXISTS eval_rows (
+    id              TEXT PRIMARY KEY,
+    trial_id        TEXT NOT NULL REFERENCES trials(id),
+    row_index       INTEGER NOT NULL,
+    input_json      TEXT NOT NULL,
+    output_text     TEXT NOT NULL DEFAULT '',
+    score           REAL NOT NULL,
+    score_reasoning TEXT NOT NULL DEFAULT '',
+    latency_ms      INTEGER NOT NULL DEFAULT 0,
+    cost_usd        REAL NOT NULL DEFAULT 0.0
+)
+"""
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -64,6 +86,13 @@ class LocalStore:
         conn = self._conn()
         conn.execute(_CREATE_EXPERIMENTS)
         conn.execute(_CREATE_TRIALS)
+        conn.execute(_CREATE_EVAL_ROWS)
+        # Idempotent ALTER TABLE — ignore if columns already exist
+        for stmt in (_ALTER_TRIALS_PARENT, _ALTER_TRIALS_MUTATION_OP):
+            try:
+                conn.execute(stmt)
+            except sqlite3.OperationalError:
+                pass  # Column already exists
         conn.commit()
 
     # ── Experiment CRUD ──────────────────────────────────────────────────────
@@ -122,13 +151,16 @@ class LocalStore:
     # ── Trials ───────────────────────────────────────────────────────────────
 
     def put_trial_result(self, experiment_id: str, result: TrialResult) -> None:
+        trial_id = str(uuid.uuid4())
+        now = _now()
         self._conn().execute(
             "INSERT INTO trials "
             "(id, experiment_id, generation, gene_id, gene_json, "
-            " fitness, quality, cost_usd, latency_ms, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            " fitness, quality, cost_usd, latency_ms, created_at, "
+            " parent_gene_ids, mutation_op) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                str(uuid.uuid4()),
+                trial_id,
                 experiment_id,
                 result.generation,
                 result.gene.id,
@@ -137,10 +169,41 @@ class LocalStore:
                 result.pareto.quality,
                 result.pareto.cost_usd,
                 result.pareto.latency_ms,
-                _now(),
+                now,
+                json.dumps(result.parent_gene_ids),
+                result.mutation_op,
             ),
         )
+        for row in result.eval_rows:
+            self._conn().execute(
+                "INSERT INTO eval_rows "
+                "(id, trial_id, row_index, input_json, output_text, score, "
+                " score_reasoning, latency_ms, cost_usd) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    str(uuid.uuid4()),
+                    trial_id,
+                    row.row_index,
+                    row.input_json,
+                    row.output_text,
+                    row.score,
+                    row.score_reasoning,
+                    row.latency_ms,
+                    row.cost_usd,
+                ),
+            )
         self._conn().commit()
+
+    def get_trial(self, experiment_id: str, trial_id: str) -> dict[str, Any] | None:
+        row = (
+            self._conn()
+            .execute(
+                "SELECT * FROM trials WHERE id = ? AND experiment_id = ?",
+                (trial_id, experiment_id),
+            )
+            .fetchone()
+        )
+        return dict(row) if row else None
 
     def list_trials(
         self, experiment_id: str, page: int = 1, limit: int = 50
@@ -152,6 +215,30 @@ class LocalStore:
                 "SELECT * FROM trials WHERE experiment_id = ? "
                 "ORDER BY created_at ASC LIMIT ? OFFSET ?",
                 (experiment_id, limit, offset),
+            )
+            .fetchall()
+        )
+        return [dict(r) for r in rows]
+
+    def get_eval_rows(self, trial_id: str) -> list[dict[str, Any]]:
+        rows = (
+            self._conn()
+            .execute(
+                "SELECT * FROM eval_rows WHERE trial_id = ? ORDER BY row_index ASC",
+                (trial_id,),
+            )
+            .fetchall()
+        )
+        return [dict(r) for r in rows]
+
+    def list_trials_lineage(self, experiment_id: str) -> list[dict[str, Any]]:
+        rows = (
+            self._conn()
+            .execute(
+                "SELECT id, gene_id, generation, fitness, quality, cost_usd, latency_ms, "
+                "       parent_gene_ids, mutation_op, created_at "
+                "FROM trials WHERE experiment_id = ? ORDER BY generation ASC, created_at ASC",
+                (experiment_id,),
             )
             .fetchall()
         )
