@@ -119,3 +119,46 @@ def test_list_trials_pagination(store):
     page2 = store.list_trials("exp_001", page=2, limit=3)
     assert len(page1) == 3
     assert len(page2) == 2
+
+
+def test_update_progress(tmp_path):
+    from backend.api.store import LocalStore
+
+    store = LocalStore(str(tmp_path / "test.db"))
+    store.init_db()
+    from backend.shared.experiment import ExperimentConfig, ObjectiveWeights
+
+    config = ExperimentConfig(
+        name="p",
+        task_description="t",
+        dataset_id="d",
+        evaluators=[],
+        objective_weights=ObjectiveWeights(0.7, 0.2, 0.1),
+        population_size=2,
+        convergence_patience=3,
+        concurrency=1,
+    )
+    store.create_experiment("exp_prog_001", config)
+
+    store.update_progress(
+        "exp_prog_001",
+        {
+            "rows_done": 50,
+            "rows_total": 690,
+            "generation": 2,
+            "phase": "gp",
+            "avg_row_ms": 1500,
+            "eta_s": 960,
+        },
+    )
+
+    row = store.get_experiment("exp_prog_001")
+    import json
+
+    progress = json.loads(row["progress_json"])
+    assert progress["rows_done"] == 50
+    assert progress["rows_total"] == 690
+    assert progress["generation"] == 2
+    assert progress["phase"] == "gp"
+    assert progress["avg_row_ms"] == 1500
+    assert progress["eta_s"] == 960

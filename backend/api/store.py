@@ -47,6 +47,10 @@ _ALTER_TRIALS_MUTATION_OP = """
 ALTER TABLE trials ADD COLUMN mutation_op TEXT NOT NULL DEFAULT 'seed'
 """
 
+_ALTER_EXPERIMENTS_PROGRESS = """
+ALTER TABLE experiments ADD COLUMN progress_json TEXT
+"""
+
 _CREATE_EVAL_ROWS = """
 CREATE TABLE IF NOT EXISTS eval_rows (
     id              TEXT PRIMARY KEY,
@@ -88,7 +92,11 @@ class LocalStore:
         conn.execute(_CREATE_TRIALS)
         conn.execute(_CREATE_EVAL_ROWS)
         # Idempotent ALTER TABLE — ignore if columns already exist
-        for stmt in (_ALTER_TRIALS_PARENT, _ALTER_TRIALS_MUTATION_OP):
+        for stmt in (
+            _ALTER_TRIALS_PARENT,
+            _ALTER_TRIALS_MUTATION_OP,
+            _ALTER_EXPERIMENTS_PROGRESS,
+        ):
             try:
                 conn.execute(stmt)
             except sqlite3.OperationalError:
@@ -133,6 +141,13 @@ class LocalStore:
         self._conn().execute(
             "UPDATE experiments SET status = ?, error_message = ?, updated_at = ? WHERE id = ?",
             (status, error, _now(), experiment_id),
+        )
+        self._conn().commit()
+
+    def update_progress(self, experiment_id: str, progress: dict) -> None:
+        self._conn().execute(
+            "UPDATE experiments SET progress_json = ?, updated_at = ? WHERE id = ?",
+            (json.dumps(progress), _now(), experiment_id),
         )
         self._conn().commit()
 
