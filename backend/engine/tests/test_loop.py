@@ -1,3 +1,4 @@
+import threading
 import pytest
 from unittest.mock import MagicMock, patch
 from backend.shared import (
@@ -8,7 +9,7 @@ from backend.shared import (
     load_fixture,
 )
 from backend.shared.results import RunResult, Score, ParetoPoint
-from backend.engine.gp.loop import GPLoop, TrialResult
+from backend.engine.gp.loop import GPLoop, TrialResult, GPResult
 
 
 def make_config():
@@ -48,8 +49,8 @@ def test_gp_loop_runs_and_returns_best_gene():
         dataset=[{"input": "doc1", "expected": "summary1"}],
         on_trial_complete=None,
     )
-    best = loop.run()
-    assert isinstance(best, Gene)
+    result = loop.run()
+    assert isinstance(result.best_gene, Gene)
 
 
 def test_gp_loop_respects_budget():
@@ -80,12 +81,12 @@ def test_trial_result_records_pareto_point():
         dataset=[{"input": "doc1", "expected": "summary1"}],
         on_trial_complete=None,
     )
-    best = loop.run()
-    assert isinstance(best, Gene)
+    result = loop.run()
+    assert isinstance(result.best_gene, Gene)
 
 
 def test_gp_loop_parallel_evaluation():
-    """concurrency > 1 should evaluate genes in parallel and still return a Gene."""
+    """concurrency > 1 should evaluate genes in parallel and still return a GPResult."""
     config = make_config()
     config.concurrency = 3
     loop = GPLoop(
@@ -95,5 +96,71 @@ def test_gp_loop_parallel_evaluation():
         dataset=[{"input": "doc1", "expected": "summary1"}],
         on_trial_complete=None,
     )
-    best = loop.run()
-    assert isinstance(best, Gene)
+    result = loop.run()
+    assert isinstance(result.best_gene, Gene)
+
+
+def test_gp_loop_returns_gp_result():
+    config = make_config()
+    loop = GPLoop(
+        config=config,
+        runner=make_mock_runner(),
+        evaluators=[make_mock_evaluator()],
+        dataset=[{"input": "doc1", "expected": "summary1"}],
+    )
+    result = loop.run()
+    assert isinstance(result, GPResult)
+    assert isinstance(result.best_gene, Gene)
+    assert result.stop_reason in (
+        "converged",
+        "budget_trials",
+        "budget_usd",
+        "cancelled",
+        "max_generations",
+        "empty_generation",
+    )
+    assert result.generations_run >= 1
+    assert result.best_fitness > float("-inf")
+
+
+def test_gp_loop_stop_reason_budget_trials():
+    config = make_config()
+    config.budget_max_trials = 1  # 1 row dataset × 1 trial → budget hit quickly
+    loop = GPLoop(
+        config=config,
+        runner=make_mock_runner(),
+        evaluators=[make_mock_evaluator()],
+        dataset=[{"input": "doc1", "expected": "summary1"}],
+    )
+    result = loop.run()
+    assert result.stop_reason == "budget_trials"
+
+
+def test_gp_loop_stop_reason_converged():
+    config = make_config()
+    config.budget_max_trials = None
+    config.convergence_patience = 1
+    # Evaluator always returns same fitness → no improvement → converges
+    loop = GPLoop(
+        config=config,
+        runner=make_mock_runner(),
+        evaluators=[make_mock_evaluator()],
+        dataset=[{"input": "doc1", "expected": "summary1"}],
+    )
+    result = loop.run()
+    assert result.stop_reason == "converged"
+
+
+def test_gp_loop_stop_reason_cancelled():
+    config = make_config()
+    stop_event = threading.Event()
+    stop_event.set()  # signal before run starts
+    loop = GPLoop(
+        config=config,
+        runner=make_mock_runner(),
+        evaluators=[make_mock_evaluator()],
+        dataset=[{"input": "doc1", "expected": "summary1"}],
+        stop_event=stop_event,
+    )
+    result = loop.run()
+    assert result.stop_reason == "cancelled"

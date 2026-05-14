@@ -36,6 +36,14 @@ class TrialResult:
     eval_rows: list[EvalRowResult] = field(default_factory=list)
 
 
+@dataclass
+class GPResult:
+    best_gene: Gene
+    stop_reason: str  # "converged" | "budget_trials" | "budget_usd" | "cancelled" | "max_generations" | "empty_generation"
+    generations_run: int
+    best_fitness: float
+
+
 class GPLoop:
     def __init__(
         self,
@@ -159,6 +167,23 @@ class GPLoop:
                 return True
         return False
 
+    def _budget_stop_reason(self) -> str:
+        """Return the specific budget-related stop reason."""
+        if self._stop_event.is_set():
+            return "cancelled"
+        with self._lock:
+            if (
+                self.config.budget_max_trials
+                and self._trial_count >= self.config.budget_max_trials
+            ):
+                return "budget_trials"
+            if (
+                self.config.budget_max_usd
+                and self._total_cost >= self.config.budget_max_usd
+            ):
+                return "budget_usd"
+        return "budget_trials"  # fallback
+
     def _evaluate_generation(
         self,
         population: list[tuple[Gene, list[str], str]],
@@ -184,8 +209,8 @@ class GPLoop:
 
         return scored
 
-    def run(self) -> Gene:
-        """Run the GP loop and return the best gene found."""
+    def run(self) -> GPResult:
+        """Run the GP loop and return a GPResult with the best gene and stop reason."""
         seed_genes = seed_population(self.config)
         # Wrap: (gene, parent_ids, mutation_op)
         population: list[tuple[Gene, list[str], str]] = [
@@ -194,14 +219,25 @@ class GPLoop:
         best_gene = seed_genes[0]
         best_fitness = float("-inf")
         no_improvement = 0
+        stop_reason = "max_generations"
+        generation = 0
 
         for generation in range(1000):
+            if self._stop_event.is_set():
+                stop_reason = "cancelled"
+                break
             if self._budget_exceeded():
+                stop_reason = self._budget_stop_reason()
                 break
 
             scored = self._evaluate_generation(population, generation)
 
             if not scored:
+                stop_reason = (
+                    self._budget_stop_reason()
+                    if self._budget_exceeded()
+                    else "empty_generation"
+                )
                 break
 
             for gene, fitness in scored:
@@ -211,6 +247,7 @@ class GPLoop:
                     no_improvement = 0
 
             if no_improvement >= self.config.convergence_patience:
+                stop_reason = "converged"
                 break
             no_improvement += 1
 
@@ -259,5 +296,13 @@ class GPLoop:
                     new_population.append((child, [parent1.id], "mutate_param"))
 
             population = new_population[: self.config.population_size]
+        else:
+            # for-loop exhausted all 1000 iterations without a break
+            stop_reason = "max_generations"
 
-        return best_gene
+        return GPResult(
+            best_gene=best_gene,
+            stop_reason=stop_reason,
+            generations_run=generation + 1,
+            best_fitness=best_fitness,
+        )
