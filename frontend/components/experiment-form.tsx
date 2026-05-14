@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { ObjectiveSliders } from "@/components/objective-sliders";
 import { api } from "@/lib/api";
-import type { ExperimentConfig, ObjectiveWeights } from "@/lib/types";
+import type { ExperimentConfig, ObjectiveWeights, EvaluatorConfig } from "@/lib/types";
 
 const DEFAULT_WEIGHTS: ObjectiveWeights = { quality: 0.6, cost: 0.2, speed: 0.2 };
 
@@ -27,7 +27,7 @@ export interface ExperimentFormInitialValues {
   population_size?: number;
   budget_max_trials?: number;
   runner_type?: string;
-  evaluator_type?: string;
+  evaluators?: EvaluatorConfig[];
   dataset_sample_size?: number | null;
 }
 
@@ -51,7 +51,6 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   const [populationSize, setPopulationSize] = useState(initialValues?.population_size ?? 20);
   const [budgetTrials, setBudgetTrials] = useState(initialValues?.budget_max_trials ?? 200);
   const [runnerType, setRunnerType] = useState(initialValues?.runner_type ?? "raw_llm");
-  const [evaluatorType, setEvaluatorType] = useState(initialValues?.evaluator_type ?? "llm_judge");
   const [datasetSampleSize, setDatasetSampleSize] = useState<number | "">(
     initialValues?.dataset_sample_size ?? ""
   );
@@ -83,7 +82,6 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
       convergence_patience: 10,
       concurrency: 5,
       runner_type: runnerType,
-      evaluator_type: evaluatorType,
       dataset_sample_size: datasetSampleSize === "" ? null : datasetSampleSize,
     };
     try {

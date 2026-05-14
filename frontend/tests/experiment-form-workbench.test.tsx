@@ -20,7 +20,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("ExperimentForm — WorkBench pre-fill", () => {
-  it("submits runner_type and evaluator_type when set via initialValues", async () => {
+  it("submits runner_type when set via initialValues", async () => {
     const { api } = await import("@/lib/api");
 
     render(
@@ -29,7 +29,6 @@ describe("ExperimentForm — WorkBench pre-fill", () => {
           name: "WorkBench Run",
           dataset_id: "workbench",
           runner_type: "workbench",
-          evaluator_type: "workbench",
           task_description: "Workplace tasks",
         }}
       />
@@ -42,7 +41,6 @@ describe("ExperimentForm — WorkBench pre-fill", () => {
       expect(api.experiments.create).toHaveBeenCalledWith(
         expect.objectContaining({
           runner_type: "workbench",
-          evaluator_type: "workbench",
           dataset_id: "workbench",
         })
       );

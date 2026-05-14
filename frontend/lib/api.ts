@@ -1,4 +1,4 @@
-import type { Experiment, ExperimentConfig, Trial, EvalRow, LineageNode, BenchmarkDescriptor } from "@/lib/types";
+import type { Experiment, ExperimentConfig, Trial, EvalRow, LineageNode, BenchmarkDescriptor, EvaluatorTypeDescriptor } from "@/lib/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -80,5 +80,9 @@ export const api = {
 
   benchmarks: {
     list: () => request<BenchmarkDescriptor[]>("/benchmarks"),
+  },
+
+  evaluatorTypes: {
+    list: () => request<EvaluatorTypeDescriptor[]>("/evaluator-types"),
   },
 };

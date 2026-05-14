@@ -10,7 +10,7 @@ const wb: BenchmarkDescriptor = {
   paper_url: "https://arxiv.org/abs/2405.00823",
   dataset_id: "workbench",
   runner_type: "workbench",
-  evaluator_type: "workbench",
+  evaluators: [],
   default_objective: { quality_weight: 0.7, cost_weight: 0.2, speed_weight: 0.1 },
   task_count: 690,
 };

@@ -15,7 +15,7 @@ const COMING_SOON_BENCHMARKS: BenchmarkDescriptor[] = [
     task_count: 466,
     dataset_id: "",
     runner_type: "",
-    evaluator_type: "",
+    evaluators: [],
     default_objective: { quality_weight: 0.6, cost_weight: 0.2, speed_weight: 0.2 },
   },
   {
@@ -26,7 +26,7 @@ const COMING_SOON_BENCHMARKS: BenchmarkDescriptor[] = [
     task_count: 2294,
     dataset_id: "",
     runner_type: "",
-    evaluator_type: "",
+    evaluators: [],
     default_objective: { quality_weight: 0.6, cost_weight: 0.2, speed_weight: 0.2 },
   },
   {
@@ -37,7 +37,7 @@ const COMING_SOON_BENCHMARKS: BenchmarkDescriptor[] = [
     task_count: 120,
     dataset_id: "",
     runner_type: "",
-    evaluator_type: "",
+    evaluators: [],
     default_objective: { quality_weight: 0.6, cost_weight: 0.2, speed_weight: 0.2 },
   },
   {
@@ -48,7 +48,7 @@ const COMING_SOON_BENCHMARKS: BenchmarkDescriptor[] = [
     task_count: 1091,
     dataset_id: "",
     runner_type: "",
-    evaluator_type: "",
+    evaluators: [],
     default_objective: { quality_weight: 0.6, cost_weight: 0.2, speed_weight: 0.2 },
   },
 ];
@@ -69,7 +69,7 @@ export default function NewExperimentPage() {
       task_description: b.description,
       dataset_id: b.dataset_id,
       runner_type: b.runner_type,
-      evaluator_type: b.evaluator_type,
+      evaluators: b.evaluators,
       objective_weights: {
         quality: b.default_objective.quality_weight,
         cost: b.default_objective.cost_weight,

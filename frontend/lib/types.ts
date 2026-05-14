@@ -35,8 +35,29 @@ export interface ObjectiveWeights {
   speed: number;
 }
 
+export interface EvaluatorParamSpec {
+  name: string;
+  type: "string" | "number" | "select" | "textarea";
+  label: string;
+  description: string;
+  default: unknown;
+  required?: boolean;
+  options?: string[];
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
+export interface EvaluatorTypeDescriptor {
+  type: string;
+  name: string;
+  description: string;
+  category: "built_in" | "ragas" | "deepeval";
+  params: EvaluatorParamSpec[];
+}
+
 export interface EvaluatorConfig {
-  type: "llm_judge" | "function" | "human";
+  type: string;
   params: Record<string, unknown>;
 }
 
@@ -47,7 +68,7 @@ export interface BenchmarkDescriptor {
   paper_url: string;
   dataset_id: string;
   runner_type: string;
-  evaluator_type: string;
+  evaluators: EvaluatorConfig[];
   default_objective: {
     quality_weight: number;
     cost_weight: number;
@@ -68,7 +89,6 @@ export interface ExperimentConfig {
   convergence_patience: number;
   concurrency: number;
   runner_type?: string;
-  evaluator_type?: string;
   dataset_sample_size?: number | null;
 }
 
