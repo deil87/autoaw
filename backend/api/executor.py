@@ -27,24 +27,107 @@ def _build_runner(config: ExperimentConfig) -> WorkflowRunner:
 
 
 def _build_evaluators(config: ExperimentConfig) -> list[Evaluator]:
-    if config.evaluator_type == "workbench":
+    # Legacy fallback: if evaluators list is empty, check evaluator_type
+    if not config.evaluators and config.evaluator_type == "workbench":
         return [WorkBenchEvaluator()]
+
     evaluators = []
     for ev_config in config.evaluators:
-        if ev_config.type == "llm_judge":
-            evaluators.append(
-                LLMJudgeEvaluator(
-                    model=ev_config.params["model"],
-                    rubric=ev_config.params["rubric"],
-                )
-            )
-        elif ev_config.type == "function":
-            import importlib
+        ev = _build_single_evaluator(ev_config)
+        if ev is not None:
+            evaluators.append(ev)
 
-            module_path, fn_name = ev_config.params["fn_path"].rsplit(".", 1)
-            mod = importlib.import_module(module_path)
-            evaluators.append(FunctionEvaluator(fn=getattr(mod, fn_name)))
+    # Fallback to WorkBench if we ended up with nothing and evaluator_type indicates workbench
+    if not evaluators and config.evaluator_type == "workbench":
+        evaluators.append(WorkBenchEvaluator())
+
     return evaluators
+
+
+def _build_single_evaluator(ev_config) -> Evaluator | None:
+    t = ev_config.type
+    p = ev_config.params
+
+    if t == "llm_judge":
+        from backend.engine.evaluator.llm_judge import LLMJudgeEvaluator
+
+        return LLMJudgeEvaluator(
+            model=p.get("model", "gpt-4o-mini"), rubric=p.get("rubric", "")
+        )
+
+    elif t == "workbench":
+        return WorkBenchEvaluator()
+
+    elif t == "human":
+        from backend.engine.evaluator.human_eval import HumanEvaluator
+
+        return HumanEvaluator(table_name=p.get("table_name", "autoaw-human-eval"))
+
+    elif t == "function":
+        import importlib
+        from backend.engine.evaluator.function_eval import FunctionEvaluator
+
+        module_path, fn_name = p["fn_path"].rsplit(".", 1)
+        mod = importlib.import_module(module_path)
+        return FunctionEvaluator(fn=getattr(mod, fn_name))
+
+    elif t == "deepeval_answer_relevancy":
+        from backend.engine.evaluator.deepeval_eval import (
+            DeepEvalAnswerRelevancyEvaluator,
+        )
+
+        return DeepEvalAnswerRelevancyEvaluator(
+            model=p.get("model", "gpt-4o-mini"), threshold=p.get("threshold", 0.5)
+        )
+
+    elif t == "deepeval_faithfulness":
+        from backend.engine.evaluator.deepeval_eval import DeepEvalFaithfulnessEvaluator
+
+        return DeepEvalFaithfulnessEvaluator(
+            model=p.get("model", "gpt-4o-mini"), threshold=p.get("threshold", 0.5)
+        )
+
+    elif t == "deepeval_hallucination":
+        from backend.engine.evaluator.deepeval_eval import (
+            DeepEvalHallucinationEvaluator,
+        )
+
+        return DeepEvalHallucinationEvaluator(
+            model=p.get("model", "gpt-4o-mini"), threshold=p.get("threshold", 0.5)
+        )
+
+    elif t == "deepeval_tool_correctness":
+        from backend.engine.evaluator.deepeval_eval import (
+            DeepEvalToolCorrectnessEvaluator,
+        )
+
+        return DeepEvalToolCorrectnessEvaluator(threshold=p.get("threshold", 0.5))
+
+    elif t == "deepeval_bias":
+        from backend.engine.evaluator.deepeval_eval import DeepEvalBiasEvaluator
+
+        return DeepEvalBiasEvaluator(
+            model=p.get("model", "gpt-4o-mini"), threshold=p.get("threshold", 0.5)
+        )
+
+    elif t == "ragas_faithfulness":
+        from backend.engine.evaluator.ragas_eval import RagasFaithfulnessEvaluator
+
+        return RagasFaithfulnessEvaluator(model=p.get("model", "gpt-4o-mini"))
+
+    elif t == "ragas_answer_relevancy":
+        from backend.engine.evaluator.ragas_eval import RagasAnswerRelevancyEvaluator
+
+        return RagasAnswerRelevancyEvaluator(model=p.get("model", "gpt-4o-mini"))
+
+    elif t == "ragas_answer_correctness":
+        from backend.engine.evaluator.ragas_eval import RagasAnswerCorrectnessEvaluator
+
+        return RagasAnswerCorrectnessEvaluator(model=p.get("model", "gpt-4o-mini"))
+
+    else:
+        log.warning("Unknown evaluator type %r — skipping", t)
+        return None
 
 
 def _run_experiment(

@@ -18,6 +18,7 @@ from backend.shared.experiment import (
     ObjectiveWeights,
     EvaluatorConfig,
 )
+from backend.shared.evaluator_catalog import CATALOG
 from backend.api.store import LocalStore
 from backend.api.executor import ExperimentExecutor
 
@@ -80,7 +81,6 @@ class CreateExperimentRequest(BaseModel):
     convergence_patience: int = 10
     concurrency: int = 5
     runner_type: str = "raw_llm"
-    evaluator_type: str = "llm_judge"
     dataset_sample_size: int | None = None
 
 
@@ -97,7 +97,7 @@ _BENCHMARKS = [
         "paper_url": "https://arxiv.org/abs/2405.00823",
         "dataset_id": "workbench",
         "runner_type": "workbench",
-        "evaluator_type": "workbench",
+        "evaluators": [{"type": "workbench", "params": {}}],
         "default_objective": {
             "quality_weight": 0.7,
             "cost_weight": 0.2,
@@ -111,6 +111,11 @@ _BENCHMARKS = [
 @app.get("/benchmarks")
 def list_benchmarks():
     return _BENCHMARKS
+
+
+@app.get("/evaluator-types")
+def list_evaluator_types():
+    return [e.to_dict() for e in CATALOG]
 
 
 @app.get("/health")
@@ -139,7 +144,6 @@ def create_experiment(req: CreateExperimentRequest):
         convergence_patience=req.convergence_patience,
         concurrency=req.concurrency,
         runner_type=req.runner_type,
-        evaluator_type=req.evaluator_type,
         dataset_sample_size=req.dataset_sample_size,
     )
     _store.create_experiment(exp_id, config)
