@@ -73,6 +73,14 @@ export interface ExperimentConfig {
 
 export type ExperimentStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
 
+export type StopReason =
+  | "converged"
+  | "budget_trials"
+  | "budget_usd"
+  | "cancelled"
+  | "max_generations"
+  | "empty_generation";
+
 // Matches actual backend response shape
 export interface Experiment {
   id: string;
@@ -84,6 +92,7 @@ export interface Experiment {
   best_gene_json?: string | null;
   config_json?: string;
   error_message?: string | null;
+  stop_reason?: StopReason | null;
 }
 
 // Matches actual backend trial row shape

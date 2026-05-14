@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import type { Experiment, ExperimentConfig } from "@/lib/types";
+import type { Experiment, ExperimentConfig, StopReason } from "@/lib/types";
 
 interface ExperimentDetailsProps {
   config: ExperimentConfig | null;
@@ -11,6 +11,27 @@ interface ExperimentDetailsProps {
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString();
+}
+
+function formatStopReason(reason: StopReason | null | undefined): string {
+  switch (reason) {
+    case "converged": return "Converged (patience exhausted)";
+    case "budget_trials": return "Budget: trial limit reached";
+    case "budget_usd": return "Budget: cost limit reached";
+    case "cancelled": return "Cancelled by user";
+    case "max_generations": return "Max generations reached (1 000)";
+    case "empty_generation": return "Empty generation (no genes evaluated)";
+    default: return "—";
+  }
+}
+
+function stopReasonVariant(
+  reason: StopReason | null | undefined
+): "default" | "secondary" | "destructive" | "outline" {
+  if (reason === "converged") return "default";
+  if (reason === "cancelled") return "destructive";
+  if (reason?.startsWith("budget")) return "secondary";
+  return "outline";
 }
 
 export function ExperimentDetails({ config, experiment }: ExperimentDetailsProps) {
@@ -105,7 +126,7 @@ export function ExperimentDetails({ config, experiment }: ExperimentDetailsProps
             <dd className="font-medium">
               {config.budget_max_usd != null ? `$${config.budget_max_usd.toFixed(2)}` : "—"}
             </dd>
-            <dt className="text-muted-foreground">Convergence Patience</dt>
+            <dt className="text-muted-foreground">Convergence Patience (generations)</dt>
             <dd className="font-medium">{config.convergence_patience}</dd>
             <dt className="text-muted-foreground">Concurrency</dt>
             <dd className="font-medium">{config.concurrency}</dd>
@@ -129,6 +150,19 @@ export function ExperimentDetails({ config, experiment }: ExperimentDetailsProps
           </dl>
         </CardContent>
       </Card>
+      {/* Stop Reason */}
+      {experiment.stop_reason && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Stop Reason</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Badge variant={stopReasonVariant(experiment.stop_reason)}>
+              {formatStopReason(experiment.stop_reason)}
+            </Badge>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
