@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import math
 import sqlite3
 import threading
 import uuid
@@ -128,7 +129,13 @@ class LocalStore:
         )
         if row is None:
             raise KeyError(f"Experiment {experiment_id!r} not found")
-        return dict(row)
+        result = dict(row)
+        raw = result.get("progress_json")
+        result["progress"] = json.loads(raw) if raw else None
+        bf = result.get("best_fitness")
+        if bf is not None and not math.isfinite(bf):
+            result["best_fitness"] = None
+        return result
 
     def list_experiments(self) -> list[dict[str, Any]]:
         rows = (
@@ -139,7 +146,14 @@ class LocalStore:
             )
             .fetchall()
         )
-        return [dict(r) for r in rows]
+        results = []
+        for r in rows:
+            row = dict(r)
+            bf = row.get("best_fitness")
+            if bf is not None and not math.isfinite(bf):
+                row["best_fitness"] = None
+            results.append(row)
+        return results
 
     def update_experiment_status(
         self, experiment_id: str, status: str, error: str | None = None

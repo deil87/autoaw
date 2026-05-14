@@ -81,6 +81,7 @@ class CreateExperimentRequest(BaseModel):
     concurrency: int = 5
     runner_type: str = "raw_llm"
     evaluator_type: str = "llm_judge"
+    dataset_sample_size: int | None = None
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -139,6 +140,7 @@ def create_experiment(req: CreateExperimentRequest):
         concurrency=req.concurrency,
         runner_type=req.runner_type,
         evaluator_type=req.evaluator_type,
+        dataset_sample_size=req.dataset_sample_size,
     )
     _store.create_experiment(exp_id, config)
     return _store.get_experiment(exp_id)

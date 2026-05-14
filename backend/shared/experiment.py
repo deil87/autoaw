@@ -61,6 +61,7 @@ class ExperimentConfig:
     allowed_models: list[str] = field(default_factory=lambda: ["gpt-4o-mini", "gpt-4o"])
     runner_type: str = "raw_llm"
     evaluator_type: str = "llm_judge"
+    dataset_sample_size: int | None = None  # None = use all rows; N = use first N rows
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -78,6 +79,7 @@ class ExperimentConfig:
             "allowed_models": list(self.allowed_models),
             "runner_type": self.runner_type,
             "evaluator_type": self.evaluator_type,
+            "dataset_sample_size": self.dataset_sample_size,
         }
 
     @classmethod
@@ -104,4 +106,5 @@ class ExperimentConfig:
             allowed_models=d.get("allowed_models", ["gpt-4o-mini", "gpt-4o"]),
             runner_type=d.get("runner_type", "raw_llm"),
             evaluator_type=d.get("evaluator_type", "llm_judge"),
+            dataset_sample_size=d.get("dataset_sample_size"),
         )

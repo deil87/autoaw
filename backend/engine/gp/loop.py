@@ -87,7 +87,6 @@ class GPLoop:
             run_result = self.runner.run(gene, sample["input"])
 
             with self._lock:
-                self._trial_count += 1
                 self._total_cost += run_result.cost_usd
 
             scores = [
@@ -134,6 +133,9 @@ class GPLoop:
 
             if self._budget_exceeded():
                 break
+
+        with self._lock:
+            self._trial_count += 1
 
         n = len(eval_rows) or 1
         avg_quality = total_quality / n

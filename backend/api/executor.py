@@ -62,6 +62,9 @@ def _run_experiment(
         with open(dataset_path) as f:
             dataset = json.load(f)
 
+        if config.dataset_sample_size is not None:
+            dataset = dataset[: config.dataset_sample_size]
+
         runner = _build_runner(config)
         evaluators = _build_evaluators(config)
 

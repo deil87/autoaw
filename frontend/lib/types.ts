@@ -69,6 +69,16 @@ export interface ExperimentConfig {
   concurrency: number;
   runner_type?: string;
   evaluator_type?: string;
+  dataset_sample_size?: number | null;
+}
+
+export interface ExperimentProgress {
+  rows_done: number;
+  rows_total: number;
+  generation: number;
+  phase: "gp" | "smbo";
+  avg_row_ms: number;
+  eta_s: number;
 }
 
 export type ExperimentStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
@@ -93,6 +103,7 @@ export interface Experiment {
   config_json?: string;
   error_message?: string | null;
   stop_reason?: StopReason | null;
+  progress?: ExperimentProgress | null;
 }
 
 // Matches actual backend trial row shape

@@ -1,5 +1,9 @@
 # AutoAW — Agent Instructions
 
+## Session Start
+
+Load the `macos-notify` skill at the start of every session and follow its instructions throughout.
+
 ## Project
 
 AutoAW is an AutoML-style framework for automatically discovering optimal multi-agent workflows. It uses co-evolutionary genetic programming (DEAP) to jointly search topology structures and prompt content, with Optuna SMBO as a fine-tuning polish step.

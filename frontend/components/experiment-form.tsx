@@ -28,6 +28,7 @@ export interface ExperimentFormInitialValues {
   budget_max_trials?: number;
   runner_type?: string;
   evaluator_type?: string;
+  dataset_sample_size?: number | null;
 }
 
 interface ExperimentFormProps {
@@ -51,6 +52,9 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   const [budgetTrials, setBudgetTrials] = useState(initialValues?.budget_max_trials ?? 200);
   const [runnerType, setRunnerType] = useState(initialValues?.runner_type ?? "raw_llm");
   const [evaluatorType, setEvaluatorType] = useState(initialValues?.evaluator_type ?? "llm_judge");
+  const [datasetSampleSize, setDatasetSampleSize] = useState<number | "">(
+    initialValues?.dataset_sample_size ?? ""
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,6 +84,7 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
       concurrency: 5,
       runner_type: runnerType,
       evaluator_type: evaluatorType,
+      dataset_sample_size: datasetSampleSize === "" ? null : datasetSampleSize,
     };
     try {
       const exp = await api.experiments.create(config);
@@ -124,6 +129,23 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
             </p>
           </div>
         )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2 col-span-2 sm:col-span-1">
+          <Label htmlFor="sample-size">Dataset Sample Size</Label>
+          <Input
+            id="sample-size"
+            type="number"
+            min={1}
+            placeholder="All rows"
+            value={datasetSampleSize}
+            onChange={(e) => setDatasetSampleSize(e.target.value === "" ? "" : Number(e.target.value))}
+          />
+          <p className="text-xs text-muted-foreground">
+            Number of rows to use. Leave blank to use all rows.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-2">
