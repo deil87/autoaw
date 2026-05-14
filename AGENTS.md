@@ -62,3 +62,4 @@ autoaw/
 - The engine runs as a long-lived Fargate task per experiment. It reads experiment config from DynamoDB on startup and writes trial results back incrementally.
 - The frontend polls or subscribes via WebSocket (API Gateway) for live updates. The engine publishes progress events to a DynamoDB stream or SNS topic.
 - Use the gene schema fixtures in `backend/shared/fixtures/` for all unit tests. Do not create ad-hoc gene dicts in tests.
+- **Tests must never write to `autoaw.db`.** Any test that imports `backend.api.app` must ensure `DATABASE_PATH` is set to a temp path *before* the import. Use the `client` fixture in `backend/api/tests/test_api.py` as the pattern (it evicts `backend.api.app` from `sys.modules` and re-imports fresh). Module-level `TestClient(app)` is forbidden — always use a fixture so lifespan and env vars are handled correctly.
