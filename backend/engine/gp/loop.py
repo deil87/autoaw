@@ -21,6 +21,8 @@ from backend.engine.gp.operators import (
 from backend.engine.gp.population import seed_population
 from backend.engine.gp.diversity import topology_diversity_score
 
+_PROGRESS_HEARTBEAT_ROWS = 10
+
 
 @dataclass
 class TrialResult:
@@ -52,6 +54,7 @@ class GPLoop:
         evaluators: list[Evaluator],
         dataset: list[dict],  # list of {"input": str, "expected": str | None}
         on_trial_complete: Callable[[TrialResult], None] | None = None,
+        on_progress: Callable[[dict], None] | None = None,
         stop_event: threading.Event | None = None,
     ) -> None:
         self.config = config
@@ -59,10 +62,12 @@ class GPLoop:
         self.evaluators = evaluators
         self.dataset = dataset
         self.on_trial_complete = on_trial_complete
+        self.on_progress = on_progress
         self._stop_event = stop_event or threading.Event()
         self._trial_count = 0
         self._total_cost = 0.0
         self._lock = threading.Lock()
+        self._current_phase = "gp"
 
     def _evaluate_gene(
         self,
@@ -110,6 +115,23 @@ class GPLoop:
             total_cost += run_result.cost_usd
             total_latency += run_result.latency_ms
 
+            # Heartbeat every _PROGRESS_HEARTBEAT_ROWS rows
+            rows_done = len(eval_rows)
+            if self.on_progress and rows_done % _PROGRESS_HEARTBEAT_ROWS == 0:
+                avg_ms = int(total_latency / rows_done) if rows_done else 0
+                remaining = len(self.dataset) - rows_done
+                eta_s = int(remaining * avg_ms / 1000) if avg_ms else 0
+                self.on_progress(
+                    {
+                        "rows_done": rows_done,
+                        "rows_total": len(self.dataset),
+                        "generation": generation,
+                        "phase": self._current_phase,
+                        "avg_row_ms": avg_ms,
+                        "eta_s": eta_s,
+                    }
+                )
+
             if self._budget_exceeded():
                 break
 
@@ -150,6 +172,10 @@ class GPLoop:
                 )
             )
         return fitness, pareto, eval_rows
+
+    def set_phase(self, phase: str) -> None:
+        """Update the phase label emitted in progress heartbeats ('gp' or 'smbo')."""
+        self._current_phase = phase
 
     def _budget_exceeded(self) -> bool:
         if self._stop_event.is_set():
