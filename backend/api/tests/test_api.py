@@ -248,8 +248,15 @@ def test_executor_uses_workbench_runner(tmp_path):
         patch("backend.api.executor.smbo_polish") as mock_polish,
         patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}),
     ):
+        import threading
+        from backend.engine.gp.loop import GPResult
+        from backend.shared import Gene, load_fixture
+
+        gene = Gene.from_dict(load_fixture("fixed_pipeline"))
         mock_runner_cls.return_value = MagicMock()
-        mock_gp_cls.return_value.run.return_value = MagicMock(id="gene_abc")
-        mock_polish.return_value = MagicMock(id="gene_abc")
-        _run_experiment(exp_id, store, datasets_dir)
+        mock_gp_cls.return_value.run.return_value = GPResult(
+            best_gene=gene, stop_reason="converged", generations_run=1, best_fitness=0.5
+        )
+        mock_polish.return_value = gene
+        _run_experiment(exp_id, store, datasets_dir, threading.Event())
         mock_runner_cls.assert_called_once()
