@@ -13,16 +13,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ObjectiveSliders } from "@/components/objective-sliders";
+import { EvaluatorList } from "@/components/evaluator-list";
+import { EvaluatorPicker } from "@/components/evaluator-picker";
 import { api } from "@/lib/api";
-import type { ExperimentConfig, ObjectiveWeights, EvaluatorConfig } from "@/lib/types";
+import type { ExperimentConfig, ObjectiveWeights, EvaluatorConfig, EvaluatorTypeDescriptor } from "@/lib/types";
 
 const DEFAULT_WEIGHTS: ObjectiveWeights = { quality: 0.6, cost: 0.2, speed: 0.2 };
+const DEFAULT_EVALUATORS: EvaluatorConfig[] = [
+  { type: "llm_judge", params: { model: "gpt-4o-mini", rubric: "Rate the output 0 to 1 on accuracy, completeness, and clarity." } }
+];
 
 export interface ExperimentFormInitialValues {
   name?: string;
   task_description?: string;
   dataset_id?: string;
-  rubric?: string;
   objective_weights?: ObjectiveWeights;
   population_size?: number;
   budget_max_trials?: number;
@@ -41,10 +45,10 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   const [taskDescription, setTaskDescription] = useState(initialValues?.task_description ?? "");
   const [datasetId, setDatasetId] = useState(initialValues?.dataset_id ?? "");
   const [datasetOptions, setDatasetOptions] = useState<string[]>([]);
-  const [judgeModel, setJudgeModel] = useState("gpt-4o-mini");
-  const [rubric, setRubric] = useState(
-    initialValues?.rubric ?? "Rate the output 0 to 1 on accuracy, completeness, and clarity."
+  const [evaluators, setEvaluators] = useState<EvaluatorConfig[]>(
+    initialValues?.evaluators ?? DEFAULT_EVALUATORS
   );
+  const [catalog, setCatalog] = useState<EvaluatorTypeDescriptor[]>([]);
   const [weights, setWeights] = useState<ObjectiveWeights>(
     initialValues?.objective_weights ?? DEFAULT_WEIGHTS
   );
@@ -65,6 +69,7 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
     }).catch(() => {
       // silently fall back to text input
     });
+    api.evaluatorTypes.list().then(setCatalog).catch(() => {});
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,7 +80,7 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
       name,
       task_description: taskDescription,
       dataset_id: datasetId,
-      evaluators: [{ type: "llm_judge", params: { model: judgeModel, rubric } }],
+      evaluators: evaluators,
       objective_weights: weights,
       population_size: populationSize,
       budget_max_trials: budgetTrials,
@@ -147,8 +152,11 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="rubric">Evaluation Rubric</Label>
-        <Textarea id="rubric" value={rubric} onChange={(e) => setRubric(e.target.value)} rows={2} />
+        <div className="flex items-center justify-between">
+          <Label>Evaluators</Label>
+          <EvaluatorPicker catalog={catalog} onAdd={(ev) => setEvaluators([...evaluators, ev])} />
+        </div>
+        <EvaluatorList evaluators={evaluators} catalog={catalog} onChange={setEvaluators} />
       </div>
 
       <div className="space-y-2">
