@@ -151,11 +151,14 @@ class LocalStore:
         self._conn().commit()
 
     def update_progress(self, experiment_id: str, progress: dict) -> None:
-        self._conn().execute(
+        conn = self._conn()
+        cur = conn.execute(
             "UPDATE experiments SET progress_json = ?, updated_at = ? WHERE id = ?",
             (json.dumps(progress), _now(), experiment_id),
         )
-        self._conn().commit()
+        conn.commit()
+        if cur.rowcount == 0:
+            raise KeyError(f"Experiment {experiment_id!r} not found")
 
     def get_experiment_config(self, experiment_id: str) -> ExperimentConfig:
         row = self.get_experiment(experiment_id)

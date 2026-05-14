@@ -181,8 +181,6 @@ def test_update_progress(tmp_path):
     )
 
     row = store.get_experiment("exp_prog_001")
-    import json
-
     progress = json.loads(row["progress_json"])
     assert progress["rows_done"] == 50
     assert progress["rows_total"] == 690
@@ -190,3 +188,14 @@ def test_update_progress(tmp_path):
     assert progress["phase"] == "gp"
     assert progress["avg_row_ms"] == 1500
     assert progress["eta_s"] == 960
+
+    store.update_progress("exp_prog_001", {})
+    row2 = store.get_experiment("exp_prog_001")
+    assert json.loads(row2["progress_json"]) == {}
+
+
+def test_update_progress_missing_experiment(tmp_path):
+    store = LocalStore(str(tmp_path / "test.db"))
+    store.init_db()
+    with pytest.raises(KeyError):
+        store.update_progress("nonexistent_id", {"rows_done": 1})
