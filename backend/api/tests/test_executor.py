@@ -92,3 +92,61 @@ def test_executor_shutdown(store, tmp_path):
     os.makedirs(datasets_dir)
     executor = ExperimentExecutor(store=store, datasets_dir=datasets_dir, max_workers=2)
     executor.shutdown()  # should not raise
+
+
+def test_executor_passes_stop_reason_to_store(tmp_path):
+    """Executor should call put_best_gene with stop_reason from GPResult, not fitness=0.0."""
+    import json
+    import threading
+    from unittest.mock import MagicMock, patch
+    from backend.engine.gp.loop import GPResult
+    from backend.shared import Gene, load_fixture
+    from backend.api.executor import _run_experiment
+
+    gene = Gene.from_dict(load_fixture("fixed_pipeline"))
+    gp_result = GPResult(
+        best_gene=gene,
+        stop_reason="converged",
+        generations_run=5,
+        best_fitness=0.91,
+    )
+
+    mock_store = MagicMock()
+    mock_store.get_experiment_config.return_value = make_config()
+
+    with (
+        patch("backend.api.executor.GPLoop") as MockGP,
+        patch("backend.api.executor.smbo_polish", return_value=gene),
+        patch("backend.api.executor._build_runner"),
+        patch("backend.api.executor._build_evaluators"),
+        patch(
+            "builtins.open",
+            MagicMock(
+                return_value=MagicMock(
+                    __enter__=MagicMock(return_value=MagicMock()),
+                    __exit__=MagicMock(return_value=False),
+                )
+            ),
+        ),
+        patch("json.load", return_value=[{"input": "x", "expected": "y"}]),
+    ):
+        mock_loop_instance = MagicMock()
+        mock_loop_instance.run.return_value = gp_result
+        MockGP.return_value = mock_loop_instance
+
+        _run_experiment("exp_001", mock_store, str(tmp_path), threading.Event())
+
+    mock_store.put_best_gene.assert_called_once()
+    args, kwargs = mock_store.put_best_gene.call_args
+    # Support both positional and keyword args
+    all_args = list(args) + list(kwargs.values())
+    stop_reason_passed = kwargs.get("stop_reason") or (
+        args[3] if len(args) > 3 else None
+    )
+    fitness_passed = kwargs.get("fitness") or (args[2] if len(args) > 2 else None)
+    assert stop_reason_passed == "converged", (
+        f"Expected stop_reason='converged', got {stop_reason_passed!r}"
+    )
+    assert fitness_passed != 0.0, (
+        "fitness should be the real GPResult.best_fitness, not 0.0"
+    )
