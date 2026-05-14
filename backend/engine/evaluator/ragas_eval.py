@@ -52,7 +52,6 @@ class RagasFaithfulnessEvaluator(Evaluator):
         quality = _run_ragas_metric(
             "faithfulness", input, output, expected, expected, self.model
         )
-        quality = max(0.0, min(1.0, quality))
         return Score(quality=quality, metadata={"metric": "ragas_faithfulness"})
 
 
@@ -64,7 +63,6 @@ class RagasAnswerRelevancyEvaluator(Evaluator):
         quality = _run_ragas_metric(
             "answer_relevancy", input, output, None, expected, self.model
         )
-        quality = max(0.0, min(1.0, quality))
         return Score(quality=quality, metadata={"metric": "ragas_answer_relevancy"})
 
 
@@ -73,8 +71,11 @@ class RagasAnswerCorrectnessEvaluator(Evaluator):
         self.model = model
 
     def score(self, input: str, output: str, expected: str | None) -> Score:
+        if expected is None:
+            raise ValueError(
+                "expected (ground truth) is required for answer_correctness scoring"
+            )
         quality = _run_ragas_metric(
             "answer_correctness", input, output, None, expected, self.model
         )
-        quality = max(0.0, min(1.0, quality))
         return Score(quality=quality, metadata={"metric": "ragas_answer_correctness"})

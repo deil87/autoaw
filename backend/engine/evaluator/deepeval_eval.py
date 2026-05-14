@@ -85,7 +85,7 @@ class DeepEvalFaithfulnessEvaluator(Evaluator):
     def score(self, input: str, output: str, expected: str | None) -> Score:
         from deepeval.test_case import LLMTestCase  # type: ignore[import]
 
-        retrieval_context = [expected] if expected is not None else [output]
+        retrieval_context = [expected] if expected is not None else []
         metric = _make_faithfulness_metric(self.model, self.threshold)
         test_case = LLMTestCase(
             input=input,

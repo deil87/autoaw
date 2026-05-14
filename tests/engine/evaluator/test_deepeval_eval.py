@@ -69,6 +69,7 @@ class TestDeepEvalAnswerRelevancyEvaluator:
         assert isinstance(result, Score)
         assert result.quality == pytest.approx(0.8)
         assert "reason" in result.metadata
+        mock_metric.measure.assert_called_once()
 
     def test_score_clamped_high(self):
         mock_metric = _make_mock_metric(1.5)
