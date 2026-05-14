@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS experiments (
     updated_at      TEXT NOT NULL,
     best_gene_json  TEXT,
     best_fitness    REAL,
+    stop_reason     TEXT,
     error_message   TEXT
 )
 """
@@ -49,6 +50,10 @@ ALTER TABLE trials ADD COLUMN mutation_op TEXT NOT NULL DEFAULT 'seed'
 
 _ALTER_EXPERIMENTS_PROGRESS = """
 ALTER TABLE experiments ADD COLUMN progress_json TEXT
+"""
+
+_ALTER_EXPERIMENTS_STOP_REASON = """
+ALTER TABLE experiments ADD COLUMN stop_reason TEXT
 """
 
 _CREATE_EVAL_ROWS = """
@@ -96,6 +101,7 @@ class LocalStore:
             _ALTER_TRIALS_PARENT,
             _ALTER_TRIALS_MUTATION_OP,
             _ALTER_EXPERIMENTS_PROGRESS,
+            _ALTER_EXPERIMENTS_STOP_REASON,
         ):
             try:
                 conn.execute(stmt)
@@ -155,11 +161,17 @@ class LocalStore:
         row = self.get_experiment(experiment_id)
         return ExperimentConfig.from_dict(json.loads(row["config_json"]))
 
-    def put_best_gene(self, experiment_id: str, gene: Gene, fitness: float) -> None:
+    def put_best_gene(
+        self,
+        experiment_id: str,
+        gene: Gene,
+        fitness: float,
+        stop_reason: str = "completed",
+    ) -> None:
         self._conn().execute(
             "UPDATE experiments SET best_gene_json = ?, best_fitness = ?, "
-            "status = 'completed', updated_at = ? WHERE id = ?",
-            (json.dumps(gene.to_dict()), fitness, _now(), experiment_id),
+            "status = 'completed', stop_reason = ?, updated_at = ? WHERE id = ?",
+            (json.dumps(gene.to_dict()), fitness, stop_reason, _now(), experiment_id),
         )
         self._conn().commit()
 

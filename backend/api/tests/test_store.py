@@ -111,6 +111,34 @@ def test_put_best_gene(store):
     assert best["id"] == gene.id
 
 
+def test_put_best_gene_stores_stop_reason(store):
+    exp_id = "exp_stop"
+    store.create_experiment(exp_id, make_config())
+    gene = Gene.from_dict(load_fixture("fixed_pipeline"))
+    store.put_best_gene(exp_id, gene, fitness=0.85, stop_reason="converged")
+    result = store.get_experiment(exp_id)
+    assert result["stop_reason"] == "converged"
+    assert result["status"] == "completed"
+    assert result["best_fitness"] == pytest.approx(0.85)
+
+
+def test_put_best_gene_stop_reason_budget(store):
+    exp_id = "exp_budget"
+    store.create_experiment(exp_id, make_config())
+    gene = Gene.from_dict(load_fixture("fixed_pipeline"))
+    store.put_best_gene(exp_id, gene, fitness=0.5, stop_reason="budget_trials")
+    result = store.get_experiment(exp_id)
+    assert result["stop_reason"] == "budget_trials"
+
+
+def test_get_experiment_stop_reason_defaults_to_none(store):
+    """Experiments not yet finished should have stop_reason=None."""
+    exp_id = "exp_old"
+    store.create_experiment(exp_id, make_config())
+    result = store.get_experiment(exp_id)
+    assert result["stop_reason"] is None
+
+
 def test_list_trials_pagination(store):
     store.create_experiment("exp_001", make_config())
     for _ in range(5):
