@@ -150,3 +150,66 @@ def test_executor_passes_stop_reason_to_store(tmp_path):
     assert fitness_passed != 0.0, (
         "fitness should be the real GPResult.best_fitness, not 0.0"
     )
+
+
+def test_progress_written_to_store(tmp_path, monkeypatch):
+    """Executor wires on_progress → store.update_progress()."""
+    import json, threading
+    from unittest.mock import MagicMock, patch
+    from backend.api.store import LocalStore
+    from backend.api.executor import _run_experiment
+    from backend.shared.experiment import ExperimentConfig, ObjectiveWeights
+
+    store = LocalStore(str(tmp_path / "test.db"))
+    store.init_db()
+    config = ExperimentConfig(
+        name="prog-test",
+        task_description="t",
+        dataset_id="ds1",
+        evaluators=[],
+        objective_weights=ObjectiveWeights(0.7, 0.2, 0.1),
+        population_size=1,
+        convergence_patience=1,
+        concurrency=1,
+    )
+    store.create_experiment("exp_wire_001", config)
+
+    # Write a minimal dataset file
+    ds_dir = str(tmp_path)
+    (tmp_path / "ds1.json").write_text(
+        json.dumps([{"input": f"q{i}", "expected": "a"} for i in range(12)])
+    )
+
+    progress_snapshots = []
+    original_update = store.update_progress
+
+    def capture_progress(exp_id, prog):
+        progress_snapshots.append(dict(prog))
+        original_update(exp_id, prog)
+
+    monkeypatch.setattr(store, "update_progress", capture_progress)
+    monkeypatch.setattr(store, "put_best_gene", MagicMock())
+
+    # Mock runner + evaluator so no real LLM calls happen
+    with (
+        patch("backend.api.executor._build_runner") as mock_runner_factory,
+        patch("backend.api.executor._build_evaluators") as mock_eval_factory,
+        patch("backend.api.executor.smbo_polish") as mock_smbo,
+        patch("backend.engine.llm_client.provider_from_env", return_value="github"),
+    ):
+        mock_run = MagicMock(output="x", token_usage={}, latency_ms=5, cost_usd=0.0)
+        mock_runner_factory.return_value.run.return_value = mock_run
+        mock_score = MagicMock()
+        mock_score.quality = 0.5
+        mock_score.metadata = {}
+        mock_eval_factory.return_value = [
+            MagicMock(score=MagicMock(return_value=mock_score))
+        ]
+        mock_smbo.return_value = MagicMock(id="g_smbo")
+
+        _run_experiment("exp_wire_001", store, ds_dir, threading.Event())
+
+    # With 12 rows and heartbeat every 10, at least one progress call expected
+    assert len(progress_snapshots) >= 1
+    assert progress_snapshots[0]["rows_done"] == 10
+    assert progress_snapshots[0]["rows_total"] == 12

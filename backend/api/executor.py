@@ -75,12 +75,16 @@ def _run_experiment(
                 result.pareto.cost_usd,
             )
 
+        def on_progress(progress: dict) -> None:
+            store.update_progress(experiment_id, progress)
+
         loop = GPLoop(
             config=config,
             runner=runner,
             evaluators=evaluators,
             dataset=dataset,
             on_trial_complete=on_trial,
+            on_progress=on_progress,
             stop_event=stop_event,
         )
 
@@ -100,7 +104,22 @@ def _run_experiment(
                 experiment_id,
             )
             store.update_experiment_status(experiment_id, "cancelled")
+            store.update_progress(experiment_id, {})
             return
+
+        # Transition to SMBO phase
+        loop.set_phase("smbo")
+        store.update_progress(
+            experiment_id,
+            {
+                "rows_done": 0,
+                "rows_total": len(dataset),
+                "generation": 0,
+                "phase": "smbo",
+                "avg_row_ms": 0,
+                "eta_s": 0,
+            },
+        )
 
         polished_gene = smbo_polish(
             gene=gp_result.best_gene,
@@ -118,10 +137,15 @@ def _run_experiment(
             fitness=gp_result.best_fitness,
             stop_reason=gp_result.stop_reason,
         )
+        store.update_progress(experiment_id, {})
 
     except Exception as exc:
         log.exception("exp=%s: failed with %s", experiment_id, exc)
         store.update_experiment_status(experiment_id, "failed", error=str(exc))
+        try:
+            store.update_progress(experiment_id, {})
+        except Exception:
+            pass
 
 
 class ExperimentExecutor:
