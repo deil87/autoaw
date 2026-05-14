@@ -16,10 +16,14 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("DATASETS_DIR", datasets_dir)
     monkeypatch.setenv("MAX_CONCURRENT_EXPERIMENTS", "2")
 
-    from backend.api import app as app_module
     import importlib
+    import sys
 
-    importlib.reload(app_module)
+    # Evict cached module so the fresh import re-evaluates module-level globals
+    # (DATABASE_PATH, _store, etc.) with the test env var already set.
+    sys.modules.pop("backend.api.app", None)
+    import backend.api.app as app_module  # fresh import — sees updated DATABASE_PATH
+
     from backend.api.app import app, _store
 
     _store.init_db()
