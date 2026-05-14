@@ -43,7 +43,7 @@ def test_get_benchmarks(client):
     wb = next((b for b in data if b["id"] == "workbench"), None)
     assert wb is not None
     assert wb["runner_type"] == "workbench"
-    assert wb["evaluator_type"] == "workbench"
+    assert wb["evaluators"] == [{"type": "workbench", "params": {}}]
     assert wb["dataset_id"] == "workbench"
     assert wb["task_count"] == 690
     assert "default_objective" in wb
@@ -188,7 +188,7 @@ def test_list_trials(client):
 
 
 def test_create_experiment_workbench_fields(client):
-    """runner_type and evaluator_type round-trip through config."""
+    """runner_type and evaluators round-trip through config."""
     payload = {
         "name": "wb test",
         "task_description": "workplace tasks",
@@ -196,14 +196,13 @@ def test_create_experiment_workbench_fields(client):
         "evaluators": [{"type": "workbench", "params": {}}],
         "objective_weights": {"quality": 0.7, "cost": 0.2, "speed": 0.1},
         "runner_type": "workbench",
-        "evaluator_type": "workbench",
     }
     resp = client.post("/experiments", json=payload)
     assert resp.status_code == 201
     exp = resp.json()
     config = json.loads(exp["config_json"])
     assert config["runner_type"] == "workbench"
-    assert config["evaluator_type"] == "workbench"
+    assert config["evaluators"] == [{"type": "workbench", "params": {}}]
 
 
 def test_executor_uses_workbench_runner(tmp_path):
