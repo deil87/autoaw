@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 _MODEL_OPTIONS = [
     "gpt-4o-mini",
@@ -12,13 +12,11 @@ _MODEL_OPTIONS = [
     "claude-3-5-sonnet-20241022",
 ]
 
-_MODEL_PARAM = None  # defined below after class declaration
-
 
 @dataclass
 class EvaluatorParamSpec:
     name: str
-    type: str  # "string" | "number" | "select" | "textarea"
+    type: Literal["string", "number", "select", "textarea"]
     label: str
     description: str
     default: Any
@@ -47,13 +45,28 @@ class EvaluatorParamSpec:
             d["step"] = self.step
         return d
 
+    @classmethod
+    def from_dict(cls, d: dict) -> "EvaluatorParamSpec":
+        return cls(
+            name=d["name"],
+            type=d["type"],
+            label=d["label"],
+            description=d["description"],
+            default=d["default"],
+            required=d.get("required", False),
+            options=d.get("options"),
+            min=d.get("min"),
+            max=d.get("max"),
+            step=d.get("step"),
+        )
+
 
 @dataclass
 class EvaluatorTypeDescriptor:
     type: str
     name: str
     description: str
-    category: str  # "built_in" | "ragas" | "deepeval"
+    category: Literal["built_in", "ragas", "deepeval"]
     params: list[EvaluatorParamSpec] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -64,6 +77,16 @@ class EvaluatorTypeDescriptor:
             "category": self.category,
             "params": [p.to_dict() for p in self.params],
         }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "EvaluatorTypeDescriptor":
+        return cls(
+            type=d["type"],
+            name=d["name"],
+            description=d["description"],
+            category=d["category"],
+            params=[EvaluatorParamSpec.from_dict(p) for p in d.get("params", [])],
+        )
 
 
 def _model_param() -> EvaluatorParamSpec:

@@ -13,7 +13,7 @@ VALID_CATEGORIES = {"built_in", "ragas", "deepeval"}
 
 
 def test_catalog_is_nonempty():
-    assert len(CATALOG) > 0
+    assert len(CATALOG) == 11
 
 
 def test_all_entries_have_required_fields():
@@ -54,7 +54,7 @@ def test_workbench_in_catalog():
     assert "workbench" in CATALOG_BY_TYPE
     entry = CATALOG_BY_TYPE["workbench"]
     assert entry.category == "built_in"
-    assert "WorkBench" in entry.name or "workbench" in entry.name.lower()
+    assert entry.name == "WorkBench Trace Match"
     assert (
         "trace" in entry.description.lower() or "tool-call" in entry.description.lower()
     )
@@ -95,3 +95,8 @@ def test_ragas_faithfulness_in_catalog():
 def test_catalog_by_type_lookup():
     for entry in CATALOG:
         assert CATALOG_BY_TYPE[entry.type] is entry
+
+
+def test_from_dict_round_trip():
+    entry = CATALOG_BY_TYPE["llm_judge"]
+    assert EvaluatorTypeDescriptor.from_dict(entry.to_dict()) == entry
