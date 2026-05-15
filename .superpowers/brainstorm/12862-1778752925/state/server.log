@@ -1,0 +1,2 @@
+{"type":"server-started","port":50656,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:50656","screen_dir":"/Users/deil/Development/autoaw/.superpowers/brainstorm/12862-1778752925/content","state_dir":"/Users/deil/Development/autoaw/.superpowers/brainstorm/12862-1778752925/state"}
+{"type":"server-stopped","reason":"idle timeout"}

@@ -1,0 +1,2681 @@
+{
+  "version": "tree-0.1",
+  "tree": {
+    "id": "App",
+    "path": "",
+    "children": {
+      "AutoAwStorage": {
+        "id": "AutoAwStorage",
+        "path": "AutoAwStorage",
+        "children": {
+          "Experiments": {
+            "id": "Experiments",
+            "path": "AutoAwStorage/Experiments",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwStorage/Experiments/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::DynamoDB::Table",
+                  "aws:cdk:cloudformation:props": {
+                    "attributeDefinitions": [
+                      {
+                        "attributeName": "id",
+                        "attributeType": "S"
+                      }
+                    ],
+                    "billingMode": "PAY_PER_REQUEST",
+                    "keySchema": [
+                      {
+                        "attributeName": "id",
+                        "keyType": "HASH"
+                      }
+                    ],
+                    "streamSpecification": {
+                      "streamViewType": "NEW_IMAGE"
+                    },
+                    "tableName": "autoaw-experiments"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_dynamodb.CfnTable",
+                  "version": "2.149.0"
+                }
+              },
+              "ScalingRole": {
+                "id": "ScalingRole",
+                "path": "AutoAwStorage/Experiments/ScalingRole",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_dynamodb.Table",
+              "version": "2.149.0"
+            }
+          },
+          "Trials": {
+            "id": "Trials",
+            "path": "AutoAwStorage/Trials",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwStorage/Trials/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::DynamoDB::Table",
+                  "aws:cdk:cloudformation:props": {
+                    "attributeDefinitions": [
+                      {
+                        "attributeName": "id",
+                        "attributeType": "S"
+                      },
+                      {
+                        "attributeName": "experiment_id",
+                        "attributeType": "S"
+                      },
+                      {
+                        "attributeName": "created_at",
+                        "attributeType": "S"
+                      }
+                    ],
+                    "billingMode": "PAY_PER_REQUEST",
+                    "globalSecondaryIndexes": [
+                      {
+                        "indexName": "experiment-id-index",
+                        "keySchema": [
+                          {
+                            "attributeName": "experiment_id",
+                            "keyType": "HASH"
+                          },
+                          {
+                            "attributeName": "created_at",
+                            "keyType": "RANGE"
+                          }
+                        ],
+                        "projection": {
+                          "projectionType": "ALL"
+                        }
+                      }
+                    ],
+                    "keySchema": [
+                      {
+                        "attributeName": "id",
+                        "keyType": "HASH"
+                      }
+                    ],
+                    "tableName": "autoaw-trials"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_dynamodb.CfnTable",
+                  "version": "2.149.0"
+                }
+              },
+              "ScalingRole": {
+                "id": "ScalingRole",
+                "path": "AutoAwStorage/Trials/ScalingRole",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_dynamodb.Table",
+              "version": "2.149.0"
+            }
+          },
+          "EvalRows": {
+            "id": "EvalRows",
+            "path": "AutoAwStorage/EvalRows",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwStorage/EvalRows/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::DynamoDB::Table",
+                  "aws:cdk:cloudformation:props": {
+                    "attributeDefinitions": [
+                      {
+                        "attributeName": "id",
+                        "attributeType": "S"
+                      },
+                      {
+                        "attributeName": "trial_id",
+                        "attributeType": "S"
+                      }
+                    ],
+                    "billingMode": "PAY_PER_REQUEST",
+                    "globalSecondaryIndexes": [
+                      {
+                        "indexName": "trial-id-index",
+                        "keySchema": [
+                          {
+                            "attributeName": "trial_id",
+                            "keyType": "HASH"
+                          }
+                        ],
+                        "projection": {
+                          "projectionType": "ALL"
+                        }
+                      }
+                    ],
+                    "keySchema": [
+                      {
+                        "attributeName": "id",
+                        "keyType": "HASH"
+                      }
+                    ],
+                    "tableName": "autoaw-eval-rows"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_dynamodb.CfnTable",
+                  "version": "2.149.0"
+                }
+              },
+              "ScalingRole": {
+                "id": "ScalingRole",
+                "path": "AutoAwStorage/EvalRows/ScalingRole",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_dynamodb.Table",
+              "version": "2.149.0"
+            }
+          },
+          "Datasets": {
+            "id": "Datasets",
+            "path": "AutoAwStorage/Datasets",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwStorage/Datasets/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::S3::Bucket",
+                  "aws:cdk:cloudformation:props": {
+                    "bucketName": "autoaw-datasets-852857723337",
+                    "corsConfiguration": {
+                      "corsRules": [
+                        {
+                          "maxAge": 3000,
+                          "allowedHeaders": [
+                            "*"
+                          ],
+                          "allowedMethods": [
+                            "PUT"
+                          ],
+                          "allowedOrigins": [
+                            "*"
+                          ]
+                        }
+                      ]
+                    },
+                    "publicAccessBlockConfiguration": {
+                      "blockPublicAcls": true,
+                      "blockPublicPolicy": true,
+                      "ignorePublicAcls": true,
+                      "restrictPublicBuckets": true
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_s3.CfnBucket",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_s3.Bucket",
+              "version": "2.149.0"
+            }
+          },
+          "Snapshots": {
+            "id": "Snapshots",
+            "path": "AutoAwStorage/Snapshots",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwStorage/Snapshots/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::S3::Bucket",
+                  "aws:cdk:cloudformation:props": {
+                    "bucketName": "autoaw-snapshots-852857723337",
+                    "publicAccessBlockConfiguration": {
+                      "blockPublicAcls": true,
+                      "blockPublicPolicy": true,
+                      "ignorePublicAcls": true,
+                      "restrictPublicBuckets": true
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_s3.CfnBucket",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_s3.Bucket",
+              "version": "2.149.0"
+            }
+          },
+          "CDKMetadata": {
+            "id": "CDKMetadata",
+            "path": "AutoAwStorage/CDKMetadata",
+            "children": {
+              "Default": {
+                "id": "Default",
+                "path": "AutoAwStorage/CDKMetadata/Default",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnResource",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "constructs.Construct",
+              "version": "10.6.0"
+            }
+          },
+          "Exports": {
+            "id": "Exports",
+            "path": "AutoAwStorage/Exports",
+            "children": {
+              "Output{\"Fn::GetAtt\":[\"ExperimentsBA9AEAD2\",\"Arn\"]}": {
+                "id": "Output{\"Fn::GetAtt\":[\"ExperimentsBA9AEAD2\",\"Arn\"]}",
+                "path": "AutoAwStorage/Exports/Output{\"Fn::GetAtt\":[\"ExperimentsBA9AEAD2\",\"Arn\"]}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              },
+              "Output{\"Fn::GetAtt\":[\"Trials31C8D880\",\"Arn\"]}": {
+                "id": "Output{\"Fn::GetAtt\":[\"Trials31C8D880\",\"Arn\"]}",
+                "path": "AutoAwStorage/Exports/Output{\"Fn::GetAtt\":[\"Trials31C8D880\",\"Arn\"]}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              },
+              "Output{\"Fn::GetAtt\":[\"EvalRows85418221\",\"Arn\"]}": {
+                "id": "Output{\"Fn::GetAtt\":[\"EvalRows85418221\",\"Arn\"]}",
+                "path": "AutoAwStorage/Exports/Output{\"Fn::GetAtt\":[\"EvalRows85418221\",\"Arn\"]}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              },
+              "Output{\"Fn::GetAtt\":[\"Datasets0030EE04\",\"Arn\"]}": {
+                "id": "Output{\"Fn::GetAtt\":[\"Datasets0030EE04\",\"Arn\"]}",
+                "path": "AutoAwStorage/Exports/Output{\"Fn::GetAtt\":[\"Datasets0030EE04\",\"Arn\"]}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              },
+              "Output{\"Fn::GetAtt\":[\"SnapshotsD03D071C\",\"Arn\"]}": {
+                "id": "Output{\"Fn::GetAtt\":[\"SnapshotsD03D071C\",\"Arn\"]}",
+                "path": "AutoAwStorage/Exports/Output{\"Fn::GetAtt\":[\"SnapshotsD03D071C\",\"Arn\"]}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              },
+              "Output{\"Ref\":\"ExperimentsBA9AEAD2\"}": {
+                "id": "Output{\"Ref\":\"ExperimentsBA9AEAD2\"}",
+                "path": "AutoAwStorage/Exports/Output{\"Ref\":\"ExperimentsBA9AEAD2\"}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              },
+              "Output{\"Ref\":\"Trials31C8D880\"}": {
+                "id": "Output{\"Ref\":\"Trials31C8D880\"}",
+                "path": "AutoAwStorage/Exports/Output{\"Ref\":\"Trials31C8D880\"}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              },
+              "Output{\"Ref\":\"EvalRows85418221\"}": {
+                "id": "Output{\"Ref\":\"EvalRows85418221\"}",
+                "path": "AutoAwStorage/Exports/Output{\"Ref\":\"EvalRows85418221\"}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              },
+              "Output{\"Ref\":\"Datasets0030EE04\"}": {
+                "id": "Output{\"Ref\":\"Datasets0030EE04\"}",
+                "path": "AutoAwStorage/Exports/Output{\"Ref\":\"Datasets0030EE04\"}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              },
+              "Output{\"Ref\":\"SnapshotsD03D071C\"}": {
+                "id": "Output{\"Ref\":\"SnapshotsD03D071C\"}",
+                "path": "AutoAwStorage/Exports/Output{\"Ref\":\"SnapshotsD03D071C\"}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "constructs.Construct",
+              "version": "10.6.0"
+            }
+          },
+          "BootstrapVersion": {
+            "id": "BootstrapVersion",
+            "path": "AutoAwStorage/BootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnParameter",
+              "version": "2.149.0"
+            }
+          },
+          "CheckBootstrapVersion": {
+            "id": "CheckBootstrapVersion",
+            "path": "AutoAwStorage/CheckBootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnRule",
+              "version": "2.149.0"
+            }
+          }
+        },
+        "constructInfo": {
+          "fqn": "aws-cdk-lib.Stack",
+          "version": "2.149.0"
+        }
+      },
+      "AutoAwEngine": {
+        "id": "AutoAwEngine",
+        "path": "AutoAwEngine",
+        "children": {
+          "Vpc": {
+            "id": "Vpc",
+            "path": "AutoAwEngine/Vpc",
+            "children": {
+              "PublicSubnet1": {
+                "id": "PublicSubnet1",
+                "path": "AutoAwEngine/Vpc/PublicSubnet1",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.149.0"
+                }
+              },
+              "PublicSubnet2": {
+                "id": "PublicSubnet2",
+                "path": "AutoAwEngine/Vpc/PublicSubnet2",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.149.0"
+                }
+              },
+              "PublicSubnet3": {
+                "id": "PublicSubnet3",
+                "path": "AutoAwEngine/Vpc/PublicSubnet3",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.Resource",
+              "version": "2.149.0"
+            }
+          },
+          "JobDlq": {
+            "id": "JobDlq",
+            "path": "AutoAwEngine/JobDlq",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwEngine/JobDlq/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::SQS::Queue",
+                  "aws:cdk:cloudformation:props": {
+                    "messageRetentionPeriod": 1209600,
+                    "queueName": "autoaw-jobs-dlq"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_sqs.CfnQueue",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_sqs.Queue",
+              "version": "2.149.0"
+            }
+          },
+          "JobQueue": {
+            "id": "JobQueue",
+            "path": "AutoAwEngine/JobQueue",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwEngine/JobQueue/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::SQS::Queue",
+                  "aws:cdk:cloudformation:props": {
+                    "queueName": "autoaw-jobs",
+                    "redrivePolicy": {
+                      "deadLetterTargetArn": {
+                        "Fn::GetAtt": [
+                          "JobDlq229B5977",
+                          "Arn"
+                        ]
+                      },
+                      "maxReceiveCount": 3
+                    },
+                    "visibilityTimeout": 7200
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_sqs.CfnQueue",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_sqs.Queue",
+              "version": "2.149.0"
+            }
+          },
+          "Cluster": {
+            "id": "Cluster",
+            "path": "AutoAwEngine/Cluster",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwEngine/Cluster/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::ECS::Cluster",
+                  "aws:cdk:cloudformation:props": {
+                    "clusterName": "autoaw-engine"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_ecs.CfnCluster",
+                  "version": "2.149.0"
+                }
+              },
+              "Cluster": {
+                "id": "Cluster",
+                "path": "AutoAwEngine/Cluster/Cluster",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::ECS::ClusterCapacityProviderAssociations",
+                  "aws:cdk:cloudformation:props": {
+                    "capacityProviders": [
+                      "FARGATE",
+                      "FARGATE_SPOT"
+                    ],
+                    "cluster": {
+                      "Ref": "ClusterEB0386A7"
+                    },
+                    "defaultCapacityProviderStrategy": []
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_ecs.CfnClusterCapacityProviderAssociations",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_ecs.Cluster",
+              "version": "2.149.0"
+            }
+          },
+          "EngineRepo": {
+            "id": "EngineRepo",
+            "path": "AutoAwEngine/EngineRepo",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_ecr.RepositoryBase",
+              "version": "2.149.0"
+            }
+          },
+          "TaskRole": {
+            "id": "TaskRole",
+            "path": "AutoAwEngine/TaskRole",
+            "children": {
+              "ImportTaskRole": {
+                "id": "ImportTaskRole",
+                "path": "AutoAwEngine/TaskRole/ImportTaskRole",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.149.0"
+                }
+              },
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwEngine/TaskRole/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                  "aws:cdk:cloudformation:props": {
+                    "assumeRolePolicyDocument": {
+                      "Statement": [
+                        {
+                          "Action": "sts:AssumeRole",
+                          "Effect": "Allow",
+                          "Principal": {
+                            "Service": "ecs-tasks.amazonaws.com"
+                          }
+                        }
+                      ],
+                      "Version": "2012-10-17"
+                    },
+                    "roleName": "autoaw-engine-task-role"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                  "version": "2.149.0"
+                }
+              },
+              "DefaultPolicy": {
+                "id": "DefaultPolicy",
+                "path": "AutoAwEngine/TaskRole/DefaultPolicy",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AutoAwEngine/TaskRole/DefaultPolicy/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
+                      "aws:cdk:cloudformation:props": {
+                        "policyDocument": {
+                          "Statement": [
+                            {
+                              "Action": [
+                                "dynamodb:BatchGetItem",
+                                "dynamodb:GetRecords",
+                                "dynamodb:GetShardIterator",
+                                "dynamodb:Query",
+                                "dynamodb:GetItem",
+                                "dynamodb:Scan",
+                                "dynamodb:ConditionCheckItem",
+                                "dynamodb:BatchWriteItem",
+                                "dynamodb:PutItem",
+                                "dynamodb:UpdateItem",
+                                "dynamodb:DeleteItem",
+                                "dynamodb:DescribeTable"
+                              ],
+                              "Effect": "Allow",
+                              "Resource": [
+                                {
+                                  "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttExperimentsBA9AEAD2Arn0B36237F"
+                                },
+                                {
+                                  "Ref": "AWS::NoValue"
+                                }
+                              ]
+                            },
+                            {
+                              "Action": [
+                                "dynamodb:BatchGetItem",
+                                "dynamodb:GetRecords",
+                                "dynamodb:GetShardIterator",
+                                "dynamodb:Query",
+                                "dynamodb:GetItem",
+                                "dynamodb:Scan",
+                                "dynamodb:ConditionCheckItem",
+                                "dynamodb:BatchWriteItem",
+                                "dynamodb:PutItem",
+                                "dynamodb:UpdateItem",
+                                "dynamodb:DeleteItem",
+                                "dynamodb:DescribeTable"
+                              ],
+                              "Effect": "Allow",
+                              "Resource": [
+                                {
+                                  "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttTrials31C8D880Arn217FDD02"
+                                },
+                                {
+                                  "Fn::Join": [
+                                    "",
+                                    [
+                                      {
+                                        "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttTrials31C8D880Arn217FDD02"
+                                      },
+                                      "/index/*"
+                                    ]
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Action": [
+                                "dynamodb:BatchGetItem",
+                                "dynamodb:GetRecords",
+                                "dynamodb:GetShardIterator",
+                                "dynamodb:Query",
+                                "dynamodb:GetItem",
+                                "dynamodb:Scan",
+                                "dynamodb:ConditionCheckItem",
+                                "dynamodb:BatchWriteItem",
+                                "dynamodb:PutItem",
+                                "dynamodb:UpdateItem",
+                                "dynamodb:DeleteItem",
+                                "dynamodb:DescribeTable"
+                              ],
+                              "Effect": "Allow",
+                              "Resource": [
+                                {
+                                  "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttEvalRows85418221ArnB59716AF"
+                                },
+                                {
+                                  "Fn::Join": [
+                                    "",
+                                    [
+                                      {
+                                        "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttEvalRows85418221ArnB59716AF"
+                                      },
+                                      "/index/*"
+                                    ]
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Action": [
+                                "s3:GetObject*",
+                                "s3:GetBucket*",
+                                "s3:List*"
+                              ],
+                              "Effect": "Allow",
+                              "Resource": [
+                                {
+                                  "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttDatasets0030EE04Arn3BA423B5"
+                                },
+                                {
+                                  "Fn::Join": [
+                                    "",
+                                    [
+                                      {
+                                        "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttDatasets0030EE04Arn3BA423B5"
+                                      },
+                                      "/*"
+                                    ]
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Action": [
+                                "s3:GetObject*",
+                                "s3:GetBucket*",
+                                "s3:List*",
+                                "s3:DeleteObject*",
+                                "s3:PutObject",
+                                "s3:PutObjectLegalHold",
+                                "s3:PutObjectRetention",
+                                "s3:PutObjectTagging",
+                                "s3:PutObjectVersionTagging",
+                                "s3:Abort*"
+                              ],
+                              "Effect": "Allow",
+                              "Resource": [
+                                {
+                                  "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttSnapshotsD03D071CArnFDD1C08E"
+                                },
+                                {
+                                  "Fn::Join": [
+                                    "",
+                                    [
+                                      {
+                                        "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttSnapshotsD03D071CArnFDD1C08E"
+                                      },
+                                      "/*"
+                                    ]
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Action": [
+                                "sqs:ReceiveMessage",
+                                "sqs:ChangeMessageVisibility",
+                                "sqs:GetQueueUrl",
+                                "sqs:DeleteMessage",
+                                "sqs:GetQueueAttributes"
+                              ],
+                              "Effect": "Allow",
+                              "Resource": {
+                                "Fn::GetAtt": [
+                                  "JobQueueEE3AD499",
+                                  "Arn"
+                                ]
+                              }
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        },
+                        "policyName": "TaskRoleDefaultPolicy07FC53DE",
+                        "roles": [
+                          {
+                            "Ref": "TaskRole30FC0FBB"
+                          }
+                        ]
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.CfnPolicy",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.Policy",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_iam.Role",
+              "version": "2.149.0"
+            }
+          },
+          "EngineTaskDef": {
+            "id": "EngineTaskDef",
+            "path": "AutoAwEngine/EngineTaskDef",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwEngine/EngineTaskDef/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::ECS::TaskDefinition",
+                  "aws:cdk:cloudformation:props": {
+                    "containerDefinitions": [
+                      {
+                        "essential": true,
+                        "image": "public.ecr.aws/docker/library/python:3.12-slim",
+                        "name": "Engine",
+                        "logConfiguration": {
+                          "logDriver": "awslogs",
+                          "options": {
+                            "awslogs-group": {
+                              "Ref": "EngineTaskDefEngineLogGroupD3C69D9A"
+                            },
+                            "awslogs-stream-prefix": "autoaw-engine",
+                            "awslogs-region": "eu-central-1"
+                          }
+                        },
+                        "environment": [
+                          {
+                            "name": "EXPERIMENTS_TABLE",
+                            "value": {
+                              "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefExperimentsBA9AEAD20A361E65"
+                            }
+                          },
+                          {
+                            "name": "TRIALS_TABLE",
+                            "value": {
+                              "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefTrials31C8D880807C0FFD"
+                            }
+                          },
+                          {
+                            "name": "EVAL_ROWS_TABLE",
+                            "value": {
+                              "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefEvalRows8541822127A8D62F"
+                            }
+                          },
+                          {
+                            "name": "DATASETS_BUCKET",
+                            "value": {
+                              "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefDatasets0030EE0478B3FE2D"
+                            }
+                          },
+                          {
+                            "name": "SNAPSHOTS_BUCKET",
+                            "value": {
+                              "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefSnapshotsD03D071C14D360CC"
+                            }
+                          },
+                          {
+                            "name": "JOB_QUEUE_URL",
+                            "value": {
+                              "Ref": "JobQueueEE3AD499"
+                            }
+                          }
+                        ]
+                      }
+                    ],
+                    "cpu": "1024",
+                    "executionRoleArn": {
+                      "Fn::GetAtt": [
+                        "EngineTaskDefExecutionRole4A47BFD1",
+                        "Arn"
+                      ]
+                    },
+                    "family": "AutoAwEngineEngineTaskDef74A7AC2D",
+                    "memory": "2048",
+                    "networkMode": "awsvpc",
+                    "requiresCompatibilities": [
+                      "FARGATE"
+                    ],
+                    "runtimePlatform": {
+                      "cpuArchitecture": "X86_64",
+                      "operatingSystemFamily": "LINUX"
+                    },
+                    "taskRoleArn": {
+                      "Fn::GetAtt": [
+                        "TaskRole30FC0FBB",
+                        "Arn"
+                      ]
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_ecs.CfnTaskDefinition",
+                  "version": "2.149.0"
+                }
+              },
+              "Engine": {
+                "id": "Engine",
+                "path": "AutoAwEngine/EngineTaskDef/Engine",
+                "children": {
+                  "LogGroup": {
+                    "id": "LogGroup",
+                    "path": "AutoAwEngine/EngineTaskDef/Engine/LogGroup",
+                    "children": {
+                      "Resource": {
+                        "id": "Resource",
+                        "path": "AutoAwEngine/EngineTaskDef/Engine/LogGroup/Resource",
+                        "attributes": {
+                          "aws:cdk:cloudformation:type": "AWS::Logs::LogGroup",
+                          "aws:cdk:cloudformation:props": {}
+                        },
+                        "constructInfo": {
+                          "fqn": "aws-cdk-lib.aws_logs.CfnLogGroup",
+                          "version": "2.149.0"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_logs.LogGroup",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_ecs.ContainerDefinition",
+                  "version": "2.149.0"
+                }
+              },
+              "ExecutionRole": {
+                "id": "ExecutionRole",
+                "path": "AutoAwEngine/EngineTaskDef/ExecutionRole",
+                "children": {
+                  "ImportExecutionRole": {
+                    "id": "ImportExecutionRole",
+                    "path": "AutoAwEngine/EngineTaskDef/ExecutionRole/ImportExecutionRole",
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.Resource",
+                      "version": "2.149.0"
+                    }
+                  },
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AutoAwEngine/EngineTaskDef/ExecutionRole/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                      "aws:cdk:cloudformation:props": {
+                        "assumeRolePolicyDocument": {
+                          "Statement": [
+                            {
+                              "Action": "sts:AssumeRole",
+                              "Effect": "Allow",
+                              "Principal": {
+                                "Service": "ecs-tasks.amazonaws.com"
+                              }
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                      "version": "2.149.0"
+                    }
+                  },
+                  "DefaultPolicy": {
+                    "id": "DefaultPolicy",
+                    "path": "AutoAwEngine/EngineTaskDef/ExecutionRole/DefaultPolicy",
+                    "children": {
+                      "Resource": {
+                        "id": "Resource",
+                        "path": "AutoAwEngine/EngineTaskDef/ExecutionRole/DefaultPolicy/Resource",
+                        "attributes": {
+                          "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
+                          "aws:cdk:cloudformation:props": {
+                            "policyDocument": {
+                              "Statement": [
+                                {
+                                  "Action": [
+                                    "logs:CreateLogStream",
+                                    "logs:PutLogEvents"
+                                  ],
+                                  "Effect": "Allow",
+                                  "Resource": {
+                                    "Fn::GetAtt": [
+                                      "EngineTaskDefEngineLogGroupD3C69D9A",
+                                      "Arn"
+                                    ]
+                                  }
+                                }
+                              ],
+                              "Version": "2012-10-17"
+                            },
+                            "policyName": "EngineTaskDefExecutionRoleDefaultPolicyC7CD8F19",
+                            "roles": [
+                              {
+                                "Ref": "EngineTaskDefExecutionRole4A47BFD1"
+                              }
+                            ]
+                          }
+                        },
+                        "constructInfo": {
+                          "fqn": "aws-cdk-lib.aws_iam.CfnPolicy",
+                          "version": "2.149.0"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.Policy",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.Role",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_ecs.FargateTaskDefinition",
+              "version": "2.149.0"
+            }
+          },
+          "EngineService": {
+            "id": "EngineService",
+            "path": "AutoAwEngine/EngineService",
+            "children": {
+              "Service": {
+                "id": "Service",
+                "path": "AutoAwEngine/EngineService/Service",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::ECS::Service",
+                  "aws:cdk:cloudformation:props": {
+                    "capacityProviderStrategy": [
+                      {
+                        "capacityProvider": "FARGATE_SPOT",
+                        "weight": 4
+                      },
+                      {
+                        "capacityProvider": "FARGATE",
+                        "weight": 1
+                      }
+                    ],
+                    "cluster": {
+                      "Ref": "ClusterEB0386A7"
+                    },
+                    "deploymentConfiguration": {
+                      "maximumPercent": 200,
+                      "minimumHealthyPercent": 0,
+                      "deploymentCircuitBreaker": {
+                        "enable": true,
+                        "rollback": true
+                      },
+                      "alarms": {
+                        "alarmNames": [],
+                        "enable": false,
+                        "rollback": false
+                      }
+                    },
+                    "deploymentController": {
+                      "type": "ECS"
+                    },
+                    "desiredCount": 0,
+                    "enableEcsManagedTags": false,
+                    "networkConfiguration": {
+                      "awsvpcConfiguration": {
+                        "assignPublicIp": "ENABLED",
+                        "subnets": [
+                          "subnet-093e4d4acd65d78d6",
+                          "subnet-05a4cb04f08c633a3",
+                          "subnet-086f54fee1c6e523d"
+                        ],
+                        "securityGroups": [
+                          {
+                            "Fn::GetAtt": [
+                              "EngineServiceSecurityGroup5D19C56E",
+                              "GroupId"
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "serviceName": "autoaw-engine",
+                    "taskDefinition": {
+                      "Ref": "EngineTaskDef6987BEC2"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_ecs.CfnService",
+                  "version": "2.149.0"
+                }
+              },
+              "SecurityGroup": {
+                "id": "SecurityGroup",
+                "path": "AutoAwEngine/EngineService/SecurityGroup",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AutoAwEngine/EngineService/SecurityGroup/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::EC2::SecurityGroup",
+                      "aws:cdk:cloudformation:props": {
+                        "groupDescription": "AutoAwEngine/EngineService/SecurityGroup",
+                        "securityGroupEgress": [
+                          {
+                            "cidrIp": "0.0.0.0/0",
+                            "description": "Allow all outbound traffic by default",
+                            "ipProtocol": "-1"
+                          }
+                        ],
+                        "vpcId": "vpc-0867e8d03960223c2"
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_ec2.CfnSecurityGroup",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_ec2.SecurityGroup",
+                  "version": "2.149.0"
+                }
+              },
+              "ScalingRole": {
+                "id": "ScalingRole",
+                "path": "AutoAwEngine/EngineService/ScalingRole",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.149.0"
+                }
+              },
+              "TaskCount": {
+                "id": "TaskCount",
+                "path": "AutoAwEngine/EngineService/TaskCount",
+                "children": {
+                  "Target": {
+                    "id": "Target",
+                    "path": "AutoAwEngine/EngineService/TaskCount/Target",
+                    "children": {
+                      "Resource": {
+                        "id": "Resource",
+                        "path": "AutoAwEngine/EngineService/TaskCount/Target/Resource",
+                        "attributes": {
+                          "aws:cdk:cloudformation:type": "AWS::ApplicationAutoScaling::ScalableTarget",
+                          "aws:cdk:cloudformation:props": {
+                            "maxCapacity": 4,
+                            "minCapacity": 0,
+                            "resourceId": {
+                              "Fn::Join": [
+                                "",
+                                [
+                                  "service/",
+                                  {
+                                    "Ref": "ClusterEB0386A7"
+                                  },
+                                  "/",
+                                  {
+                                    "Fn::GetAtt": [
+                                      "EngineService3840B89C",
+                                      "Name"
+                                    ]
+                                  }
+                                ]
+                              ]
+                            },
+                            "roleArn": {
+                              "Fn::Join": [
+                                "",
+                                [
+                                  "arn:",
+                                  {
+                                    "Ref": "AWS::Partition"
+                                  },
+                                  ":iam::852857723337:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
+                                ]
+                              ]
+                            },
+                            "scalableDimension": "ecs:service:DesiredCount",
+                            "serviceNamespace": "ecs"
+                          }
+                        },
+                        "constructInfo": {
+                          "fqn": "aws-cdk-lib.aws_applicationautoscaling.CfnScalableTarget",
+                          "version": "2.149.0"
+                        }
+                      },
+                      "ScaleOnQueueDepth": {
+                        "id": "ScaleOnQueueDepth",
+                        "path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth",
+                        "children": {
+                          "LowerPolicy": {
+                            "id": "LowerPolicy",
+                            "path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/LowerPolicy",
+                            "children": {
+                              "Resource": {
+                                "id": "Resource",
+                                "path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/LowerPolicy/Resource",
+                                "attributes": {
+                                  "aws:cdk:cloudformation:type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+                                  "aws:cdk:cloudformation:props": {
+                                    "policyName": "AutoAwEngineEngineServiceTaskCountTargetScaleOnQueueDepthLowerPolicy96007342",
+                                    "policyType": "StepScaling",
+                                    "scalingTargetId": {
+                                      "Ref": "EngineServiceTaskCountTarget670FC81E"
+                                    },
+                                    "stepScalingPolicyConfiguration": {
+                                      "adjustmentType": "ChangeInCapacity",
+                                      "cooldown": 120,
+                                      "metricAggregationType": "Maximum",
+                                      "stepAdjustments": [
+                                        {
+                                          "metricIntervalUpperBound": 0,
+                                          "scalingAdjustment": -4
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                "constructInfo": {
+                                  "fqn": "aws-cdk-lib.aws_applicationautoscaling.CfnScalingPolicy",
+                                  "version": "2.149.0"
+                                }
+                              }
+                            },
+                            "constructInfo": {
+                              "fqn": "aws-cdk-lib.aws_applicationautoscaling.StepScalingAction",
+                              "version": "2.149.0"
+                            }
+                          },
+                          "LowerAlarm": {
+                            "id": "LowerAlarm",
+                            "path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/LowerAlarm",
+                            "children": {
+                              "Resource": {
+                                "id": "Resource",
+                                "path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/LowerAlarm/Resource",
+                                "attributes": {
+                                  "aws:cdk:cloudformation:type": "AWS::CloudWatch::Alarm",
+                                  "aws:cdk:cloudformation:props": {
+                                    "alarmActions": [
+                                      {
+                                        "Ref": "EngineServiceTaskCountTargetScaleOnQueueDepthLowerPolicy7D334D60"
+                                      }
+                                    ],
+                                    "alarmDescription": "Lower threshold scaling alarm",
+                                    "comparisonOperator": "LessThanOrEqualToThreshold",
+                                    "dimensions": [
+                                      {
+                                        "name": "QueueName",
+                                        "value": {
+                                          "Fn::GetAtt": [
+                                            "JobQueueEE3AD499",
+                                            "QueueName"
+                                          ]
+                                        }
+                                      }
+                                    ],
+                                    "evaluationPeriods": 1,
+                                    "metricName": "ApproximateNumberOfMessagesVisible",
+                                    "namespace": "AWS/SQS",
+                                    "period": 60,
+                                    "statistic": "Maximum",
+                                    "threshold": 0
+                                  }
+                                },
+                                "constructInfo": {
+                                  "fqn": "aws-cdk-lib.aws_cloudwatch.CfnAlarm",
+                                  "version": "2.149.0"
+                                }
+                              }
+                            },
+                            "constructInfo": {
+                              "fqn": "aws-cdk-lib.aws_cloudwatch.Alarm",
+                              "version": "2.149.0"
+                            }
+                          },
+                          "UpperPolicy": {
+                            "id": "UpperPolicy",
+                            "path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/UpperPolicy",
+                            "children": {
+                              "Resource": {
+                                "id": "Resource",
+                                "path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/UpperPolicy/Resource",
+                                "attributes": {
+                                  "aws:cdk:cloudformation:type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+                                  "aws:cdk:cloudformation:props": {
+                                    "policyName": "AutoAwEngineEngineServiceTaskCountTargetScaleOnQueueDepthUpperPolicy8814DED1",
+                                    "policyType": "StepScaling",
+                                    "scalingTargetId": {
+                                      "Ref": "EngineServiceTaskCountTarget670FC81E"
+                                    },
+                                    "stepScalingPolicyConfiguration": {
+                                      "adjustmentType": "ChangeInCapacity",
+                                      "cooldown": 120,
+                                      "metricAggregationType": "Maximum",
+                                      "stepAdjustments": [
+                                        {
+                                          "metricIntervalLowerBound": 0,
+                                          "metricIntervalUpperBound": 2,
+                                          "scalingAdjustment": 1
+                                        },
+                                        {
+                                          "metricIntervalLowerBound": 2,
+                                          "scalingAdjustment": 2
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                "constructInfo": {
+                                  "fqn": "aws-cdk-lib.aws_applicationautoscaling.CfnScalingPolicy",
+                                  "version": "2.149.0"
+                                }
+                              }
+                            },
+                            "constructInfo": {
+                              "fqn": "aws-cdk-lib.aws_applicationautoscaling.StepScalingAction",
+                              "version": "2.149.0"
+                            }
+                          },
+                          "UpperAlarm": {
+                            "id": "UpperAlarm",
+                            "path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/UpperAlarm",
+                            "children": {
+                              "Resource": {
+                                "id": "Resource",
+                                "path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/UpperAlarm/Resource",
+                                "attributes": {
+                                  "aws:cdk:cloudformation:type": "AWS::CloudWatch::Alarm",
+                                  "aws:cdk:cloudformation:props": {
+                                    "alarmActions": [
+                                      {
+                                        "Ref": "EngineServiceTaskCountTargetScaleOnQueueDepthUpperPolicyC2A5FD8E"
+                                      }
+                                    ],
+                                    "alarmDescription": "Upper threshold scaling alarm",
+                                    "comparisonOperator": "GreaterThanOrEqualToThreshold",
+                                    "dimensions": [
+                                      {
+                                        "name": "QueueName",
+                                        "value": {
+                                          "Fn::GetAtt": [
+                                            "JobQueueEE3AD499",
+                                            "QueueName"
+                                          ]
+                                        }
+                                      }
+                                    ],
+                                    "evaluationPeriods": 1,
+                                    "metricName": "ApproximateNumberOfMessagesVisible",
+                                    "namespace": "AWS/SQS",
+                                    "period": 60,
+                                    "statistic": "Maximum",
+                                    "threshold": 1
+                                  }
+                                },
+                                "constructInfo": {
+                                  "fqn": "aws-cdk-lib.aws_cloudwatch.CfnAlarm",
+                                  "version": "2.149.0"
+                                }
+                              }
+                            },
+                            "constructInfo": {
+                              "fqn": "aws-cdk-lib.aws_cloudwatch.Alarm",
+                              "version": "2.149.0"
+                            }
+                          }
+                        },
+                        "constructInfo": {
+                          "fqn": "aws-cdk-lib.aws_applicationautoscaling.StepScalingPolicy",
+                          "version": "2.149.0"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_applicationautoscaling.ScalableTarget",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_ecs.ScalableTaskCount",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_ecs.FargateService",
+              "version": "2.149.0"
+            }
+          },
+          "JobQueueUrl": {
+            "id": "JobQueueUrl",
+            "path": "AutoAwEngine/JobQueueUrl",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnOutput",
+              "version": "2.149.0"
+            }
+          },
+          "EngineRepoUri": {
+            "id": "EngineRepoUri",
+            "path": "AutoAwEngine/EngineRepoUri",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnOutput",
+              "version": "2.149.0"
+            }
+          },
+          "CDKMetadata": {
+            "id": "CDKMetadata",
+            "path": "AutoAwEngine/CDKMetadata",
+            "children": {
+              "Default": {
+                "id": "Default",
+                "path": "AutoAwEngine/CDKMetadata/Default",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnResource",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "constructs.Construct",
+              "version": "10.6.0"
+            }
+          },
+          "Exports": {
+            "id": "Exports",
+            "path": "AutoAwEngine/Exports",
+            "children": {
+              "Output{\"Fn::GetAtt\":[\"JobQueueEE3AD499\",\"Arn\"]}": {
+                "id": "Output{\"Fn::GetAtt\":[\"JobQueueEE3AD499\",\"Arn\"]}",
+                "path": "AutoAwEngine/Exports/Output{\"Fn::GetAtt\":[\"JobQueueEE3AD499\",\"Arn\"]}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              },
+              "Output{\"Ref\":\"JobQueueEE3AD499\"}": {
+                "id": "Output{\"Ref\":\"JobQueueEE3AD499\"}",
+                "path": "AutoAwEngine/Exports/Output{\"Ref\":\"JobQueueEE3AD499\"}",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnOutput",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "constructs.Construct",
+              "version": "10.6.0"
+            }
+          },
+          "BootstrapVersion": {
+            "id": "BootstrapVersion",
+            "path": "AutoAwEngine/BootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnParameter",
+              "version": "2.149.0"
+            }
+          },
+          "CheckBootstrapVersion": {
+            "id": "CheckBootstrapVersion",
+            "path": "AutoAwEngine/CheckBootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnRule",
+              "version": "2.149.0"
+            }
+          }
+        },
+        "constructInfo": {
+          "fqn": "aws-cdk-lib.Stack",
+          "version": "2.149.0"
+        }
+      },
+      "AutoAwApi": {
+        "id": "AutoAwApi",
+        "path": "AutoAwApi",
+        "children": {
+          "ApiHandler": {
+            "id": "ApiHandler",
+            "path": "AutoAwApi/ApiHandler",
+            "children": {
+              "ServiceRole": {
+                "id": "ServiceRole",
+                "path": "AutoAwApi/ApiHandler/ServiceRole",
+                "children": {
+                  "ImportServiceRole": {
+                    "id": "ImportServiceRole",
+                    "path": "AutoAwApi/ApiHandler/ServiceRole/ImportServiceRole",
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.Resource",
+                      "version": "2.149.0"
+                    }
+                  },
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AutoAwApi/ApiHandler/ServiceRole/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                      "aws:cdk:cloudformation:props": {
+                        "assumeRolePolicyDocument": {
+                          "Statement": [
+                            {
+                              "Action": "sts:AssumeRole",
+                              "Effect": "Allow",
+                              "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                              }
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        },
+                        "managedPolicyArns": [
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                "arn:",
+                                {
+                                  "Ref": "AWS::Partition"
+                                },
+                                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                              ]
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                      "version": "2.149.0"
+                    }
+                  },
+                  "DefaultPolicy": {
+                    "id": "DefaultPolicy",
+                    "path": "AutoAwApi/ApiHandler/ServiceRole/DefaultPolicy",
+                    "children": {
+                      "Resource": {
+                        "id": "Resource",
+                        "path": "AutoAwApi/ApiHandler/ServiceRole/DefaultPolicy/Resource",
+                        "attributes": {
+                          "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
+                          "aws:cdk:cloudformation:props": {
+                            "policyDocument": {
+                              "Statement": [
+                                {
+                                  "Action": [
+                                    "dynamodb:BatchGetItem",
+                                    "dynamodb:GetRecords",
+                                    "dynamodb:GetShardIterator",
+                                    "dynamodb:Query",
+                                    "dynamodb:GetItem",
+                                    "dynamodb:Scan",
+                                    "dynamodb:ConditionCheckItem",
+                                    "dynamodb:BatchWriteItem",
+                                    "dynamodb:PutItem",
+                                    "dynamodb:UpdateItem",
+                                    "dynamodb:DeleteItem",
+                                    "dynamodb:DescribeTable"
+                                  ],
+                                  "Effect": "Allow",
+                                  "Resource": [
+                                    {
+                                      "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttExperimentsBA9AEAD2Arn0B36237F"
+                                    },
+                                    {
+                                      "Ref": "AWS::NoValue"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Action": [
+                                    "dynamodb:BatchGetItem",
+                                    "dynamodb:GetRecords",
+                                    "dynamodb:GetShardIterator",
+                                    "dynamodb:Query",
+                                    "dynamodb:GetItem",
+                                    "dynamodb:Scan",
+                                    "dynamodb:ConditionCheckItem",
+                                    "dynamodb:BatchWriteItem",
+                                    "dynamodb:PutItem",
+                                    "dynamodb:UpdateItem",
+                                    "dynamodb:DeleteItem",
+                                    "dynamodb:DescribeTable"
+                                  ],
+                                  "Effect": "Allow",
+                                  "Resource": [
+                                    {
+                                      "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttTrials31C8D880Arn217FDD02"
+                                    },
+                                    {
+                                      "Fn::Join": [
+                                        "",
+                                        [
+                                          {
+                                            "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttTrials31C8D880Arn217FDD02"
+                                          },
+                                          "/index/*"
+                                        ]
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Action": [
+                                    "dynamodb:BatchGetItem",
+                                    "dynamodb:GetRecords",
+                                    "dynamodb:GetShardIterator",
+                                    "dynamodb:Query",
+                                    "dynamodb:GetItem",
+                                    "dynamodb:Scan",
+                                    "dynamodb:ConditionCheckItem",
+                                    "dynamodb:BatchWriteItem",
+                                    "dynamodb:PutItem",
+                                    "dynamodb:UpdateItem",
+                                    "dynamodb:DeleteItem",
+                                    "dynamodb:DescribeTable"
+                                  ],
+                                  "Effect": "Allow",
+                                  "Resource": [
+                                    {
+                                      "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttEvalRows85418221ArnB59716AF"
+                                    },
+                                    {
+                                      "Fn::Join": [
+                                        "",
+                                        [
+                                          {
+                                            "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttEvalRows85418221ArnB59716AF"
+                                          },
+                                          "/index/*"
+                                        ]
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Action": [
+                                    "s3:GetObject*",
+                                    "s3:GetBucket*",
+                                    "s3:List*",
+                                    "s3:DeleteObject*",
+                                    "s3:PutObject",
+                                    "s3:PutObjectLegalHold",
+                                    "s3:PutObjectRetention",
+                                    "s3:PutObjectTagging",
+                                    "s3:PutObjectVersionTagging",
+                                    "s3:Abort*"
+                                  ],
+                                  "Effect": "Allow",
+                                  "Resource": [
+                                    {
+                                      "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttDatasets0030EE04Arn3BA423B5"
+                                    },
+                                    {
+                                      "Fn::Join": [
+                                        "",
+                                        [
+                                          {
+                                            "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttDatasets0030EE04Arn3BA423B5"
+                                          },
+                                          "/*"
+                                        ]
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Action": [
+                                    "sqs:SendMessage",
+                                    "sqs:GetQueueAttributes",
+                                    "sqs:GetQueueUrl"
+                                  ],
+                                  "Effect": "Allow",
+                                  "Resource": {
+                                    "Fn::ImportValue": "AutoAwEngine:ExportsOutputFnGetAttJobQueueEE3AD499Arn6FF48E15"
+                                  }
+                                }
+                              ],
+                              "Version": "2012-10-17"
+                            },
+                            "policyName": "ApiHandlerServiceRoleDefaultPolicy10321D87",
+                            "roles": [
+                              {
+                                "Ref": "ApiHandlerServiceRole592E70E9"
+                              }
+                            ]
+                          }
+                        },
+                        "constructInfo": {
+                          "fqn": "aws-cdk-lib.aws_iam.CfnPolicy",
+                          "version": "2.149.0"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.Policy",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.Role",
+                  "version": "2.149.0"
+                }
+              },
+              "Code": {
+                "id": "Code",
+                "path": "AutoAwApi/ApiHandler/Code",
+                "children": {
+                  "Stage": {
+                    "id": "Stage",
+                    "path": "AutoAwApi/ApiHandler/Code/Stage",
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.AssetStaging",
+                      "version": "2.149.0"
+                    }
+                  },
+                  "AssetBucket": {
+                    "id": "AssetBucket",
+                    "path": "AutoAwApi/ApiHandler/Code/AssetBucket",
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_s3.BucketBase",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_s3_assets.Asset",
+                  "version": "2.149.0"
+                }
+              },
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwApi/ApiHandler/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::Lambda::Function",
+                  "aws:cdk:cloudformation:props": {
+                    "code": {
+                      "s3Bucket": "cdk-hnb659fds-assets-852857723337-eu-central-1",
+                      "s3Key": "09f1361591967631e98441970c5058f897084148b817385906ef73b47f7133a6.zip"
+                    },
+                    "environment": {
+                      "variables": {
+                        "EXPERIMENTS_TABLE": {
+                          "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefExperimentsBA9AEAD20A361E65"
+                        },
+                        "TRIALS_TABLE": {
+                          "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefTrials31C8D880807C0FFD"
+                        },
+                        "EVAL_ROWS_TABLE": {
+                          "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefEvalRows8541822127A8D62F"
+                        },
+                        "DATASETS_BUCKET": {
+                          "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefDatasets0030EE0478B3FE2D"
+                        },
+                        "JOB_QUEUE_URL": {
+                          "Fn::ImportValue": "AutoAwEngine:ExportsOutputRefJobQueueEE3AD499E26FB576"
+                        },
+                        "STORE_BACKEND": "dynamo"
+                      }
+                    },
+                    "functionName": "autoaw-api",
+                    "handler": "lambda_handler.handler",
+                    "memorySize": 512,
+                    "role": {
+                      "Fn::GetAtt": [
+                        "ApiHandlerServiceRole592E70E9",
+                        "Arn"
+                      ]
+                    },
+                    "runtime": "python3.12",
+                    "timeout": 30
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_lambda.CfnFunction",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_lambda.Function",
+              "version": "2.149.0"
+            }
+          },
+          "HttpApi": {
+            "id": "HttpApi",
+            "path": "AutoAwApi/HttpApi",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwApi/HttpApi/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::ApiGatewayV2::Api",
+                  "aws:cdk:cloudformation:props": {
+                    "corsConfiguration": {
+                      "allowHeaders": [
+                        "content-type",
+                        "authorization"
+                      ],
+                      "allowMethods": [
+                        "*"
+                      ],
+                      "allowOrigins": [
+                        "http://localhost:3000",
+                        "http://localhost:3032",
+                        "https://d32ilmniiyvkjt.cloudfront.net"
+                      ],
+                      "maxAge": 86400
+                    },
+                    "name": "autoaw-api",
+                    "protocolType": "HTTP"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_apigatewayv2.CfnApi",
+                  "version": "2.149.0"
+                }
+              },
+              "DefaultStage": {
+                "id": "DefaultStage",
+                "path": "AutoAwApi/HttpApi/DefaultStage",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AutoAwApi/HttpApi/DefaultStage/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::ApiGatewayV2::Stage",
+                      "aws:cdk:cloudformation:props": {
+                        "apiId": {
+                          "Ref": "HttpApiF5A9A8A7"
+                        },
+                        "autoDeploy": true,
+                        "stageName": "$default"
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_apigatewayv2.CfnStage",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_apigatewayv2.HttpStage",
+                  "version": "2.149.0"
+                }
+              },
+              "GET--{proxy+}": {
+                "id": "GET--{proxy+}",
+                "path": "AutoAwApi/HttpApi/GET--{proxy+}",
+                "children": {
+                  "LambdaIntegration": {
+                    "id": "LambdaIntegration",
+                    "path": "AutoAwApi/HttpApi/GET--{proxy+}/LambdaIntegration",
+                    "children": {
+                      "Resource": {
+                        "id": "Resource",
+                        "path": "AutoAwApi/HttpApi/GET--{proxy+}/LambdaIntegration/Resource",
+                        "attributes": {
+                          "aws:cdk:cloudformation:type": "AWS::ApiGatewayV2::Integration",
+                          "aws:cdk:cloudformation:props": {
+                            "apiId": {
+                              "Ref": "HttpApiF5A9A8A7"
+                            },
+                            "integrationType": "AWS_PROXY",
+                            "integrationUri": {
+                              "Fn::GetAtt": [
+                                "ApiHandler5E7490E8",
+                                "Arn"
+                              ]
+                            },
+                            "payloadFormatVersion": "2.0"
+                          }
+                        },
+                        "constructInfo": {
+                          "fqn": "aws-cdk-lib.aws_apigatewayv2.CfnIntegration",
+                          "version": "2.149.0"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_apigatewayv2.HttpIntegration",
+                      "version": "2.149.0"
+                    }
+                  },
+                  "LambdaIntegration-Permission": {
+                    "id": "LambdaIntegration-Permission",
+                    "path": "AutoAwApi/HttpApi/GET--{proxy+}/LambdaIntegration-Permission",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::Lambda::Permission",
+                      "aws:cdk:cloudformation:props": {
+                        "action": "lambda:InvokeFunction",
+                        "functionName": {
+                          "Fn::GetAtt": [
+                            "ApiHandler5E7490E8",
+                            "Arn"
+                          ]
+                        },
+                        "principal": "apigateway.amazonaws.com",
+                        "sourceArn": {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "arn:",
+                              {
+                                "Ref": "AWS::Partition"
+                              },
+                              ":execute-api:eu-central-1:852857723337:",
+                              {
+                                "Ref": "HttpApiF5A9A8A7"
+                              },
+                              "/*/*/{proxy+}"
+                            ]
+                          ]
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_lambda.CfnPermission",
+                      "version": "2.149.0"
+                    }
+                  },
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AutoAwApi/HttpApi/GET--{proxy+}/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::ApiGatewayV2::Route",
+                      "aws:cdk:cloudformation:props": {
+                        "apiId": {
+                          "Ref": "HttpApiF5A9A8A7"
+                        },
+                        "authorizationType": "NONE",
+                        "routeKey": "GET /{proxy+}",
+                        "target": {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "integrations/",
+                              {
+                                "Ref": "HttpApiGETproxyLambdaIntegrationA962D639"
+                              }
+                            ]
+                          ]
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_apigatewayv2.CfnRoute",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_apigatewayv2.HttpRoute",
+                  "version": "2.149.0"
+                }
+              },
+              "POST--{proxy+}": {
+                "id": "POST--{proxy+}",
+                "path": "AutoAwApi/HttpApi/POST--{proxy+}",
+                "children": {
+                  "LambdaIntegration-Permission": {
+                    "id": "LambdaIntegration-Permission",
+                    "path": "AutoAwApi/HttpApi/POST--{proxy+}/LambdaIntegration-Permission",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::Lambda::Permission",
+                      "aws:cdk:cloudformation:props": {
+                        "action": "lambda:InvokeFunction",
+                        "functionName": {
+                          "Fn::GetAtt": [
+                            "ApiHandler5E7490E8",
+                            "Arn"
+                          ]
+                        },
+                        "principal": "apigateway.amazonaws.com",
+                        "sourceArn": {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "arn:",
+                              {
+                                "Ref": "AWS::Partition"
+                              },
+                              ":execute-api:eu-central-1:852857723337:",
+                              {
+                                "Ref": "HttpApiF5A9A8A7"
+                              },
+                              "/*/*/{proxy+}"
+                            ]
+                          ]
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_lambda.CfnPermission",
+                      "version": "2.149.0"
+                    }
+                  },
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AutoAwApi/HttpApi/POST--{proxy+}/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::ApiGatewayV2::Route",
+                      "aws:cdk:cloudformation:props": {
+                        "apiId": {
+                          "Ref": "HttpApiF5A9A8A7"
+                        },
+                        "authorizationType": "NONE",
+                        "routeKey": "POST /{proxy+}",
+                        "target": {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "integrations/",
+                              {
+                                "Ref": "HttpApiGETproxyLambdaIntegrationA962D639"
+                              }
+                            ]
+                          ]
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_apigatewayv2.CfnRoute",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_apigatewayv2.HttpRoute",
+                  "version": "2.149.0"
+                }
+              },
+              "PUT--{proxy+}": {
+                "id": "PUT--{proxy+}",
+                "path": "AutoAwApi/HttpApi/PUT--{proxy+}",
+                "children": {
+                  "LambdaIntegration-Permission": {
+                    "id": "LambdaIntegration-Permission",
+                    "path": "AutoAwApi/HttpApi/PUT--{proxy+}/LambdaIntegration-Permission",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::Lambda::Permission",
+                      "aws:cdk:cloudformation:props": {
+                        "action": "lambda:InvokeFunction",
+                        "functionName": {
+                          "Fn::GetAtt": [
+                            "ApiHandler5E7490E8",
+                            "Arn"
+                          ]
+                        },
+                        "principal": "apigateway.amazonaws.com",
+                        "sourceArn": {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "arn:",
+                              {
+                                "Ref": "AWS::Partition"
+                              },
+                              ":execute-api:eu-central-1:852857723337:",
+                              {
+                                "Ref": "HttpApiF5A9A8A7"
+                              },
+                              "/*/*/{proxy+}"
+                            ]
+                          ]
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_lambda.CfnPermission",
+                      "version": "2.149.0"
+                    }
+                  },
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AutoAwApi/HttpApi/PUT--{proxy+}/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::ApiGatewayV2::Route",
+                      "aws:cdk:cloudformation:props": {
+                        "apiId": {
+                          "Ref": "HttpApiF5A9A8A7"
+                        },
+                        "authorizationType": "NONE",
+                        "routeKey": "PUT /{proxy+}",
+                        "target": {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "integrations/",
+                              {
+                                "Ref": "HttpApiGETproxyLambdaIntegrationA962D639"
+                              }
+                            ]
+                          ]
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_apigatewayv2.CfnRoute",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_apigatewayv2.HttpRoute",
+                  "version": "2.149.0"
+                }
+              },
+              "PATCH--{proxy+}": {
+                "id": "PATCH--{proxy+}",
+                "path": "AutoAwApi/HttpApi/PATCH--{proxy+}",
+                "children": {
+                  "LambdaIntegration-Permission": {
+                    "id": "LambdaIntegration-Permission",
+                    "path": "AutoAwApi/HttpApi/PATCH--{proxy+}/LambdaIntegration-Permission",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::Lambda::Permission",
+                      "aws:cdk:cloudformation:props": {
+                        "action": "lambda:InvokeFunction",
+                        "functionName": {
+                          "Fn::GetAtt": [
+                            "ApiHandler5E7490E8",
+                            "Arn"
+                          ]
+                        },
+                        "principal": "apigateway.amazonaws.com",
+                        "sourceArn": {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "arn:",
+                              {
+                                "Ref": "AWS::Partition"
+                              },
+                              ":execute-api:eu-central-1:852857723337:",
+                              {
+                                "Ref": "HttpApiF5A9A8A7"
+                              },
+                              "/*/*/{proxy+}"
+                            ]
+                          ]
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_lambda.CfnPermission",
+                      "version": "2.149.0"
+                    }
+                  },
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AutoAwApi/HttpApi/PATCH--{proxy+}/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::ApiGatewayV2::Route",
+                      "aws:cdk:cloudformation:props": {
+                        "apiId": {
+                          "Ref": "HttpApiF5A9A8A7"
+                        },
+                        "authorizationType": "NONE",
+                        "routeKey": "PATCH /{proxy+}",
+                        "target": {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "integrations/",
+                              {
+                                "Ref": "HttpApiGETproxyLambdaIntegrationA962D639"
+                              }
+                            ]
+                          ]
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_apigatewayv2.CfnRoute",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_apigatewayv2.HttpRoute",
+                  "version": "2.149.0"
+                }
+              },
+              "DELETE--{proxy+}": {
+                "id": "DELETE--{proxy+}",
+                "path": "AutoAwApi/HttpApi/DELETE--{proxy+}",
+                "children": {
+                  "LambdaIntegration-Permission": {
+                    "id": "LambdaIntegration-Permission",
+                    "path": "AutoAwApi/HttpApi/DELETE--{proxy+}/LambdaIntegration-Permission",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::Lambda::Permission",
+                      "aws:cdk:cloudformation:props": {
+                        "action": "lambda:InvokeFunction",
+                        "functionName": {
+                          "Fn::GetAtt": [
+                            "ApiHandler5E7490E8",
+                            "Arn"
+                          ]
+                        },
+                        "principal": "apigateway.amazonaws.com",
+                        "sourceArn": {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "arn:",
+                              {
+                                "Ref": "AWS::Partition"
+                              },
+                              ":execute-api:eu-central-1:852857723337:",
+                              {
+                                "Ref": "HttpApiF5A9A8A7"
+                              },
+                              "/*/*/{proxy+}"
+                            ]
+                          ]
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_lambda.CfnPermission",
+                      "version": "2.149.0"
+                    }
+                  },
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AutoAwApi/HttpApi/DELETE--{proxy+}/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::ApiGatewayV2::Route",
+                      "aws:cdk:cloudformation:props": {
+                        "apiId": {
+                          "Ref": "HttpApiF5A9A8A7"
+                        },
+                        "authorizationType": "NONE",
+                        "routeKey": "DELETE /{proxy+}",
+                        "target": {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "integrations/",
+                              {
+                                "Ref": "HttpApiGETproxyLambdaIntegrationA962D639"
+                              }
+                            ]
+                          ]
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_apigatewayv2.CfnRoute",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_apigatewayv2.HttpRoute",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_apigatewayv2.HttpApi",
+              "version": "2.149.0"
+            }
+          },
+          "ApiUrl": {
+            "id": "ApiUrl",
+            "path": "AutoAwApi/ApiUrl",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnOutput",
+              "version": "2.149.0"
+            }
+          },
+          "CDKMetadata": {
+            "id": "CDKMetadata",
+            "path": "AutoAwApi/CDKMetadata",
+            "children": {
+              "Default": {
+                "id": "Default",
+                "path": "AutoAwApi/CDKMetadata/Default",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnResource",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "constructs.Construct",
+              "version": "10.6.0"
+            }
+          },
+          "BootstrapVersion": {
+            "id": "BootstrapVersion",
+            "path": "AutoAwApi/BootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnParameter",
+              "version": "2.149.0"
+            }
+          },
+          "CheckBootstrapVersion": {
+            "id": "CheckBootstrapVersion",
+            "path": "AutoAwApi/CheckBootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnRule",
+              "version": "2.149.0"
+            }
+          }
+        },
+        "constructInfo": {
+          "fqn": "aws-cdk-lib.Stack",
+          "version": "2.149.0"
+        }
+      },
+      "AutoAwFrontend": {
+        "id": "AutoAwFrontend",
+        "path": "AutoAwFrontend",
+        "children": {
+          "SiteBucket": {
+            "id": "SiteBucket",
+            "path": "AutoAwFrontend/SiteBucket",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwFrontend/SiteBucket/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::S3::Bucket",
+                  "aws:cdk:cloudformation:props": {
+                    "publicAccessBlockConfiguration": {
+                      "blockPublicAcls": true,
+                      "blockPublicPolicy": true,
+                      "ignorePublicAcls": true,
+                      "restrictPublicBuckets": true
+                    },
+                    "tags": [
+                      {
+                        "key": "aws-cdk:auto-delete-objects",
+                        "value": "true"
+                      }
+                    ]
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_s3.CfnBucket",
+                  "version": "2.149.0"
+                }
+              },
+              "Policy": {
+                "id": "Policy",
+                "path": "AutoAwFrontend/SiteBucket/Policy",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "AutoAwFrontend/SiteBucket/Policy/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::S3::BucketPolicy",
+                      "aws:cdk:cloudformation:props": {
+                        "bucket": {
+                          "Ref": "SiteBucket397A1860"
+                        },
+                        "policyDocument": {
+                          "Statement": [
+                            {
+                              "Action": [
+                                "s3:PutBucketPolicy",
+                                "s3:GetBucket*",
+                                "s3:List*",
+                                "s3:DeleteObject*"
+                              ],
+                              "Effect": "Allow",
+                              "Principal": {
+                                "AWS": {
+                                  "Fn::GetAtt": [
+                                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                                    "Arn"
+                                  ]
+                                }
+                              },
+                              "Resource": [
+                                {
+                                  "Fn::GetAtt": [
+                                    "SiteBucket397A1860",
+                                    "Arn"
+                                  ]
+                                },
+                                {
+                                  "Fn::Join": [
+                                    "",
+                                    [
+                                      {
+                                        "Fn::GetAtt": [
+                                          "SiteBucket397A1860",
+                                          "Arn"
+                                        ]
+                                      },
+                                      "/*"
+                                    ]
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Action": "s3:GetObject",
+                              "Effect": "Allow",
+                              "Principal": {
+                                "CanonicalUser": {
+                                  "Fn::GetAtt": [
+                                    "SiteDistributionOrigin1S3Origin8B65D95B",
+                                    "S3CanonicalUserId"
+                                  ]
+                                }
+                              },
+                              "Resource": {
+                                "Fn::Join": [
+                                  "",
+                                  [
+                                    {
+                                      "Fn::GetAtt": [
+                                        "SiteBucket397A1860",
+                                        "Arn"
+                                      ]
+                                    },
+                                    "/*"
+                                  ]
+                                ]
+                              }
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_s3.CfnBucketPolicy",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_s3.BucketPolicy",
+                  "version": "2.149.0"
+                }
+              },
+              "AutoDeleteObjectsCustomResource": {
+                "id": "AutoDeleteObjectsCustomResource",
+                "path": "AutoAwFrontend/SiteBucket/AutoDeleteObjectsCustomResource",
+                "children": {
+                  "Default": {
+                    "id": "Default",
+                    "path": "AutoAwFrontend/SiteBucket/AutoDeleteObjectsCustomResource/Default",
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.CfnResource",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CustomResource",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_s3.Bucket",
+              "version": "2.149.0"
+            }
+          },
+          "Custom::S3AutoDeleteObjectsCustomResourceProvider": {
+            "id": "Custom::S3AutoDeleteObjectsCustomResourceProvider",
+            "path": "AutoAwFrontend/Custom::S3AutoDeleteObjectsCustomResourceProvider",
+            "children": {
+              "Staging": {
+                "id": "Staging",
+                "path": "AutoAwFrontend/Custom::S3AutoDeleteObjectsCustomResourceProvider/Staging",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.AssetStaging",
+                  "version": "2.149.0"
+                }
+              },
+              "Role": {
+                "id": "Role",
+                "path": "AutoAwFrontend/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnResource",
+                  "version": "2.149.0"
+                }
+              },
+              "Handler": {
+                "id": "Handler",
+                "path": "AutoAwFrontend/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnResource",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CustomResourceProviderBase",
+              "version": "2.149.0"
+            }
+          },
+          "SiteDistribution": {
+            "id": "SiteDistribution",
+            "path": "AutoAwFrontend/SiteDistribution",
+            "children": {
+              "Origin1": {
+                "id": "Origin1",
+                "path": "AutoAwFrontend/SiteDistribution/Origin1",
+                "children": {
+                  "S3Origin": {
+                    "id": "S3Origin",
+                    "path": "AutoAwFrontend/SiteDistribution/Origin1/S3Origin",
+                    "children": {
+                      "Resource": {
+                        "id": "Resource",
+                        "path": "AutoAwFrontend/SiteDistribution/Origin1/S3Origin/Resource",
+                        "attributes": {
+                          "aws:cdk:cloudformation:type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+                          "aws:cdk:cloudformation:props": {
+                            "cloudFrontOriginAccessIdentityConfig": {
+                              "comment": "Identity for AutoAwFrontendSiteDistributionOrigin152E15EB6"
+                            }
+                          }
+                        },
+                        "constructInfo": {
+                          "fqn": "aws-cdk-lib.aws_cloudfront.CfnCloudFrontOriginAccessIdentity",
+                          "version": "2.149.0"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_cloudfront.OriginAccessIdentity",
+                      "version": "2.149.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "constructs.Construct",
+                  "version": "10.6.0"
+                }
+              },
+              "Resource": {
+                "id": "Resource",
+                "path": "AutoAwFrontend/SiteDistribution/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::CloudFront::Distribution",
+                  "aws:cdk:cloudformation:props": {
+                    "distributionConfig": {
+                      "enabled": true,
+                      "origins": [
+                        {
+                          "domainName": {
+                            "Fn::GetAtt": [
+                              "SiteBucket397A1860",
+                              "RegionalDomainName"
+                            ]
+                          },
+                          "id": "AutoAwFrontendSiteDistributionOrigin152E15EB6",
+                          "s3OriginConfig": {
+                            "originAccessIdentity": {
+                              "Fn::Join": [
+                                "",
+                                [
+                                  "origin-access-identity/cloudfront/",
+                                  {
+                                    "Ref": "SiteDistributionOrigin1S3Origin8B65D95B"
+                                  }
+                                ]
+                              ]
+                            }
+                          }
+                        }
+                      ],
+                      "defaultCacheBehavior": {
+                        "pathPattern": "*",
+                        "targetOriginId": "AutoAwFrontendSiteDistributionOrigin152E15EB6",
+                        "cachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                        "compress": true,
+                        "viewerProtocolPolicy": "redirect-to-https"
+                      },
+                      "customErrorResponses": [
+                        {
+                          "errorCachingMinTtl": 0,
+                          "errorCode": 404,
+                          "responseCode": 200,
+                          "responsePagePath": "/index.html"
+                        },
+                        {
+                          "errorCachingMinTtl": 0,
+                          "errorCode": 403,
+                          "responseCode": 200,
+                          "responsePagePath": "/index.html"
+                        }
+                      ],
+                      "defaultRootObject": "index.html",
+                      "httpVersion": "http2",
+                      "ipv6Enabled": true
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_cloudfront.CfnDistribution",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_cloudfront.Distribution",
+              "version": "2.149.0"
+            }
+          },
+          "SiteBucketName": {
+            "id": "SiteBucketName",
+            "path": "AutoAwFrontend/SiteBucketName",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnOutput",
+              "version": "2.149.0"
+            }
+          },
+          "CloudFrontUrl": {
+            "id": "CloudFrontUrl",
+            "path": "AutoAwFrontend/CloudFrontUrl",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnOutput",
+              "version": "2.149.0"
+            }
+          },
+          "DistributionId": {
+            "id": "DistributionId",
+            "path": "AutoAwFrontend/DistributionId",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnOutput",
+              "version": "2.149.0"
+            }
+          },
+          "CDKMetadata": {
+            "id": "CDKMetadata",
+            "path": "AutoAwFrontend/CDKMetadata",
+            "children": {
+              "Default": {
+                "id": "Default",
+                "path": "AutoAwFrontend/CDKMetadata/Default",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnResource",
+                  "version": "2.149.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "constructs.Construct",
+              "version": "10.6.0"
+            }
+          },
+          "BootstrapVersion": {
+            "id": "BootstrapVersion",
+            "path": "AutoAwFrontend/BootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnParameter",
+              "version": "2.149.0"
+            }
+          },
+          "CheckBootstrapVersion": {
+            "id": "CheckBootstrapVersion",
+            "path": "AutoAwFrontend/CheckBootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnRule",
+              "version": "2.149.0"
+            }
+          }
+        },
+        "constructInfo": {
+          "fqn": "aws-cdk-lib.Stack",
+          "version": "2.149.0"
+        }
+      },
+      "Tree": {
+        "id": "Tree",
+        "path": "Tree",
+        "constructInfo": {
+          "fqn": "constructs.Construct",
+          "version": "10.6.0"
+        }
+      }
+    },
+    "constructInfo": {
+      "fqn": "aws-cdk-lib.App",
+      "version": "2.149.0"
+    }
+  }
+}

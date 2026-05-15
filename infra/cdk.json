@@ -1,0 +1,8 @@
+{
+  "app": "node dist/bin/autoaw.js",
+  "context": {
+    "@aws-cdk/aws-apigateway:usagePlanKeyOrderInsensitiveId": true,
+    "@aws-cdk/core:stackRelativeExports": true,
+    "@aws-cdk/aws-ecs:enableImdsBlockingMode": true
+  }
+}

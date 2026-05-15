@@ -4,7 +4,6 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ExperimentCard } from "@/components/experiment-card";
-import { AutoAWLogo } from "@/components/autoaw-logo";
 import { api } from "@/lib/api";
 import type { Experiment } from "@/lib/types";
 
@@ -23,22 +22,23 @@ export default function ExperimentsPage() {
 
   return (
     <div>
+      {/* Hero */}
+      <div className="flex flex-col items-center justify-center py-8 gap-2 border-b mb-8">
+        <p className="text-muted-foreground text-sm max-w-sm text-center">
+          Auto Agentic Workflows — co-evolve topology and prompts automatically.
+        </p>
+      </div>
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Experiments</h1>
-          <Link href="/experiments/new" className={cn(buttonVariants())}>New Experiment</Link>
+        <Link href="/experiments/new" className={cn(buttonVariants())}>New Experiment</Link>
       </div>
 
       {loading && <p className="text-muted-foreground">Loading...</p>}
       {error && <p className="text-destructive">Error: {error}</p>}
       {!loading && !error && experiments.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-24 gap-6">
-          <AutoAWLogo width={320} height={160} />
-          <div className="text-center">
-            <h2 className="text-xl font-semibold tracking-tight">AutoAW</h2>
-            <p className="text-muted-foreground mt-1 text-sm max-w-xs">
-              AutoML for agentic workflows — co-evolve topology and prompts automatically.
-            </p>
-          </div>
+        <div className="flex flex-col items-center gap-4 py-12 text-center">
+          <p className="text-muted-foreground text-sm">No experiments yet.</p>
           <Link href="/experiments/new" className={cn(buttonVariants())}>
             Create your first experiment
           </Link>

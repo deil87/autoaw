@@ -1,0 +1,764 @@
+{
+ "Resources": {
+  "JobDlq229B5977": {
+   "Type": "AWS::SQS::Queue",
+   "Properties": {
+    "MessageRetentionPeriod": 1209600,
+    "QueueName": "autoaw-jobs-dlq"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/JobDlq/Resource"
+   }
+  },
+  "JobQueueEE3AD499": {
+   "Type": "AWS::SQS::Queue",
+   "Properties": {
+    "QueueName": "autoaw-jobs",
+    "RedrivePolicy": {
+     "deadLetterTargetArn": {
+      "Fn::GetAtt": [
+       "JobDlq229B5977",
+       "Arn"
+      ]
+     },
+     "maxReceiveCount": 3
+    },
+    "VisibilityTimeout": 7200
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/JobQueue/Resource"
+   }
+  },
+  "ClusterEB0386A7": {
+   "Type": "AWS::ECS::Cluster",
+   "Properties": {
+    "ClusterName": "autoaw-engine"
+   },
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/Cluster/Resource"
+   }
+  },
+  "Cluster3DA9CCBA": {
+   "Type": "AWS::ECS::ClusterCapacityProviderAssociations",
+   "Properties": {
+    "CapacityProviders": [
+     "FARGATE",
+     "FARGATE_SPOT"
+    ],
+    "Cluster": {
+     "Ref": "ClusterEB0386A7"
+    },
+    "DefaultCapacityProviderStrategy": []
+   },
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/Cluster/Cluster"
+   }
+  },
+  "TaskRole30FC0FBB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "RoleName": "autoaw-engine-task-role"
+   },
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/TaskRole/Resource"
+   }
+  },
+  "TaskRoleDefaultPolicy07FC53DE": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:Query",
+        "dynamodb:GetItem",
+        "dynamodb:Scan",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttExperimentsBA9AEAD2Arn0B36237F"
+        },
+        {
+         "Ref": "AWS::NoValue"
+        }
+       ]
+      },
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:Query",
+        "dynamodb:GetItem",
+        "dynamodb:Scan",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttTrials31C8D880Arn217FDD02"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttTrials31C8D880Arn217FDD02"
+           },
+           "/index/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:Query",
+        "dynamodb:GetItem",
+        "dynamodb:Scan",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttEvalRows85418221ArnB59716AF"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttEvalRows85418221ArnB59716AF"
+           },
+           "/index/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "s3:GetObject*",
+        "s3:GetBucket*",
+        "s3:List*"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttDatasets0030EE04Arn3BA423B5"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttDatasets0030EE04Arn3BA423B5"
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "s3:GetObject*",
+        "s3:GetBucket*",
+        "s3:List*",
+        "s3:DeleteObject*",
+        "s3:PutObject",
+        "s3:PutObjectLegalHold",
+        "s3:PutObjectRetention",
+        "s3:PutObjectTagging",
+        "s3:PutObjectVersionTagging",
+        "s3:Abort*"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttSnapshotsD03D071CArnFDD1C08E"
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::ImportValue": "AutoAwStorage:ExportsOutputFnGetAttSnapshotsD03D071CArnFDD1C08E"
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "sqs:ReceiveMessage",
+        "sqs:ChangeMessageVisibility",
+        "sqs:GetQueueUrl",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "JobQueueEE3AD499",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "TaskRoleDefaultPolicy07FC53DE",
+    "Roles": [
+     {
+      "Ref": "TaskRole30FC0FBB"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/TaskRole/DefaultPolicy/Resource"
+   }
+  },
+  "EngineTaskDef6987BEC2": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Environment": [
+       {
+        "Name": "EXPERIMENTS_TABLE",
+        "Value": {
+         "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefExperimentsBA9AEAD20A361E65"
+        }
+       },
+       {
+        "Name": "TRIALS_TABLE",
+        "Value": {
+         "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefTrials31C8D880807C0FFD"
+        }
+       },
+       {
+        "Name": "EVAL_ROWS_TABLE",
+        "Value": {
+         "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefEvalRows8541822127A8D62F"
+        }
+       },
+       {
+        "Name": "DATASETS_BUCKET",
+        "Value": {
+         "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefDatasets0030EE0478B3FE2D"
+        }
+       },
+       {
+        "Name": "SNAPSHOTS_BUCKET",
+        "Value": {
+         "Fn::ImportValue": "AutoAwStorage:ExportsOutputRefSnapshotsD03D071C14D360CC"
+        }
+       },
+       {
+        "Name": "JOB_QUEUE_URL",
+        "Value": {
+         "Ref": "JobQueueEE3AD499"
+        }
+       }
+      ],
+      "Essential": true,
+      "Image": "public.ecr.aws/docker/library/python:3.12-slim",
+      "LogConfiguration": {
+       "LogDriver": "awslogs",
+       "Options": {
+        "awslogs-group": {
+         "Ref": "EngineTaskDefEngineLogGroupD3C69D9A"
+        },
+        "awslogs-stream-prefix": "autoaw-engine",
+        "awslogs-region": "eu-central-1"
+       }
+      },
+      "Name": "Engine"
+     }
+    ],
+    "Cpu": "1024",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "EngineTaskDefExecutionRole4A47BFD1",
+      "Arn"
+     ]
+    },
+    "Family": "AutoAwEngineEngineTaskDef74A7AC2D",
+    "Memory": "2048",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "RuntimePlatform": {
+     "CpuArchitecture": "X86_64",
+     "OperatingSystemFamily": "LINUX"
+    },
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "TaskRole30FC0FBB",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/EngineTaskDef/Resource"
+   }
+  },
+  "EngineTaskDefEngineLogGroupD3C69D9A": {
+   "Type": "AWS::Logs::LogGroup",
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/EngineTaskDef/Engine/LogGroup/Resource"
+   }
+  },
+  "EngineTaskDefExecutionRole4A47BFD1": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/EngineTaskDef/ExecutionRole/Resource"
+   }
+  },
+  "EngineTaskDefExecutionRoleDefaultPolicyC7CD8F19": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "EngineTaskDefEngineLogGroupD3C69D9A",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EngineTaskDefExecutionRoleDefaultPolicyC7CD8F19",
+    "Roles": [
+     {
+      "Ref": "EngineTaskDefExecutionRole4A47BFD1"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/EngineTaskDef/ExecutionRole/DefaultPolicy/Resource"
+   }
+  },
+  "EngineService3840B89C": {
+   "Type": "AWS::ECS::Service",
+   "Properties": {
+    "CapacityProviderStrategy": [
+     {
+      "CapacityProvider": "FARGATE_SPOT",
+      "Weight": 4
+     },
+     {
+      "CapacityProvider": "FARGATE",
+      "Weight": 1
+     }
+    ],
+    "Cluster": {
+     "Ref": "ClusterEB0386A7"
+    },
+    "DeploymentConfiguration": {
+     "Alarms": {
+      "AlarmNames": [],
+      "Enable": false,
+      "Rollback": false
+     },
+     "DeploymentCircuitBreaker": {
+      "Enable": true,
+      "Rollback": true
+     },
+     "MaximumPercent": 200,
+     "MinimumHealthyPercent": 0
+    },
+    "DeploymentController": {
+     "Type": "ECS"
+    },
+    "DesiredCount": 0,
+    "EnableECSManagedTags": false,
+    "NetworkConfiguration": {
+     "AwsvpcConfiguration": {
+      "AssignPublicIp": "ENABLED",
+      "SecurityGroups": [
+       {
+        "Fn::GetAtt": [
+         "EngineServiceSecurityGroup5D19C56E",
+         "GroupId"
+        ]
+       }
+      ],
+      "Subnets": [
+       "subnet-093e4d4acd65d78d6",
+       "subnet-05a4cb04f08c633a3",
+       "subnet-086f54fee1c6e523d"
+      ]
+     }
+    },
+    "ServiceName": "autoaw-engine",
+    "TaskDefinition": {
+     "Ref": "EngineTaskDef6987BEC2"
+    }
+   },
+   "DependsOn": [
+    "TaskRoleDefaultPolicy07FC53DE",
+    "TaskRole30FC0FBB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/EngineService/Service"
+   }
+  },
+  "EngineServiceSecurityGroup5D19C56E": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "AutoAwEngine/EngineService/SecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": "vpc-0867e8d03960223c2"
+   },
+   "DependsOn": [
+    "TaskRoleDefaultPolicy07FC53DE",
+    "TaskRole30FC0FBB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/EngineService/SecurityGroup/Resource"
+   }
+  },
+  "EngineServiceTaskCountTarget670FC81E": {
+   "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+   "Properties": {
+    "MaxCapacity": 4,
+    "MinCapacity": 0,
+    "ResourceId": {
+     "Fn::Join": [
+      "",
+      [
+       "service/",
+       {
+        "Ref": "ClusterEB0386A7"
+       },
+       "/",
+       {
+        "Fn::GetAtt": [
+         "EngineService3840B89C",
+         "Name"
+        ]
+       }
+      ]
+     ]
+    },
+    "RoleARN": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":iam::852857723337:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
+      ]
+     ]
+    },
+    "ScalableDimension": "ecs:service:DesiredCount",
+    "ServiceNamespace": "ecs"
+   },
+   "DependsOn": [
+    "TaskRoleDefaultPolicy07FC53DE",
+    "TaskRole30FC0FBB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/EngineService/TaskCount/Target/Resource"
+   }
+  },
+  "EngineServiceTaskCountTargetScaleOnQueueDepthLowerPolicy7D334D60": {
+   "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+   "Properties": {
+    "PolicyName": "AutoAwEngineEngineServiceTaskCountTargetScaleOnQueueDepthLowerPolicy96007342",
+    "PolicyType": "StepScaling",
+    "ScalingTargetId": {
+     "Ref": "EngineServiceTaskCountTarget670FC81E"
+    },
+    "StepScalingPolicyConfiguration": {
+     "AdjustmentType": "ChangeInCapacity",
+     "Cooldown": 120,
+     "MetricAggregationType": "Maximum",
+     "StepAdjustments": [
+      {
+       "MetricIntervalUpperBound": 0,
+       "ScalingAdjustment": -4
+      }
+     ]
+    }
+   },
+   "DependsOn": [
+    "TaskRoleDefaultPolicy07FC53DE",
+    "TaskRole30FC0FBB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/LowerPolicy/Resource"
+   }
+  },
+  "EngineServiceTaskCountTargetScaleOnQueueDepthLowerAlarm90EA6A03": {
+   "Type": "AWS::CloudWatch::Alarm",
+   "Properties": {
+    "AlarmActions": [
+     {
+      "Ref": "EngineServiceTaskCountTargetScaleOnQueueDepthLowerPolicy7D334D60"
+     }
+    ],
+    "AlarmDescription": "Lower threshold scaling alarm",
+    "ComparisonOperator": "LessThanOrEqualToThreshold",
+    "Dimensions": [
+     {
+      "Name": "QueueName",
+      "Value": {
+       "Fn::GetAtt": [
+        "JobQueueEE3AD499",
+        "QueueName"
+       ]
+      }
+     }
+    ],
+    "EvaluationPeriods": 1,
+    "MetricName": "ApproximateNumberOfMessagesVisible",
+    "Namespace": "AWS/SQS",
+    "Period": 60,
+    "Statistic": "Maximum",
+    "Threshold": 0
+   },
+   "DependsOn": [
+    "TaskRoleDefaultPolicy07FC53DE",
+    "TaskRole30FC0FBB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/LowerAlarm/Resource"
+   }
+  },
+  "EngineServiceTaskCountTargetScaleOnQueueDepthUpperPolicyC2A5FD8E": {
+   "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+   "Properties": {
+    "PolicyName": "AutoAwEngineEngineServiceTaskCountTargetScaleOnQueueDepthUpperPolicy8814DED1",
+    "PolicyType": "StepScaling",
+    "ScalingTargetId": {
+     "Ref": "EngineServiceTaskCountTarget670FC81E"
+    },
+    "StepScalingPolicyConfiguration": {
+     "AdjustmentType": "ChangeInCapacity",
+     "Cooldown": 120,
+     "MetricAggregationType": "Maximum",
+     "StepAdjustments": [
+      {
+       "MetricIntervalLowerBound": 0,
+       "MetricIntervalUpperBound": 2,
+       "ScalingAdjustment": 1
+      },
+      {
+       "MetricIntervalLowerBound": 2,
+       "ScalingAdjustment": 2
+      }
+     ]
+    }
+   },
+   "DependsOn": [
+    "TaskRoleDefaultPolicy07FC53DE",
+    "TaskRole30FC0FBB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/UpperPolicy/Resource"
+   }
+  },
+  "EngineServiceTaskCountTargetScaleOnQueueDepthUpperAlarm02DFD2E4": {
+   "Type": "AWS::CloudWatch::Alarm",
+   "Properties": {
+    "AlarmActions": [
+     {
+      "Ref": "EngineServiceTaskCountTargetScaleOnQueueDepthUpperPolicyC2A5FD8E"
+     }
+    ],
+    "AlarmDescription": "Upper threshold scaling alarm",
+    "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+    "Dimensions": [
+     {
+      "Name": "QueueName",
+      "Value": {
+       "Fn::GetAtt": [
+        "JobQueueEE3AD499",
+        "QueueName"
+       ]
+      }
+     }
+    ],
+    "EvaluationPeriods": 1,
+    "MetricName": "ApproximateNumberOfMessagesVisible",
+    "Namespace": "AWS/SQS",
+    "Period": 60,
+    "Statistic": "Maximum",
+    "Threshold": 1
+   },
+   "DependsOn": [
+    "TaskRoleDefaultPolicy07FC53DE",
+    "TaskRole30FC0FBB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/EngineService/TaskCount/Target/ScaleOnQueueDepth/UpperAlarm/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/2VSTVMCMQz9Ld5LBfTiEdfRizPirncndOMaKE3tBwyzs//dtrAM6CmvL3npS9q5nN0/yOkN7P1EtZuJppXsmwBqI2r0HJ1CkXKfvf/xsn+PGFFUX6aAQaBKZKWjD+gy/R9WYEFROCwd76hFt/CeFUEgNl48g+sg4Af4zRN+kaFMZ/Ffhk0AMuguuJO2QbcjVTyNsFGgYaVL24qjCdmnkzVa9hTYHR7BoyDYyr5mXaQlLlmTOuTjEQ1Cc5fme+XuxXG0OTPi3HKeFoUqujTdOX9FDAKsTZ3KtBAD++SMTJd0Z4uuw1CE10wT0DbH6pOtC2ahxj1dlQxCaY7tHoL6lv1Cg9vmmgKGIcO3GGws141vOwjDLcq1v93N7+Rsmn7C2hNNXFobbVHWx/gL5rRG7SYCAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "AutoAwEngine/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "JobQueueUrl": {
+   "Value": {
+    "Ref": "JobQueueEE3AD499"
+   },
+   "Export": {
+    "Name": "AutoAwJobQueueUrl"
+   }
+  },
+  "EngineRepoUri": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "852857723337.dkr.ecr.eu-central-1.",
+      {
+       "Ref": "AWS::URLSuffix"
+      },
+      "/autoaw-engine"
+     ]
+    ]
+   },
+   "Export": {
+    "Name": "AutoAwEngineRepoUri"
+   }
+  },
+  "ExportsOutputFnGetAttJobQueueEE3AD499Arn6FF48E15": {
+   "Value": {
+    "Fn::GetAtt": [
+     "JobQueueEE3AD499",
+     "Arn"
+    ]
+   },
+   "Export": {
+    "Name": "AutoAwEngine:ExportsOutputFnGetAttJobQueueEE3AD499Arn6FF48E15"
+   }
+  },
+  "ExportsOutputRefJobQueueEE3AD499E26FB576": {
+   "Value": {
+    "Ref": "JobQueueEE3AD499"
+   },
+   "Export": {
+    "Name": "AutoAwEngine:ExportsOutputRefJobQueueEE3AD499E26FB576"
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

@@ -69,14 +69,20 @@ class GPLoop:
         self._lock = threading.Lock()
         self._current_phase = "gp"
 
-    def _evaluate_gene(
+    def _run_gene(
         self,
         gene: Gene,
         generation: int,
         parent_gene_ids: list[str] | None = None,
         mutation_op: str = "seed",
-    ) -> tuple[float, ParetoPoint, list[EvalRowResult]]:
-        """Evaluate a gene on ALL dataset rows. Thread-safe."""
+    ) -> tuple[ParetoPoint, list[EvalRowResult], list[Score]]:
+        """Run gene on all dataset rows. Returns (pareto, eval_rows, last_scores). Thread-safe.
+
+        Fitness is NOT computed here — caller normalises across the full generation
+        so that speed and cost are meaningful even when all genes finish quickly
+        (e.g. WorkBench tasks where quality saturates and cost/latency vary only
+        within a narrow band).
+        """
         eval_rows: list[EvalRowResult] = []
         total_quality = 0.0
         total_cost = 0.0
@@ -139,41 +145,12 @@ class GPLoop:
 
         n = len(eval_rows) or 1
         avg_quality = total_quality / n
-        max_cost = self.config.budget_max_usd or 1.0
         pareto = ParetoPoint(
             quality=avg_quality,
             cost_usd=total_cost / n,
             latency_ms=int(total_latency / n),
         )
-        fitness = pareto.scalar_fitness(
-            self.config.objective_weights,
-            max_cost_usd=max_cost / max(self.config.budget_max_trials or 100, 1),
-            max_latency_ms=30000,
-        )
-
-        first_run = RunResult(
-            output=eval_rows[0].output_text if eval_rows else "",
-            token_usage={},
-            latency_ms=eval_rows[0].latency_ms if eval_rows else 0,
-            cost_usd=eval_rows[0].cost_usd if eval_rows else 0.0,
-        )
-
-        if self.on_trial_complete:
-            self.on_trial_complete(
-                TrialResult(
-                    gene=gene,
-                    generation=generation,
-                    input=self.dataset[0]["input"] if self.dataset else "",
-                    run_result=first_run,
-                    scores=last_scores,
-                    pareto=pareto,
-                    fitness=fitness,
-                    parent_gene_ids=parent_gene_ids or [],
-                    mutation_op=mutation_op,
-                    eval_rows=eval_rows,
-                )
-            )
-        return fitness, pareto, eval_rows
+        return pareto, eval_rows, last_scores
 
     def set_phase(self, phase: str) -> None:
         """Update the phase label emitted in progress heartbeats ('gp' or 'smbo')."""
@@ -217,23 +194,79 @@ class GPLoop:
         population: list[tuple[Gene, list[str], str]],
         generation: int,
     ) -> list[tuple[Gene, float]]:
-        """Evaluate all genes in a generation, up to config.concurrency in parallel."""
+        """Evaluate all genes in a generation with population-relative normalisation.
+
+        Two-pass approach:
+          Pass 1 — run all genes in parallel, collecting raw ParetoPoints.
+          Pass 2 — normalise latency and cost by the generation's actual maximums
+                   so that speed/cost differences remain discriminating even when
+                   all genes solve the task quickly (WorkBench) or cheaply.
+        """
         concurrency = max(1, self.config.concurrency)
-        scored: list[tuple[Gene, float]] = []
+
+        # Pass 1: run all genes in parallel
+        RawEntry = tuple[Gene, list[str], str, ParetoPoint, list[EvalRowResult], list[Score]]
+        raw: list[RawEntry] = []
 
         with ThreadPoolExecutor(max_workers=concurrency) as executor:
-            future_to_gene = {
+            future_to_meta: dict = {
                 executor.submit(
-                    self._evaluate_gene, gene, generation, parent_ids, mut_op
-                ): gene
+                    self._run_gene, gene, generation, parent_ids, mut_op
+                ): (gene, parent_ids, mut_op)
                 for gene, parent_ids, mut_op in population
                 if not self._budget_exceeded()
             }
-            for future in as_completed(future_to_gene):
+            for future in as_completed(future_to_meta):
                 if self._budget_exceeded():
                     break
-                fitness, _, _ = future.result()
-                scored.append((future_to_gene[future], fitness))
+                gene, parent_ids, mut_op = future_to_meta[future]
+                pareto, eval_rows, last_scores = future.result()
+                raw.append((gene, parent_ids, mut_op, pareto, eval_rows, last_scores))
+
+        if not raw:
+            return []
+
+        # Pass 2: population-relative normalisation
+        max_cost = self.config.budget_max_usd or 1.0
+        per_trial_budget = max_cost / max(self.config.budget_max_trials or 100, 1)
+
+        gen_max_latency = max(p.latency_ms for _, _, _, p, _, _ in raw)
+        gen_max_cost = max(p.cost_usd for _, _, _, p, _, _ in raw)
+        # Clamp to at least 1 ms / per-trial budget to avoid division by zero
+        eff_max_latency = max(gen_max_latency, 1)
+        eff_max_cost = max(per_trial_budget, gen_max_cost) if gen_max_cost > 0 else per_trial_budget
+
+        scored: list[tuple[Gene, float]] = []
+        for gene, parent_ids, mut_op, pareto, eval_rows, last_scores in raw:
+            fitness = pareto.scalar_fitness(
+                self.config.objective_weights,
+                max_cost_usd=eff_max_cost,
+                max_latency_ms=eff_max_latency,
+            )
+
+            first_run = RunResult(
+                output=eval_rows[0].output_text if eval_rows else "",
+                token_usage={},
+                latency_ms=eval_rows[0].latency_ms if eval_rows else 0,
+                cost_usd=eval_rows[0].cost_usd if eval_rows else 0.0,
+            )
+
+            if self.on_trial_complete:
+                self.on_trial_complete(
+                    TrialResult(
+                        gene=gene,
+                        generation=generation,
+                        input=self.dataset[0]["input"] if self.dataset else "",
+                        run_result=first_run,
+                        scores=last_scores,
+                        pareto=pareto,
+                        fitness=fitness,
+                        parent_gene_ids=parent_ids or [],
+                        mutation_op=mut_op,
+                        eval_rows=eval_rows,
+                    )
+                )
+            scored.append((gene, fitness))
 
         return scored
 

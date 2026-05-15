@@ -14,8 +14,9 @@ export function Nav() {
   return (
     <nav className="border-b bg-background">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-6">
-        <Link href="/experiments" className="flex items-center">
-          <AutoAWLogo width={72} height={36} showText={true} />
+        <Link href="/experiments" className="flex items-center gap-2">
+          <AutoAWLogo width={72} height={36} />
+          <span className="font-semibold text-lg tracking-tight">AutoAW</span>
         </Link>
         {links.map((link) => (
           <Link

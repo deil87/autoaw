@@ -12,6 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ObjectiveSliders } from "@/components/objective-sliders";
 import { EvaluatorList } from "@/components/evaluator-list";
 import { EvaluatorPicker } from "@/components/evaluator-picker";
@@ -160,7 +162,23 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
       </div>
 
       <div className="space-y-2">
-        <Label>Objective Weights</Label>
+        <div className="flex items-center gap-1.5">
+          <Label>Objective Weights</Label>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs font-mono text-xs leading-relaxed p-3">
+                <p className="mb-1 font-sans text-xs font-semibold not-italic">How fitness is calculated:</p>
+                <p>fitness =</p>
+                <p>&nbsp;&nbsp;<span className="text-green-400">w_quality</span> × quality_score</p>
+                <p>&nbsp;&nbsp;− <span className="text-red-400">w_cost</span> × normalized_cost</p>
+                <p>&nbsp;&nbsp;− <span className="text-orange-400">w_speed</span> × normalized_latency</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <ObjectiveSliders value={weights} onChange={setWeights} />
       </div>
 
