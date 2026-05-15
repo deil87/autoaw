@@ -3,6 +3,8 @@ import * as cdk from 'aws-cdk-lib';
 import { StorageStack } from '../lib/storage-stack';
 import { EngineStack } from '../lib/engine-stack';
 import { ApiStack } from '../lib/api-stack';
+import { FrontendStack } from '../lib/frontend-stack';
+import { GitHubActionsStack } from '../lib/github-actions-stack';
 
 const app = new cdk.App();
 
@@ -14,6 +16,8 @@ const env: cdk.Environment = {
 const storage = new StorageStack(app, 'AutoAwStorage', { env });
 const engine = new EngineStack(app, 'AutoAwEngine', { env, storage });
 new ApiStack(app, 'AutoAwApi', { env, storage, engine });
-
-import { FrontendStack } from '../lib/frontend-stack';
 new FrontendStack(app, 'AutoAwFrontend', { env });
+
+new GitHubActionsStack(app, 'AutoAw-GitHubActions', {
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: 'eu-central-1' },
+});
