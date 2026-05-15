@@ -1,22 +1,48 @@
+# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.egg-info/
+.eggs/
+build/
+.venv/
+venv/
 .pytest_cache/
-.env
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# ── Node / Next.js ────────────────────────────────────────────────────────────
 node_modules/
 .next/
 out/
-*.egg-info/
-dist/
+.turbo/
+*.tsbuildinfo
+
+# ── CDK ──────────────────────────────────────────────────────────────────────
+infra/cdk.out/
+infra/dist/
+
+# ── AWS / credentials ────────────────────────────────────────────────────────
+.env
+.env.local
+.env*.local
+*.pem
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+*.tar
+
+# ── macOS ────────────────────────────────────────────────────────────────────
 .DS_Store
 
-# Git worktrees
+# ── Git worktrees ────────────────────────────────────────────────────────────
 .worktrees/
 
-# Local runtime
+# ── Local runtime / dev data ─────────────────────────────────────────────────
 autoaw.db
 autoaw.db-shm
 autoaw.db-wal
 datasets/*.json
 !datasets/ds1.json
-.env.local
