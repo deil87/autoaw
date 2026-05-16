@@ -19,14 +19,19 @@ from backend.shared.experiment import (
     EvaluatorConfig,
 )
 from backend.shared.evaluator_catalog import CATALOG
-from backend.api.store import LocalStore
 from backend.api.executor import ExperimentExecutor
 
 _DB_PATH = os.environ.get("DATABASE_PATH", "autoaw.db")
 _DATASETS_DIR = os.environ.get("DATASETS_DIR", "datasets")
 _MAX_WORKERS = int(os.environ.get("MAX_CONCURRENT_EXPERIMENTS", "4"))
 
-_store = LocalStore(db_path=_DB_PATH)
+if os.environ.get("STORE_BACKEND") == "dynamo":
+    from backend.api.dynamo_store import DynamoStore
+    _store = DynamoStore()
+else:
+    from backend.api.store import LocalStore
+    _store = LocalStore(db_path=_DB_PATH)
+
 _executor = ExperimentExecutor(
     store=_store, datasets_dir=_DATASETS_DIR, max_workers=_MAX_WORKERS
 )
@@ -35,7 +40,8 @@ _executor = ExperimentExecutor(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs(_DATASETS_DIR, exist_ok=True)
-    _store.init_db()
+    if hasattr(_store, 'init_db'):
+        _store.init_db()
     yield
     _executor.shutdown(wait=False)
 

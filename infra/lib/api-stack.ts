@@ -20,8 +20,16 @@ export class ApiStack extends cdk.Stack {
     const fn = new lambda.Function(this, 'ApiHandler', {
       functionName: 'autoaw-api',
       runtime: lambda.Runtime.PYTHON_3_12,
-      handler: 'lambda_handler.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../../backend/api')),
+      handler: 'backend.api.lambda_handler.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../../backend'), {
+        bundling: {
+          image: lambda.Runtime.PYTHON_3_12.bundlingImage,
+          command: [
+            'bash', '-c',
+            'pip install -r /asset-input/api/requirements.txt -t /asset-output && cp -r /asset-input /asset-output/backend',
+          ],
+        },
+      }),
       timeout: cdk.Duration.seconds(30),
       memorySize: 512,
       environment: {
