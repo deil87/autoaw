@@ -8,21 +8,15 @@ from concurrent.futures import ThreadPoolExecutor
 from backend.shared.experiment import ExperimentConfig
 from backend.engine.runner.base import WorkflowRunner
 from backend.engine.evaluator.base import Evaluator
-from backend.engine.runner.raw_llm import RawLLMRunner
-from backend.engine.evaluator.llm_judge import LLMJudgeEvaluator
-from backend.engine.evaluator.function_eval import FunctionEvaluator
-from backend.engine.workbench.runner import WorkBenchRunner
-from backend.engine.workbench.evaluator import WorkBenchEvaluator
-from backend.engine.gp.loop import GPLoop
-from backend.engine.smbo.polish import smbo_polish
-from backend.api.store import LocalStore
 
 log = logging.getLogger(__name__)
 
 
 def _build_runner(config: ExperimentConfig) -> WorkflowRunner:
     if config.runner_type == "workbench":
+        from backend.engine.workbench.runner import WorkBenchRunner
         return WorkBenchRunner()
+    from backend.engine.runner.raw_llm import RawLLMRunner
     return RawLLMRunner()
 
 
@@ -39,6 +33,7 @@ def _build_evaluators(config: ExperimentConfig) -> list[Evaluator]:
 
     # Fallback to WorkBench if we ended up with nothing and evaluator_type indicates workbench
     if not evaluators and config.evaluator_type == "workbench":
+        from backend.engine.workbench.evaluator import WorkBenchEvaluator
         evaluators.append(WorkBenchEvaluator())
 
     return evaluators
@@ -56,6 +51,7 @@ def _build_single_evaluator(ev_config) -> Evaluator | None:
         )
 
     elif t == "workbench":
+        from backend.engine.workbench.evaluator import WorkBenchEvaluator
         return WorkBenchEvaluator()
 
     elif t == "human":
@@ -132,7 +128,7 @@ def _build_single_evaluator(ev_config) -> Evaluator | None:
 
 def _run_experiment(
     experiment_id: str,
-    store: LocalStore,
+    store,
     datasets_dir: str,
     stop_event: threading.Event,
 ) -> None:
@@ -164,6 +160,7 @@ def _run_experiment(
         def on_progress(progress: dict) -> None:
             store.update_progress(experiment_id, progress)
 
+        from backend.engine.gp.loop import GPLoop
         loop = GPLoop(
             config=config,
             runner=runner,
@@ -212,6 +209,7 @@ def _run_experiment(
                 agent.model = config.smbo_model
             log.info("exp=%s: upgraded agent models to %s for SMBO", experiment_id, config.smbo_model)
 
+        from backend.engine.smbo.polish import smbo_polish
         polished_gene = smbo_polish(
             gene=gp_result.best_gene,
             config=config,
