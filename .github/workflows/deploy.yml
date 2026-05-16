@@ -25,7 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -36,6 +36,10 @@ jobs:
       # ── CDK deploy ───────────────────────────────────────────────────────────
       - name: Install infra dependencies
         run: npm ci
+        working-directory: infra
+
+      - name: Build infra
+        run: npm run build
         working-directory: infra
 
       - name: CDK deploy all stacks
