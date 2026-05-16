@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 _COST_TABLE: dict[str, tuple[float, float]] = {
     "gpt-4o": (0.005, 0.015),
     "gpt-4o-mini": (0.000150, 0.000600),
+    "gpt-4.1-nano": (0.000100, 0.000400),
+    "gpt-4.1-mini": (0.000400, 0.001600),
     "claude-3-5-sonnet": (0.003, 0.015),
     "claude-3-haiku": (0.00025, 0.00125),
 }

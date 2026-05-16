@@ -207,6 +207,11 @@ def _run_experiment(
             },
         )
 
+        if config.smbo_model:
+            for agent in gp_result.best_gene.agents:
+                agent.model = config.smbo_model
+            log.info("exp=%s: upgraded agent models to %s for SMBO", experiment_id, config.smbo_model)
+
         polished_gene = smbo_polish(
             gene=gp_result.best_gene,
             config=config,

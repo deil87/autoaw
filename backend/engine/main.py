@@ -76,6 +76,11 @@ def main() -> None:
     best_gene = loop.run()
     log.info("GP converged. Best gene: %s", best_gene.id)
 
+    if config.smbo_model:
+        for agent in best_gene.agents:
+            agent.model = config.smbo_model
+        log.info("Upgraded agent models to %s for SMBO polish.", config.smbo_model)
+
     log.info("Running SMBO polish...")
     polished_gene = smbo_polish(
         gene=best_gene,

@@ -59,6 +59,7 @@ class ExperimentConfig:
         default=None
     )  # ProviderConfig (typed as Any to avoid import at module level)
     allowed_models: list[str] = field(default_factory=lambda: ["gpt-4o-mini", "gpt-4o"])
+    smbo_model: str | None = None  # if set, all agent models are upgraded to this before SMBO polish
     runner_type: str = "raw_llm"
     evaluator_type: str = "llm_judge"
     dataset_sample_size: int | None = None  # None = use all rows; N = use first N rows
@@ -77,6 +78,7 @@ class ExperimentConfig:
             "concurrency": self.concurrency,
             "provider": self.provider.to_dict() if self.provider else None,
             "allowed_models": list(self.allowed_models),
+            "smbo_model": self.smbo_model,
             "runner_type": self.runner_type,
             "evaluator_type": self.evaluator_type,
             "dataset_sample_size": self.dataset_sample_size,
@@ -104,6 +106,7 @@ class ExperimentConfig:
             concurrency=d.get("concurrency", 5),
             provider=provider,
             allowed_models=d.get("allowed_models", ["gpt-4o-mini", "gpt-4o"]),
+            smbo_model=d.get("smbo_model"),
             runner_type=d.get("runner_type", "raw_llm"),
             evaluator_type=d.get("evaluator_type", "llm_judge"),
             dataset_sample_size=d.get("dataset_sample_size"),
