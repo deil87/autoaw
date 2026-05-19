@@ -1,35 +1,61 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { AutoAWLogo } from "@/components/autoaw-logo";
 
 const links = [
   { href: "/experiments", label: "Experiments" },
   { href: "/datasets", label: "Datasets" },
 ];
 
+function Logo({ size = 22 }: { size?: number }) {
+  const nodes = [
+    { x: 6, y: 13, r: 2.2 },
+    { x: 13, y: 6, r: 2.2 },
+    { x: 13, y: 20, r: 2.2 },
+    { x: 20, y: 13, r: 2.2 },
+  ];
+  const edges = [[0, 1], [0, 2], [1, 3], [2, 3], [1, 2]];
+  return (
+    <svg width={size} height={size} viewBox="0 0 26 26" fill="none">
+      {edges.map(([a, b], i) => (
+        <line key={i}
+          x1={nodes[a].x} y1={nodes[a].y}
+          x2={nodes[b].x} y2={nodes[b].y}
+          stroke="var(--ink)" strokeWidth="1.1" />
+      ))}
+      {nodes.map((n, i) => (
+        <circle key={i} cx={n.x} cy={n.y} r={n.r} fill="var(--ink)" />
+      ))}
+    </svg>
+  );
+}
+
 export function Nav() {
   const pathname = usePathname();
   return (
-    <nav className="border-b bg-background">
-      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-6">
-        <Link href="/experiments" className="flex items-center gap-2">
-          <AutoAWLogo width={72} height={36} />
-          <span className="font-semibold text-lg tracking-tight">AutoAW</span>
+    <nav className="aw-nav">
+      <div className="aw-nav-inner">
+        <Link href="/experiments" className="aw-brand">
+          <Logo size={22} />
+          <span className="aw-brand-name">AutoAW</span>
+          <span className="aw-brand-version mono">v0.4</span>
         </Link>
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={cn(
-              "text-sm text-muted-foreground hover:text-foreground transition-colors",
-              pathname.startsWith(link.href) && "text-foreground font-medium"
-            )}
-          >
-            {link.label}
+        <div className="aw-nav-links">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`aw-nav-link${pathname.startsWith(link.href) ? " active" : ""}`}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+        <div className="aw-nav-right">
+          <Link href="/experiments/new" className="btn btn-primary btn-sm">
+            New experiment
           </Link>
-        ))}
+        </div>
       </div>
     </nav>
   );

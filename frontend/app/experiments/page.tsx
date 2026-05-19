@@ -1,36 +1,139 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardHeader, CardFooter } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { ExperimentCard } from "@/components/experiment-card";
 import { api } from "@/lib/api";
 import type { Experiment } from "@/lib/types";
 
-function ExperimentCardSkeleton() {
+function StatusChip({ status }: { status: string }) {
+  const map: Record<string, { cls: string; label: string; dot: boolean }> = {
+    running:   { cls: "chip chip-running",   label: "running",   dot: true  },
+    pending:   { cls: "chip chip-pending",   label: "pending",   dot: false },
+    completed: { cls: "chip chip-done",      label: "done",      dot: false },
+    failed:    { cls: "chip chip-fail",      label: "failed",    dot: false },
+    cancelled: { cls: "chip chip-cancelled", label: "cancelled", dot: false },
+  };
+  const m = map[status] ?? map.pending;
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
-          <div className="h-5 w-16 rounded-full bg-muted animate-pulse" />
-        </div>
-        <div className="h-3 w-1/3 rounded bg-muted animate-pulse mt-1" />
-      </CardHeader>
-      <CardFooter className="gap-2">
-        <div className="h-8 w-20 rounded bg-muted animate-pulse" />
-        <div className="h-8 w-24 rounded bg-muted animate-pulse" />
-        <div className="h-8 w-12 rounded bg-muted animate-pulse" />
-      </CardFooter>
-    </Card>
+    <span className={m.cls}>
+      {m.dot && <span className="chip-dot pulse" />}
+      {m.label}
+    </span>
   );
 }
+
+function SkeletonRow() {
+  return (
+    <div className="exp-row" style={{ cursor: "default" }}>
+      <div>
+        <div className="skeleton" style={{ height: 14, width: "60%", marginBottom: 6 }} />
+        <div className="skeleton" style={{ height: 11, width: "40%" }} />
+      </div>
+      <div className="skeleton" style={{ height: 20, width: 64, borderRadius: 999 }} />
+      <div>
+        <div className="skeleton" style={{ height: 11, width: "50%", marginBottom: 6 }} />
+        <div className="skeleton" style={{ height: 5, borderRadius: 99 }} />
+      </div>
+      <div>
+        <div className="skeleton" style={{ height: 11, width: "40%", marginBottom: 4 }} />
+        <div className="skeleton" style={{ height: 13, width: "30%" }} />
+      </div>
+      <div>
+        <div className="skeleton" style={{ height: 11, width: "40%", marginBottom: 4 }} />
+        <div className="skeleton" style={{ height: 13, width: "30%" }} />
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <div className="skeleton" style={{ height: 28, width: 70, borderRadius: 6 }} />
+        <div className="skeleton" style={{ height: 28, width: 90, borderRadius: 6 }} />
+      </div>
+    </div>
+  );
+}
+
+function ExperimentRow({ exp }: { exp: Experiment }) {
+  const config = (() => {
+    try { return exp.config_json ? JSON.parse(exp.config_json) : null; } catch { return null; }
+  })();
+
+  const bestFitness = exp.best_fitness;
+  const trials = 0; // we don't have trial count without fetching
+  const created = new Date(exp.created_at);
+  const dateStr = created.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
+    " · " + created.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+  const progress = exp.progress;
+  const pct = progress && progress.rows_total > 0
+    ? Math.round((progress.rows_done / progress.rows_total) * 100)
+    : exp.status === "completed" ? 100 : 0;
+
+  return (
+    <Link href={`/experiments/${exp.id}/monitor`} className="exp-row">
+      <div>
+        <div className="name">{exp.name}</div>
+        <div className="name-sub">{dateStr}</div>
+      </div>
+
+      <div>
+        <StatusChip status={exp.status} />
+      </div>
+
+      <div>
+        <div className="col-label">progress</div>
+        <div style={{ marginTop: 6 }}>
+          <div className="bar">
+            <div
+              className={`bar-fill${exp.status === "running" ? " running" : ""}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="mono faint" style={{ fontSize: 11, marginTop: 4 }}>
+            {progress
+              ? `gen ${progress.generation} · ${pct}%`
+              : exp.status === "completed" ? "100%" : "—"}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="col-label">best fitness</div>
+        <div className="col-value">
+          {bestFitness != null ? bestFitness.toFixed(3) : "—"}
+        </div>
+      </div>
+
+      <div>
+        <div className="col-label">objective</div>
+        <div className="col-value">
+          {config?.objective_weights
+            ? `q·${config.objective_weights.quality} c·${config.objective_weights.cost} s·${config.objective_weights.speed}`
+            : "—"}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          className="btn btn-sm"
+          onClick={(e) => { e.preventDefault(); window.location.href = `/experiments/${exp.id}/monitor`; }}
+        >
+          Monitor
+        </button>
+        <button
+          className="btn btn-sm btn-ghost mono"
+          onClick={(e) => { e.preventDefault(); window.location.href = `/experiments/new?from=${exp.id}`; }}
+        >
+          Fork →
+        </button>
+      </div>
+    </Link>
+  );
+}
+
+type FilterKey = "all" | "running" | "completed" | "pending" | "failed";
 
 export default function ExperimentsPage() {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterKey>("all");
 
   useEffect(() => {
     api.experiments
@@ -40,35 +143,80 @@ export default function ExperimentsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const counts = {
+    all: experiments.length,
+    running: experiments.filter((e) => e.status === "running").length,
+    completed: experiments.filter((e) => e.status === "completed").length,
+    pending: experiments.filter((e) => e.status === "pending").length,
+    failed: experiments.filter((e) => e.status === "failed").length,
+  };
+
+  const visible = filter === "all" ? experiments : experiments.filter((e) => e.status === filter);
+
   return (
     <div>
-      {/* Hero */}
-      <div className="flex flex-col items-center justify-center py-8 gap-2 border-b mb-8">
-        <p className="text-muted-foreground text-sm max-w-sm text-center">
-          Auto Agentic Workflows — co-evolve topology and prompts automatically.
-        </p>
+      <div className="exp-list-head">
+        <div>
+          <h1>Experiments</h1>
+          {!loading && (
+            <div className="sub">
+              {experiments.length} experiment{experiments.length !== 1 ? "s" : ""}
+              {counts.running > 0 && ` · ${counts.running} running`}
+            </div>
+          )}
+        </div>
+        <Link href="/experiments/new" className="btn btn-primary">
+          + New experiment
+        </Link>
       </div>
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Experiments</h1>
-        <Link href="/experiments/new" className={cn(buttonVariants())}>New Experiment</Link>
-      </div>
-
-      {error && <p className="text-destructive">Error: {error}</p>}
-      {!loading && !error && experiments.length === 0 && (
-        <div className="flex flex-col items-center gap-4 py-12 text-center">
-          <p className="text-muted-foreground text-sm">No experiments yet.</p>
-          <Link href="/experiments/new" className={cn(buttonVariants())}>
-            Create your first experiment
-          </Link>
+      {!loading && experiments.length > 0 && (
+        <div className="lb-filters" style={{ marginBottom: 16 }}>
+          {(["all", "running", "completed", "pending", "failed"] as FilterKey[]).map((key) => {
+            const n = counts[key];
+            if (key !== "all" && n === 0) return null;
+            return (
+              <button
+                key={key}
+                className={`pill${filter === key ? " active" : ""}`}
+                onClick={() => setFilter(key)}
+              >
+                {key.charAt(0).toUpperCase() + key.slice(1)}
+                {n > 0 && <span className="mono" style={{ marginLeft: 4, opacity: 0.65 }}>{n}</span>}
+              </button>
+            );
+          })}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {loading
-          ? Array.from({ length: 3 }).map((_, i) => <ExperimentCardSkeleton key={i} />)
-          : experiments.map((exp) => <ExperimentCard key={exp.id} experiment={exp} />)}
-      </div>
+      {error && (
+        <div style={{ padding: "12px 16px", background: "var(--err-soft)", border: "1px solid rgba(185,28,28,0.2)", borderRadius: "var(--r-3)", color: "var(--err)", fontSize: 13, marginBottom: 16 }}>
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && experiments.length === 0 ? (
+        <div className="empty-state">
+          <p>No experiments yet.</p>
+          <Link href="/experiments/new" className="btn btn-primary">
+            Create your first experiment
+          </Link>
+        </div>
+      ) : (
+        <div className="exp-list-card">
+          <div className="head-row">
+            <span>Experiment</span>
+            <span>Status</span>
+            <span>Progress</span>
+            <span>Best fitness</span>
+            <span>Objective</span>
+            <span></span>
+          </div>
+          {loading
+            ? Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)
+            : visible.map((exp) => <ExperimentRow key={exp.id} exp={exp} />)}
+        </div>
+      )}
     </div>
   );
 }

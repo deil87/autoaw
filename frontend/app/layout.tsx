@@ -1,21 +1,32 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import { Nav } from "@/components/nav";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const geist = localFont({
+  src: "./fonts/GeistVF.woff",
+  variable: "--font-geist",
+  weight: "100 900",
+});
+
+const geistMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
+  variable: "--font-geist-mono",
+  weight: "100 900",
+});
 
 export const metadata: Metadata = {
-  title: "AutoAW — AutoML for Agentic Workflows",
+  title: "AutoAW — Auto Agentic Workflows",
   description: "Automatically discover optimal multi-agent workflow configurations.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${geist.variable} ${geistMono.variable}`}
+            style={{ fontFamily: "var(--font-geist, var(--sans))" }}>
         <Nav />
-        <main className="max-w-7xl mx-auto px-4 py-6">{children}</main>
+        <main className="aw-page">{children}</main>
       </body>
     </html>
   );
