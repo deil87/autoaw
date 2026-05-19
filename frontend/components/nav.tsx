@@ -35,7 +35,7 @@ export function Nav() {
   return (
     <nav className="aw-nav">
       <div className="aw-nav-inner">
-        <Link href="/experiments" className="aw-brand">
+        <Link href="/" className="aw-brand">
           <Logo size={22} />
           <span className="aw-brand-name">AutoAW</span>
           <span className="aw-brand-version mono">v0.4</span>
