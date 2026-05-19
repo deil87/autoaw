@@ -44,6 +44,7 @@ app = FastAPI(title="AutoAW", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://d32ilmniiyvkjt.cloudfront.net",
         "http://localhost:3000",
         "http://localhost:3001",
         "http://localhost:3032",
