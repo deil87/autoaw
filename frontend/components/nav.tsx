@@ -51,11 +51,6 @@ export function Nav() {
             </Link>
           ))}
         </div>
-        <div className="aw-nav-right">
-          <Link href="/experiments/new" className="btn btn-primary btn-sm">
-            New experiment
-          </Link>
-        </div>
       </div>
     </nav>
   );
