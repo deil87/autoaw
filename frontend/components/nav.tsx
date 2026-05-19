@@ -4,7 +4,9 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/experiments", label: "Experiments" },
-  { href: "/datasets", label: "Datasets" },
+  { href: "/leaderboard", label: "Leaderboard", disabled: true },
+  { href: "/docs",        label: "Docs",        disabled: true },
+  { href: "/pricing",     label: "Pricing",     disabled: true },
 ];
 
 function Logo({ size = 22 }: { size?: number }) {
@@ -32,6 +34,8 @@ function Logo({ size = 22 }: { size?: number }) {
 
 export function Nav() {
   const pathname = usePathname();
+  const onLanding = pathname === "/";
+
   return (
     <nav className="aw-nav">
       <div className="aw-nav-inner">
@@ -42,14 +46,38 @@ export function Nav() {
         </Link>
         <div className="aw-nav-links">
           {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`aw-nav-link${pathname.startsWith(link.href) ? " active" : ""}`}
-            >
-              {link.label}
-            </Link>
+            link.disabled ? (
+              <span
+                key={link.href}
+                className="aw-nav-link"
+                style={{ color: "var(--faint)", cursor: "default" }}
+              >
+                {link.label}
+                <span className="mono" style={{ fontSize: 10, marginLeft: 5, opacity: 0.7 }}>soon</span>
+              </span>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`aw-nav-link${pathname.startsWith(link.href) ? " active" : ""}`}
+              >
+                {link.label}
+              </Link>
+            )
           ))}
+        </div>
+        <div className="aw-nav-right">
+          {onLanding ? (
+            <>
+              <span className="mono faint" style={{ fontSize: 12 }}>github · 1.2k ★</span>
+              <button className="btn btn-sm">Sign in</button>
+              <Link href="/experiments" className="btn btn-primary btn-sm">
+                Open app →
+              </Link>
+            </>
+          ) : (
+            <span className="mono faint" style={{ fontSize: 11.5 }}>workspace · autoaw</span>
+          )}
         </div>
       </div>
     </nav>
