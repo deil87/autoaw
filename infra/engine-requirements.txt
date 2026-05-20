@@ -3,6 +3,7 @@ deap>=1.4
 optuna>=3.6
 langchain-core>=0.2
 langchain>=0.2
+langchain-openai>=0.1
 openai>=1.0
 fastapi>=0.111
 uvicorn>=0.30

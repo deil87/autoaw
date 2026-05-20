@@ -20,9 +20,9 @@ from backend.shared.experiment import (
 )
 from backend.shared.evaluator_catalog import CATALOG
 from backend.api.executor import ExperimentExecutor
+from backend.api.dataset_store import load_dataset, save_dataset, list_dataset_ids, dataset_exists
 
 _DB_PATH = os.environ.get("DATABASE_PATH", "autoaw.db")
-_DATASETS_DIR = os.environ.get("DATASETS_DIR", "datasets")
 _MAX_WORKERS = int(os.environ.get("MAX_CONCURRENT_EXPERIMENTS", "4"))
 
 if os.environ.get("STORE_BACKEND") == "dynamo":
@@ -33,13 +33,12 @@ else:
     _store = LocalStore(db_path=_DB_PATH)
 
 _executor = ExperimentExecutor(
-    store=_store, datasets_dir=_DATASETS_DIR, max_workers=_MAX_WORKERS
+    store=_store, max_workers=_MAX_WORKERS
 )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    os.makedirs(_DATASETS_DIR, exist_ok=True)
     if hasattr(_store, 'init_db'):
         _store.init_db()
     yield
@@ -111,7 +110,25 @@ _BENCHMARKS = [
             "speed_weight": 0.1,
         },
         "task_count": 690,
-    }
+    },
+    {
+        "id": "swe-bench",
+        "name": "SWE-bench",
+        "description": (
+            "GitHub issue resolution across real Python repos. "
+            "Evaluated by LLM patch-quality judge against ground-truth fixes."
+        ),
+        "paper_url": "https://www.swebench.com",
+        "dataset_id": "swebench",
+        "runner_type": "swebench",
+        "evaluators": [{"type": "swebench", "params": {"model": "gpt-4o-mini"}}],
+        "default_objective": {
+            "quality_weight": 0.6,
+            "cost_weight": 0.2,
+            "speed_weight": 0.2,
+        },
+        "task_count": 300,
+    },
 ]
 
 
@@ -267,33 +284,25 @@ def list_trials(
 
 @app.post("/datasets", status_code=201)
 async def upload_dataset(file: UploadFile = File(...)):
-    os.makedirs(_DATASETS_DIR, exist_ok=True)
     dataset_id = os.path.splitext(file.filename)[0]
-    dest = os.path.join(_DATASETS_DIR, f"{dataset_id}.json")
     content = await file.read()
-    # Validate it's valid JSON array
     try:
         parsed = json.loads(content)
         if not isinstance(parsed, list):
             raise HTTPException(status_code=422, detail="Dataset must be a JSON array")
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=422, detail=f"Invalid JSON: {e}")
-    with open(dest, "wb") as f:
-        f.write(content)
+    save_dataset(dataset_id, content)
     return {"dataset_id": dataset_id, "records": len(parsed)}
 
 
 @app.get("/datasets")
-def list_datasets():
-    os.makedirs(_DATASETS_DIR, exist_ok=True)
-    files = [f for f in os.listdir(_DATASETS_DIR) if f.endswith(".json")]
-    return [{"dataset_id": os.path.splitext(f)[0]} for f in sorted(files)]
+def list_datasets_route():
+    return [{"dataset_id": did} for did in list_dataset_ids()]
 
 
 @app.get("/datasets/{dataset_id}")
 def get_dataset(dataset_id: str):
-    path = os.path.join(_DATASETS_DIR, f"{dataset_id}.json")
-    if not os.path.exists(path):
+    if not dataset_exists(dataset_id):
         raise HTTPException(status_code=404, detail=f"Dataset {dataset_id!r} not found")
-    with open(path) as f:
-        return json.load(f)
+    return load_dataset(dataset_id)

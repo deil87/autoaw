@@ -28,18 +28,19 @@ def make_config():
     )
 
 
-def test_executor_submits_and_tracks_experiment(store, tmp_path):
+def test_executor_submits_and_tracks_experiment(store, tmp_path, monkeypatch):
     datasets_dir = str(tmp_path / "datasets")
-    import os
+    import os, json
 
     os.makedirs(datasets_dir)
-    import json
+    monkeypatch.setenv("DATASETS_DIR", datasets_dir)
+    monkeypatch.delenv("DATASETS_BUCKET", raising=False)
 
     dataset_path = os.path.join(datasets_dir, "ds_test.json")
     with open(dataset_path, "w") as f:
         json.dump([{"input": "hello", "expected": "hi"}], f)
 
-    executor = ExperimentExecutor(store=store, datasets_dir=datasets_dir, max_workers=2)
+    executor = ExperimentExecutor(store=store, max_workers=2)
 
     config = make_config()
     exp_id = "exp_test_001"
@@ -60,14 +61,16 @@ def test_executor_submits_and_tracks_experiment(store, tmp_path):
     )
 
 
-def test_executor_sets_failed_on_error(store, tmp_path):
+def test_executor_sets_failed_on_error(store, tmp_path, monkeypatch):
     """If dataset_id doesn't exist, experiment should be marked failed."""
     datasets_dir = str(tmp_path / "datasets_empty")
     import os
 
     os.makedirs(datasets_dir)
+    monkeypatch.setenv("DATASETS_DIR", datasets_dir)
+    monkeypatch.delenv("DATASETS_BUCKET", raising=False)
 
-    executor = ExperimentExecutor(store=store, datasets_dir=datasets_dir, max_workers=2)
+    executor = ExperimentExecutor(store=store, max_workers=2)
 
     config = make_config()  # dataset_id="ds_test" — file won't exist
     exp_id = "exp_fail_001"
@@ -85,12 +88,8 @@ def test_executor_sets_failed_on_error(store, tmp_path):
     assert exp["error_message"] is not None
 
 
-def test_executor_shutdown(store, tmp_path):
-    datasets_dir = str(tmp_path / "datasets")
-    import os
-
-    os.makedirs(datasets_dir)
-    executor = ExperimentExecutor(store=store, datasets_dir=datasets_dir, max_workers=2)
+def test_executor_shutdown(store):
+    executor = ExperimentExecutor(store=store, max_workers=2)
     executor.shutdown()  # should not raise
 
 
@@ -115,26 +114,17 @@ def test_executor_passes_stop_reason_to_store(tmp_path):
     mock_store.get_experiment_config.return_value = make_config()
 
     with (
-        patch("backend.api.executor.GPLoop") as MockGP,
-        patch("backend.api.executor.smbo_polish", return_value=gene),
+        patch("backend.engine.gp.loop.GPLoop") as MockGP,
+        patch("backend.engine.smbo.polish.smbo_polish", return_value=gene),
         patch("backend.api.executor._build_runner"),
         patch("backend.api.executor._build_evaluators"),
-        patch(
-            "builtins.open",
-            MagicMock(
-                return_value=MagicMock(
-                    __enter__=MagicMock(return_value=MagicMock()),
-                    __exit__=MagicMock(return_value=False),
-                )
-            ),
-        ),
-        patch("json.load", return_value=[{"input": "x", "expected": "y"}]),
+        patch("backend.api.executor.load_dataset", return_value=[{"input": "x", "expected": "y"}]),
     ):
         mock_loop_instance = MagicMock()
         mock_loop_instance.run.return_value = gp_result
         MockGP.return_value = mock_loop_instance
 
-        _run_experiment("exp_001", mock_store, str(tmp_path), threading.Event())
+        _run_experiment("exp_001", mock_store, threading.Event())
 
     mock_store.put_best_gene.assert_called_once()
     args, kwargs = mock_store.put_best_gene.call_args
@@ -194,8 +184,9 @@ def test_progress_written_to_store(tmp_path, monkeypatch):
     with (
         patch("backend.api.executor._build_runner") as mock_runner_factory,
         patch("backend.api.executor._build_evaluators") as mock_eval_factory,
-        patch("backend.api.executor.smbo_polish") as mock_smbo,
+        patch("backend.engine.smbo.polish.smbo_polish") as mock_smbo,
         patch("backend.engine.llm_client.provider_from_env", return_value="github"),
+        patch("backend.api.executor.load_dataset", return_value=json.loads((tmp_path / "ds1.json").read_text())),
     ):
         mock_run = MagicMock(output="x", token_usage={}, latency_ms=5, cost_usd=0.0)
         mock_runner_factory.return_value.run.return_value = mock_run
@@ -207,7 +198,7 @@ def test_progress_written_to_store(tmp_path, monkeypatch):
         ]
         mock_smbo.return_value = MagicMock(id="g_smbo")
 
-        _run_experiment("exp_wire_001", store, ds_dir, threading.Event())
+        _run_experiment("exp_wire_001", store, threading.Event())
 
     # With 12 rows and heartbeat every 10, at least one progress call expected
     assert len(progress_snapshots) >= 1

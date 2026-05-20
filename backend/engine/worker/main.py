@@ -15,6 +15,7 @@ import boto3
 
 from backend.api.dynamo_store import DynamoStore
 from backend.api.executor import _build_runner, _build_evaluators
+from backend.api.dataset_store import load_dataset
 from backend.engine.gp.loop import GPLoop
 
 logging.basicConfig(
@@ -46,6 +47,10 @@ def _process_job(experiment_id: str) -> None:
     store.update_experiment_status(experiment_id, "running")
     log.info("Starting GP loop for experiment %s", experiment_id)
 
+    dataset = load_dataset(config.dataset_id)
+    if config.dataset_sample_size is not None:
+        dataset = dataset[: config.dataset_sample_size]
+
     runner = _build_runner(config)
     evaluators = _build_evaluators(config)
 
@@ -53,6 +58,7 @@ def _process_job(experiment_id: str) -> None:
         config=config,
         runner=runner,
         evaluators=evaluators,
+        dataset=dataset,
         on_trial_complete=lambda result: store.put_trial_result(
             experiment_id, result
         ),

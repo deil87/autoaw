@@ -19,17 +19,6 @@ const COMING_SOON_BENCHMARKS: BenchmarkDescriptor[] = [
     default_objective: { quality_weight: 0.6, cost_weight: 0.2, speed_weight: 0.2 },
   },
   {
-    id: "swe-bench",
-    name: "SWE-bench",
-    description: "GitHub issue resolution — binary correctness via test suite.",
-    paper_url: "https://www.swebench.com",
-    task_count: 2294,
-    dataset_id: "",
-    runner_type: "",
-    evaluators: [],
-    default_objective: { quality_weight: 0.6, cost_weight: 0.2, speed_weight: 0.2 },
-  },
-  {
     id: "tau-bench",
     name: "τ-bench",
     description: "Tool-augmented realistic user/agent conversations.",

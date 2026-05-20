@@ -209,7 +209,7 @@ def test_create_experiment_workbench_fields(client):
     assert config["evaluators"] == [{"type": "workbench", "params": {}}]
 
 
-def test_executor_uses_workbench_runner(tmp_path):
+def test_executor_uses_workbench_runner(tmp_path, monkeypatch):
     """_run_experiment instantiates WorkBenchRunner when runner_type='workbench'."""
     from unittest.mock import patch, MagicMock
     from backend.api.store import LocalStore
@@ -223,6 +223,8 @@ def test_executor_uses_workbench_runner(tmp_path):
     db_path = str(tmp_path / "test.db")
     datasets_dir = str(tmp_path / "datasets")
     os.makedirs(datasets_dir)
+    monkeypatch.setenv("DATASETS_DIR", datasets_dir)
+    monkeypatch.delenv("DATASETS_BUCKET", raising=False)
 
     dataset = [{"input": "task1", "expected": "[]", "id": "wb_001"}]
     with open(os.path.join(datasets_dir, "workbench.json"), "w") as f:
@@ -246,9 +248,9 @@ def test_executor_uses_workbench_runner(tmp_path):
     store.create_experiment(exp_id, config)
 
     with (
-        patch("backend.api.executor.WorkBenchRunner") as mock_runner_cls,
-        patch("backend.api.executor.GPLoop") as mock_gp_cls,
-        patch("backend.api.executor.smbo_polish") as mock_polish,
+        patch("backend.engine.workbench.runner.WorkBenchRunner") as mock_runner_cls,
+        patch("backend.engine.gp.loop.GPLoop") as mock_gp_cls,
+        patch("backend.engine.smbo.polish.smbo_polish") as mock_polish,
         patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}),
     ):
         import threading
@@ -261,5 +263,5 @@ def test_executor_uses_workbench_runner(tmp_path):
             best_gene=gene, stop_reason="converged", generations_run=1, best_fitness=0.5
         )
         mock_polish.return_value = gene
-        _run_experiment(exp_id, store, datasets_dir, threading.Event())
+        _run_experiment(exp_id, store, threading.Event())
         mock_runner_cls.assert_called_once()

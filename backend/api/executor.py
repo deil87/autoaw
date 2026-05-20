@@ -1,13 +1,12 @@
 from __future__ import annotations
-import json
 import logging
-import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from backend.shared.experiment import ExperimentConfig
 from backend.engine.runner.base import WorkflowRunner
 from backend.engine.evaluator.base import Evaluator
+from backend.api.dataset_store import load_dataset
 
 log = logging.getLogger(__name__)
 
@@ -16,6 +15,9 @@ def _build_runner(config: ExperimentConfig) -> WorkflowRunner:
     if config.runner_type == "workbench":
         from backend.engine.workbench.runner import WorkBenchRunner
         return WorkBenchRunner()
+    if config.runner_type == "swebench":
+        from backend.engine.swebench.runner import SWEBenchRunner
+        return SWEBenchRunner()
     from backend.engine.runner.raw_llm import RawLLMRunner
     return RawLLMRunner()
 
@@ -53,6 +55,10 @@ def _build_single_evaluator(ev_config) -> Evaluator | None:
     elif t == "workbench":
         from backend.engine.workbench.evaluator import WorkBenchEvaluator
         return WorkBenchEvaluator()
+
+    elif t == "swebench":
+        from backend.engine.swebench.evaluator import SWEBenchEvaluator
+        return SWEBenchEvaluator(model=p.get("model", "gpt-4o-mini"))
 
     elif t == "human":
         from backend.engine.evaluator.human_eval import HumanEvaluator
@@ -129,7 +135,6 @@ def _build_single_evaluator(ev_config) -> Evaluator | None:
 def _run_experiment(
     experiment_id: str,
     store,
-    datasets_dir: str,
     stop_event: threading.Event,
 ) -> None:
     """Full experiment lifecycle: GP loop + SMBO polish. Runs in a worker thread."""
@@ -137,9 +142,7 @@ def _run_experiment(
         store.update_experiment_status(experiment_id, "running")
         config = store.get_experiment_config(experiment_id)
 
-        dataset_path = os.path.join(datasets_dir, f"{config.dataset_id}.json")
-        with open(dataset_path) as f:
-            dataset = json.load(f)
+        dataset = load_dataset(config.dataset_id)
 
         if config.dataset_sample_size is not None:
             dataset = dataset[: config.dataset_sample_size]
@@ -240,14 +243,8 @@ def _run_experiment(
 class ExperimentExecutor:
     """Manages concurrent experiment execution via a ThreadPoolExecutor."""
 
-    def __init__(
-        self,
-        store: LocalStore,
-        datasets_dir: str,
-        max_workers: int = 4,
-    ) -> None:
+    def __init__(self, store, max_workers: int = 4) -> None:
         self._store = store
-        self._datasets_dir = datasets_dir
         self._pool = ThreadPoolExecutor(max_workers=max_workers)
         self._stop_events: dict[str, threading.Event] = {}
         self._events_lock = threading.Lock()
@@ -258,7 +255,7 @@ class ExperimentExecutor:
         with self._events_lock:
             self._stop_events[experiment_id] = stop_event
         self._pool.submit(
-            _run_experiment, experiment_id, self._store, self._datasets_dir, stop_event
+            _run_experiment, experiment_id, self._store, stop_event
         )
 
     def stop(self, experiment_id: str) -> None:
