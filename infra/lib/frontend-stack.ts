@@ -2,7 +2,6 @@ import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
-import * as path from 'path';
 import { Construct } from 'constructs';
 
 export class FrontendStack extends cdk.Stack {
@@ -22,9 +21,29 @@ export class FrontendStack extends cdk.Stack {
     // Rewrites dynamic experiment/trial IDs to the _ placeholder files
     // that Next.js static export generates, and appends .html so S3 finds them.
     const urlRewrite = new cloudfront.Function(this, 'UrlRewrite', {
-      code: cloudfront.FunctionCode.fromFile({
-        filePath: path.join(__dirname, '../functions/url-rewrite.js'),
-      }),
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var request = event.request;
+  var uri = request.uri;
+  if (uri.length > 1 && uri.charAt(uri.length - 1) === '/') {
+    uri = uri.slice(0, -1);
+  }
+  var mExp = uri.match(/^\\/experiments\\/([^\\/]+)(\\/.*)?$/);
+  if (mExp && mExp[1] !== 'new' && mExp[1] !== '_') {
+    var rest = mExp[2] || '';
+    var mTrial = rest.match(/^\\/trial\\/([^\\/]+)(\\/.*)?$/);
+    if (mTrial && mTrial[1] !== '_') {
+      rest = '/trial/_' + (mTrial[2] || '');
+    }
+    uri = '/experiments/_' + rest;
+  }
+  if (uri !== '/' && uri.lastIndexOf('.') <= uri.lastIndexOf('/')) {
+    uri = uri + '.html';
+  }
+  request.uri = uri;
+  return request;
+}
+      `),
       runtime: cloudfront.FunctionRuntime.JS_2_0,
     });
 
