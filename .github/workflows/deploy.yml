@@ -73,8 +73,22 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ steps.cdk.outputs.api_url }}
 
       # ── Deploy frontend ──────────────────────────────────────────────────────
-      - name: Sync to S3
-        run: aws s3 sync out/ s3://${{ steps.cdk.outputs.bucket }} --delete --region eu-central-1
+      # Hashed assets (_next/static/**) are immutable — cache forever.
+      # HTML files change on every deploy — must revalidate.
+      - name: Sync immutable assets
+        run: |
+          aws s3 sync out/_next/static/ s3://${{ steps.cdk.outputs.bucket }}/_next/static/ \
+            --region eu-central-1 \
+            --cache-control "public, max-age=31536000, immutable"
+        working-directory: frontend
+
+      - name: Sync HTML and other files
+        run: |
+          aws s3 sync out/ s3://${{ steps.cdk.outputs.bucket }} \
+            --region eu-central-1 \
+            --delete \
+            --exclude "_next/static/*" \
+            --cache-control "public, no-cache"
         working-directory: frontend
 
       - name: Invalidate CloudFront
