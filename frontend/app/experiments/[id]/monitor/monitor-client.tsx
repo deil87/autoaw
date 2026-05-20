@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { FitnessChart } from "@/components/fitness-chart";
 import { ExperimentDetails } from "@/components/experiment-details";
 import { api } from "@/lib/api";
@@ -134,7 +134,7 @@ const TABS = [
 ];
 
 export default function MonitorPage() {
-  const { id } = useParams<{ id: string }>();
+  const id = usePathname().split("/")[2];
   const [experiment, setExperiment] = useState<Experiment | null>(null);
   const [trials, setTrials] = useState<Trial[]>([]);
   const [chartData, setChartData] = useState<FitnessPoint[]>([]);

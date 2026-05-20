@@ -11,7 +11,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { api } from "@/lib/api";
 import type { LineageNode } from "@/lib/types";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 const MUTATION_COLORS: Record<string, string> = {
   seed: "#6366f1",
@@ -129,7 +129,7 @@ function buildGraph(
 }
 
 export function EvolutionClient() {
-  const { id: experimentId } = useParams<{ id: string }>();
+  const experimentId = usePathname().split("/")[2];
   const [lineage, setLineage] = useState<LineageNode[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
