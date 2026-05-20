@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import type { Trial } from "@/lib/types";
 
@@ -17,8 +18,8 @@ function Bar({ value, max, accent }: { value: number; max: number; accent?: bool
   );
 }
 
-export default function LeaderboardPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function LeaderboardPage() {
+  const { id } = useParams<{ id: string }>();
   const [trials, setTrials] = useState<Trial[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<SortKey>("fitness");

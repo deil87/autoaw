@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { GeneViewer } from "@/components/gene-viewer";
 import { api } from "@/lib/api";
 import type { Gene, Trial, EvalRow } from "@/lib/types";
@@ -103,8 +104,8 @@ function EvalRowsTable({ rows }: { rows: EvalRow[] }) {
   );
 }
 
-export default function TrialClient({ params }: { params: { id: string; trialId: string } }) {
-  const { id, trialId } = params;
+export default function TrialClient() {
+  const { id, trialId } = useParams<{ id: string; trialId: string }>();
   const [gene, setGene] = useState<Gene | null>(null);
   const [trial, setTrial] = useState<Trial | null>(null);
   const [evalRows, setEvalRows] = useState<EvalRow[]>([]);
