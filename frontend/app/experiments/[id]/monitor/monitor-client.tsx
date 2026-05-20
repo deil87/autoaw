@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { FitnessChart } from "@/components/fitness-chart";
 import { ExperimentDetails } from "@/components/experiment-details";
 import { api } from "@/lib/api";
@@ -132,8 +133,8 @@ const TABS = [
   { id: "details", label: "Details" },
 ];
 
-export default function MonitorPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function MonitorPage() {
+  const { id } = useParams<{ id: string }>();
   const [experiment, setExperiment] = useState<Experiment | null>(null);
   const [trials, setTrials] = useState<Trial[]>([]);
   const [chartData, setChartData] = useState<FitnessPoint[]>([]);
