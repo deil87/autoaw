@@ -6,7 +6,7 @@ import { FitnessChart } from "@/components/fitness-chart";
 import { ExperimentDetails } from "@/components/experiment-details";
 import { api } from "@/lib/api";
 import { useExperimentSocket } from "@/lib/websocket";
-import type { Experiment, Trial, ExperimentConfig } from "@/lib/types";
+import type { Experiment, Trial, ExperimentConfig, EcsStatus } from "@/lib/types";
 
 interface FitnessPoint { trial: number; fitness: number; quality: number; }
 
@@ -140,6 +140,7 @@ export default function MonitorPage() {
   const [chartData, setChartData] = useState<FitnessPoint[]>([]);
   const [stopping, setStopping] = useState(false);
   const [tab, setTab] = useState("monitor");
+  const [ecsStatus, setEcsStatus] = useState<EcsStatus | null>(null);
 
   const refresh = useCallback(() => {
     api.experiments.get(id).then(setExperiment);
@@ -154,6 +155,15 @@ export default function MonitorPage() {
     const interval = setInterval(refresh, 2000);
     return () => clearInterval(interval);
   }, [refresh]);
+
+  // Poll ECS status every 15 s when experiment is pending (tasks may be stuck)
+  useEffect(() => {
+    if (!experiment || experiment.status !== "pending") return;
+    const fetchEcs = () => api.infra.ecsStatus().then(setEcsStatus).catch(() => null);
+    fetchEcs();
+    const t = setInterval(fetchEcs, 15_000);
+    return () => clearInterval(t);
+  }, [experiment?.status]);
 
   useExperimentSocket(id, (event) => {
     if (event.type === "trial_complete") {
@@ -288,6 +298,45 @@ export default function MonitorPage() {
               value={`$${totalCost.toFixed(4)}`}
             />
           </div>
+
+          {/* ECS infra status — visible when experiment is pending and tasks are stuck */}
+          {experiment.status === "pending" && ecsStatus && (
+            <div className="card" style={{ marginBottom: 18, borderColor: ecsStatus.pending > 0 && ecsStatus.running === 0 ? "rgba(234,179,8,0.4)" : undefined }}>
+              <div className="card-header">
+                <div className="card-title">Engine infrastructure</div>
+                <span className="chip mono" style={{ fontFamily: "var(--mono)", fontSize: 11 }}>
+                  {ecsStatus.desired} desired · {ecsStatus.pending} pending · {ecsStatus.running} running
+                </span>
+              </div>
+              {ecsStatus.pending > 0 && ecsStatus.running === 0 && (
+                <div className="card-body">
+                  <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: ecsStatus.stopped_tasks.length > 0 ? 10 : 0 }}>
+                    Fargate tasks are queued but not yet running. This can take 1–2 min for cold starts; if it persists, check CloudWatch for image pull or ENI errors.
+                  </div>
+                  {ecsStatus.stopped_tasks.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Recent stop reasons</div>
+                      {ecsStatus.stopped_tasks.map((t) => (
+                        <div key={t.task_id} style={{ fontSize: 12, fontFamily: "var(--mono)", color: "var(--err)", padding: "4px 0", borderBottom: "1px solid var(--border)" }}>
+                          <span style={{ opacity: 0.5 }}>{t.task_id.slice(-8)}</span>
+                          {" · "}
+                          {t.stopped_reason || "no reason"}
+                          {t.containers.map((c) => c.reason).filter(Boolean).map((r, i) => (
+                            <span key={i} style={{ opacity: 0.7 }}>{" · "}{r}</span>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {ecsStatus.running > 0 && (
+                <div className="card-body" style={{ fontSize: 13, color: "var(--muted)" }}>
+                  {ecsStatus.running} worker task{ecsStatus.running !== 1 ? "s" : ""} running — job should start shortly.
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Progress bar (when running) */}
           {experiment.status === "running" && progress && (

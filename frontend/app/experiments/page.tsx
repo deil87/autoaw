@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import type { Experiment } from "@/lib/types";
+import type { Experiment, EcsStatus } from "@/lib/types";
 
 function StatusChip({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string; dot: boolean }> = {
@@ -142,11 +142,17 @@ export default function ExperimentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [ecsStatus, setEcsStatus] = useState<EcsStatus | null>(null);
 
   useEffect(() => {
     api.experiments
       .list()
-      .then((data) => setExperiments(data))
+      .then((data) => {
+        setExperiments(data);
+        if (data.some((e) => e.status === "pending" || e.status === "running")) {
+          api.infra.ecsStatus().then(setEcsStatus).catch(() => null);
+        }
+      })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -200,6 +206,23 @@ export default function ExperimentsPage() {
       {error && (
         <div style={{ padding: "12px 16px", background: "var(--err-soft)", border: "1px solid rgba(185,28,28,0.2)", borderRadius: "var(--r-3)", color: "var(--err)", fontSize: 13, marginBottom: 16 }}>
           {error}
+        </div>
+      )}
+
+      {ecsStatus && ecsStatus.pending > 0 && ecsStatus.running === 0 && (
+        <div style={{ padding: "12px 16px", background: "rgba(234,179,8,0.08)", border: "1px solid rgba(234,179,8,0.3)", borderRadius: "var(--r-3)", fontSize: 13, marginBottom: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
+          <span style={{ fontSize: 15 }}>⚠</span>
+          <div>
+            <span style={{ fontWeight: 600 }}>Engine tasks not starting</span>
+            <span style={{ color: "var(--muted)", marginLeft: 8 }}>
+              {ecsStatus.desired} desired · {ecsStatus.pending} pending · {ecsStatus.running} running
+            </span>
+            {ecsStatus.stopped_tasks.length > 0 && (
+              <div style={{ marginTop: 4, color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 12 }}>
+                Last stop reason: {ecsStatus.stopped_tasks[0].stopped_reason || "unknown"}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

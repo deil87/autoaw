@@ -21,6 +21,10 @@ from boto3.dynamodb.conditions import Key
 _dynamo      = boto3.resource("dynamodb")
 _sqs_client  = boto3.client("sqs")
 _s3_client   = boto3.client("s3")
+_ecs_client  = boto3.client("ecs") if os.environ.get("ECS_CLUSTER_NAME") else None
+
+_ECS_CLUSTER = os.environ.get("ECS_CLUSTER_NAME", "")
+_ECS_SERVICE = os.environ.get("ECS_SERVICE_NAME", "")
 
 _experiments = _dynamo.Table(os.environ["EXPERIMENTS_TABLE"])
 _trials      = _dynamo.Table(os.environ["TRIALS_TABLE"])
@@ -400,6 +404,64 @@ _EVALUATOR_TYPES = [
      "params": [_model_param()]},
 ]
 
+# ── Infra ops ─────────────────────────────────────────────────────────────────
+
+def _get_ecs_status() -> tuple[Any, int]:
+    if not _ecs_client:
+        return {"detail": "ECS not configured"}, 503
+
+    resp = _ecs_client.describe_services(cluster=_ECS_CLUSTER, services=[_ECS_SERVICE])
+    services = resp.get("services", [])
+    if not services:
+        return {"detail": "ECS service not found"}, 404
+    svc = services[0]
+
+    # Active tasks (PENDING + RUNNING) — check for stuck-pending details
+    pending_tasks: list = []
+    try:
+        arns = _ecs_client.list_tasks(cluster=_ECS_CLUSTER, desiredStatus="RUNNING").get("taskArns", [])
+        if arns:
+            for t in _ecs_client.describe_tasks(cluster=_ECS_CLUSTER, tasks=arns[:10]).get("tasks", []):
+                if t.get("lastStatus") == "PENDING":
+                    pending_tasks.append({
+                        "task_id": t.get("taskArn", "").split("/")[-1],
+                        "containers": [
+                            {"name": c.get("name"), "status": c.get("lastStatus"), "reason": c.get("reason", "")}
+                            for c in t.get("containers", [])
+                        ],
+                    })
+    except Exception:
+        pass
+
+    # Recently stopped tasks — surface failure reasons
+    stopped_tasks: list = []
+    try:
+        sarns = _ecs_client.list_tasks(cluster=_ECS_CLUSTER, desiredStatus="STOPPED").get("taskArns", [])[:5]
+        if sarns:
+            for t in _ecs_client.describe_tasks(cluster=_ECS_CLUSTER, tasks=sarns).get("tasks", []):
+                stopped_at = t.get("stoppedAt")
+                stopped_tasks.append({
+                    "task_id": t.get("taskArn", "").split("/")[-1],
+                    "stopped_reason": t.get("stoppedReason", ""),
+                    "stopped_at": stopped_at.isoformat() if hasattr(stopped_at, "isoformat") else None,
+                    "containers": [
+                        {"name": c.get("name"), "exit_code": c.get("exitCode"), "reason": c.get("reason", "")}
+                        for c in t.get("containers", [])
+                    ],
+                })
+    except Exception:
+        pass
+
+    return {
+        "desired": svc.get("desiredCount", 0),
+        "pending": svc.get("pendingCount", 0),
+        "running": svc.get("runningCount", 0),
+        "status": svc.get("status", ""),
+        "pending_tasks": pending_tasks,
+        "stopped_tasks": stopped_tasks,
+    }, 200
+
+
 # ── Router ────────────────────────────────────────────────────────────────────
 
 def _route(method: str, path: str, qs: dict, body: dict, event: dict) -> tuple[Any, int]:
@@ -407,6 +469,8 @@ def _route(method: str, path: str, qs: dict, body: dict, event: dict) -> tuple[A
 
     if p == "/health":
         return {"status": "ok"}, 200
+    if p == "/infra/ecs" and method == "GET":
+        return _get_ecs_status()
     if p == "/benchmarks" and method == "GET":
         return _BENCHMARKS, 200
     if p == "/evaluator-types" and method == "GET":

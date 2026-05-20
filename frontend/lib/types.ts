@@ -154,6 +154,34 @@ export interface EvalRow {
   cost_usd: number;
 }
 
+export interface EcsTaskContainer {
+  name: string;
+  status?: string;
+  exit_code?: number | null;
+  reason: string;
+}
+
+export interface EcsPendingTask {
+  task_id: string;
+  containers: EcsTaskContainer[];
+}
+
+export interface EcsStoppedTask {
+  task_id: string;
+  stopped_reason: string;
+  stopped_at: string | null;
+  containers: EcsTaskContainer[];
+}
+
+export interface EcsStatus {
+  desired: number;
+  pending: number;
+  running: number;
+  status: string;
+  pending_tasks: EcsPendingTask[];
+  stopped_tasks: EcsStoppedTask[];
+}
+
 export interface LineageNode {
   id: string;
   gene_id: string;

@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as path from 'path';
 import { Construct } from 'constructs';
 import { StorageStack } from './storage-stack';
@@ -39,8 +40,15 @@ export class ApiStack extends cdk.Stack {
         DATASETS_BUCKET: props.storage.datasetsBucket.bucketName,
         JOB_QUEUE_URL: props.engine.jobQueue.queueUrl,
         STORE_BACKEND: 'dynamo',
+        ECS_CLUSTER_NAME: props.engine.cluster.clusterName,
+        ECS_SERVICE_NAME: props.engine.fargateService.serviceName,
       },
     });
+
+    fn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ecs:DescribeServices', 'ecs:ListTasks', 'ecs:DescribeTasks'],
+      resources: ['*'],
+    }));
 
     props.storage.experimentsTable.grantReadWriteData(fn);
     props.storage.trialsTable.grantReadWriteData(fn);
