@@ -16,11 +16,23 @@ export class FrontendStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
-    const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
+    const s3Origin = new origins.S3Origin(siteBucket);
+
+    // V2: fresh distribution (forces new CloudFront URL)
+    const distribution = new cloudfront.Distribution(this, 'SiteDistributionV2', {
       defaultBehavior: {
-        origin: new origins.S3Origin(siteBucket),
+        origin: s3Origin,
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        // HTML files — no CloudFront caching; let browser revalidate via no-cache from S3
+        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+      },
+      additionalBehaviors: {
+        '/_next/static/*': {
+          origin: s3Origin,
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          // Content-hashed assets — safe to cache forever at the edge
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        },
       },
       defaultRootObject: 'index.html',
       errorResponses: [

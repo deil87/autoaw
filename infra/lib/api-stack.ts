@@ -52,7 +52,7 @@ export class ApiStack extends cdk.Stack {
     const api = new apigwv2.HttpApi(this, 'HttpApi', {
       apiName: 'autoaw-api',
       corsPreflight: {
-        allowOrigins: ['http://localhost:3000', 'http://localhost:3032', 'https://d32ilmniiyvkjt.cloudfront.net'],
+        allowOrigins: ['*'],
         allowMethods: [apigwv2.CorsHttpMethod.ANY],
         allowHeaders: ['content-type', 'authorization'],
         maxAge: cdk.Duration.days(1),
