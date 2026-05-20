@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as path from 'path';
 import { Construct } from 'constructs';
 
 export class FrontendStack extends cdk.Stack {
@@ -18,6 +19,15 @@ export class FrontendStack extends cdk.Stack {
 
     const s3Origin = new origins.S3Origin(siteBucket);
 
+    // Rewrites dynamic experiment/trial IDs to the _ placeholder files
+    // that Next.js static export generates, and appends .html so S3 finds them.
+    const urlRewrite = new cloudfront.Function(this, 'UrlRewrite', {
+      code: cloudfront.FunctionCode.fromFile({
+        filePath: path.join(__dirname, '../functions/url-rewrite.js'),
+      }),
+      runtime: cloudfront.FunctionRuntime.JS_2_0,
+    });
+
     // V2: fresh distribution (forces new CloudFront URL)
     const distribution = new cloudfront.Distribution(this, 'SiteDistributionV2', {
       defaultBehavior: {
@@ -25,6 +35,10 @@ export class FrontendStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         // HTML files — no CloudFront caching; let browser revalidate via no-cache from S3
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+        functionAssociations: [{
+          function: urlRewrite,
+          eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+        }],
       },
       additionalBehaviors: {
         '/_next/static/*': {
