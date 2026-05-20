@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { Experiment } from "@/lib/types";
 
@@ -50,6 +51,7 @@ function SkeletonRow() {
 }
 
 function ExperimentRow({ exp }: { exp: Experiment }) {
+  const router = useRouter();
   const config = (() => {
     try { return exp.config_json ? JSON.parse(exp.config_json) : null; } catch { return null; }
   })();
@@ -66,7 +68,13 @@ function ExperimentRow({ exp }: { exp: Experiment }) {
     : exp.status === "completed" ? 100 : 0;
 
   return (
-    <Link href={`/experiments/${exp.id}/monitor`} className="exp-row">
+    <div
+      className="exp-row"
+      onClick={() => router.push(`/experiments/${exp.id}/monitor`)}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter") router.push(`/experiments/${exp.id}/monitor`); }}
+    >
       <div>
         <div className="name">{exp.name}</div>
         <div className="name-sub">{dateStr}</div>
@@ -112,18 +120,18 @@ function ExperimentRow({ exp }: { exp: Experiment }) {
       <div style={{ display: "flex", gap: 8 }}>
         <button
           className="btn btn-sm"
-          onClick={(e) => { e.preventDefault(); window.location.href = `/experiments/${exp.id}/monitor`; }}
+          onClick={(e) => { e.stopPropagation(); router.push(`/experiments/${exp.id}/monitor`); }}
         >
           Monitor
         </button>
         <button
           className="btn btn-sm btn-ghost mono"
-          onClick={(e) => { e.preventDefault(); window.location.href = `/experiments/new?from=${exp.id}`; }}
+          onClick={(e) => { e.stopPropagation(); router.push(`/experiments/new?from=${exp.id}`); }}
         >
           Fork →
         </button>
       </div>
-    </Link>
+    </div>
   );
 }
 
