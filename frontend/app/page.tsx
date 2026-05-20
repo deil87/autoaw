@@ -72,10 +72,12 @@ function WorkflowGraph({ height = 290 }: { height?: number }) {
     { from: "judge", to: "out" },
   ];
 
+  const [mounted, setMounted] = useState(false);
   const [tick, setTick] = useState(0);
   const [pulseNode, setPulseNode] = useState<string|null>(null);
 
   useEffect(() => {
+    setMounted(true);
     const a = setInterval(() => setTick(t => t + 1), 1200);
     const b = setInterval(() => {
       const ids = ["planner","exec1","exec2","judge"];
@@ -116,13 +118,12 @@ function WorkflowGraph({ height = 290 }: { height?: number }) {
           <g key={i}>
             <line x1={ax} y1={ay} x2={bx} y2={by}
               stroke="#cbd0d6" strokeWidth="1.2" markerEnd="url(#wf-arrow)"/>
-            <circle r="3"
-              cx={ax + (bx-ax)*packetT}
-              cy={ay + (by-ay)*packetT}
-              fill="#119760">
-              <animate attributeName="opacity" values="0;1;1;0" dur="1.2s"
-                keyTimes="0;0.1;0.9;1" repeatCount="1" begin="0s"/>
-            </circle>
+            {mounted && (
+              <circle r="3"
+                cx={ax + (bx-ax)*packetT}
+                cy={ay + (by-ay)*packetT}
+                fill="#119760"/>
+            )}
           </g>
         );
       })}
@@ -137,14 +138,14 @@ function WorkflowGraph({ height = 290 }: { height?: number }) {
         );
         if (n.kind === "agent") return (
           <g key={n.id}>
-            {pulsing && (
+            {mounted && pulsing && (
               <circle cx={n.x} cy={n.y} r="32" fill="url(#nodeGlow)">
                 <animate attributeName="r" values="20;42" dur="0.8s"/>
                 <animate attributeName="opacity" values="1;0" dur="0.8s"/>
               </circle>
             )}
             <rect x={n.x-50} y={n.y-18} width="100" height="36" rx="6"
-              fill="#ffffff" stroke={pulsing ? "#119760" : "#0b0d10"} strokeWidth="1.2"/>
+              fill="#ffffff" stroke={mounted && pulsing ? "#119760" : "#0b0d10"} strokeWidth="1.2"/>
             <text x={n.x} y={n.y-2} textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="11" fill="#0b0d10" fontWeight="600">{n.label}</text>
             <text x={n.x} y={n.y+11} textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9.5" fill="#6b7280">{(n as any).model}</text>
           </g>

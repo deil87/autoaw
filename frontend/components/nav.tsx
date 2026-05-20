@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -34,6 +35,8 @@ function Logo({ size = 22 }: { size?: number }) {
 
 export function Nav() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const onLanding = pathname === "/";
 
   return (
@@ -67,7 +70,7 @@ export function Nav() {
           ))}
         </div>
         <div className="aw-nav-right">
-          {onLanding ? (
+          {mounted && (onLanding ? (
             <>
               <span className="mono faint" style={{ fontSize: 12 }}>github · 1.2k ★</span>
               <button className="btn btn-sm">Sign in</button>
@@ -77,7 +80,7 @@ export function Nav() {
             </>
           ) : (
             <span className="mono faint" style={{ fontSize: 11.5 }}>workspace · autoaw</span>
-          )}
+          ))}
         </div>
       </div>
     </nav>
