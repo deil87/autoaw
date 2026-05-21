@@ -670,6 +670,191 @@ function CrossoverPromptCard() {
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
+/*  mutate_expand (1 → n)                                          */
+/* ═══════════════════════════════════════════════════════════════ */
+
+function MutateExpandCard() {
+  const p = usePh(2600);
+
+  const beforeNodes: GN[] = [{ id: "t0", x: 100, y: 58, role: "analyst" }];
+
+  const afterNodes: GN[] = [
+    { id: "t0", x: 28,  y: 58, role: "analyst" },
+    { id: "t1", x: 160, y: 18, role: "researcher", glow: true },
+    { id: "t2", x: 160, y: 58, role: "writer",     glow: true },
+    { id: "t3", x: 160, y: 98, role: "drafter",    glow: true },
+  ];
+  const afterEdges: GE[] = [
+    { from: "t0", to: "t1", glow: true },
+    { from: "t0", to: "t2", glow: true },
+    { from: "t0", to: "t3", glow: true },
+  ];
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <div>
+          <div className="card-title" style={{ fontFamily: "var(--mono)", letterSpacing: 0 }}>mutate_expand</div>
+          <div className="card-subtitle">1 coarse task → n specialised subtasks; n is the mutable attribute (not hydration)</div>
+        </div>
+        <span className="chip chip-running">mutation</span>
+      </div>
+      <div className="card-body" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ position: "relative", width: 200, height: 116 }}>
+          <div style={{ position: "absolute", inset: 0, opacity: p === 0 ? 1 : 0, transition: "opacity 0.5s ease" }}>
+            <MG nodes={beforeNodes} edges={[]} w={200} h={116} />
+          </div>
+          <div style={{ position: "absolute", inset: 0, opacity: p === 1 ? 1 : 0, transition: "opacity 0.5s ease" }}>
+            <MG nodes={afterNodes} edges={afterEdges} w={200} h={116} />
+          </div>
+        </div>
+        <PhLabel p={p} before="1 coarse analyst task" after="expanded → researcher + writer + drafter (n = 3)" />
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/*  mutate_delegate (n tasks → k agents)                           */
+/* ═══════════════════════════════════════════════════════════════ */
+
+function MutateDelegateCard() {
+  const p = usePh(2800);
+
+  /* Before: k = n = 3, one agent per task */
+  const beforeNodes: GN[] = [
+    { id: "ta", x: 36, y: 22,  role: "researcher" },
+    { id: "tb", x: 36, y: 58,  role: "analyst" },
+    { id: "tc", x: 36, y: 94,  role: "writer" },
+    { id: "aa", x: 160, y: 22, role: "researcher" },
+    { id: "ab", x: 160, y: 58, role: "analyst" },
+    { id: "ac", x: 160, y: 94, role: "writer" },
+  ];
+  const beforeEdges: GE[] = [
+    { from: "ta", to: "aa" }, { from: "tb", to: "ab" }, { from: "tc", to: "ac" },
+  ];
+
+  /* After: k = 2, two tasks consolidated to agent A */
+  const afterNodes: GN[] = [
+    { id: "ta", x: 36,  y: 22,  role: "researcher" },
+    { id: "tb", x: 36,  y: 58,  role: "analyst" },
+    { id: "tc", x: 36,  y: 94,  role: "writer" },
+    { id: "agA", x: 160, y: 36, role: "synthesizer", glow: true },
+    { id: "agB", x: 160, y: 80, role: "orchestrator", glow: true },
+  ];
+  const afterEdges: GE[] = [
+    { from: "ta", to: "agA", glow: true },
+    { from: "tb", to: "agA", glow: true },
+    { from: "tc", to: "agB", glow: true },
+  ];
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <div>
+          <div className="card-title" style={{ fontFamily: "var(--mono)", letterSpacing: 0 }}>mutate_delegate</div>
+          <div className="card-subtitle">n tasks → k agents (0 ≤ k ≤ n); k is the mutable attribute</div>
+        </div>
+        <span className="chip chip-running">mutation</span>
+      </div>
+      <div className="card-body" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ position: "relative", width: 200, height: 116 }}>
+          <div style={{ position: "absolute", inset: 0, opacity: p === 0 ? 1 : 0, transition: "opacity 0.5s ease" }}>
+            <MG nodes={beforeNodes} edges={beforeEdges} w={200} h={116} />
+          </div>
+          <div style={{ position: "absolute", inset: 0, opacity: p === 1 ? 1 : 0, transition: "opacity 0.5s ease" }}>
+            <MG nodes={afterNodes} edges={afterEdges} w={200} h={116} />
+          </div>
+        </div>
+        <div className="mono" style={{ fontSize: 10, color: "var(--faint)", marginTop: 6, display: "flex", gap: 12 }}>
+          <span style={{ color: p === 0 ? "var(--text)" : "var(--faint)", transition: "color 0.3s" }}>k = 3 (1:1)</span>
+          <span>→</span>
+          <span style={{ color: p === 1 ? "var(--accent-ink)" : "var(--faint)", transition: "color 0.3s" }}>k = 2 (consolidated)</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/*  mutate_inject_critique (1 → 2)                                 */
+/* ═══════════════════════════════════════════════════════════════ */
+
+function MutateCritiqueCard() {
+  const p = usePh(2400);
+
+  const nodes: GN[] = [
+    { id: "a0", x: 28,  y: 55, role: "researcher" },
+    { id: "a1", x: 108, y: 55, role: "writer" },
+    { id: "a2", x: 188, y: 55, role: "critic", dim: p === 0, glow: p === 1 },
+  ];
+  const edges: GE[] = [
+    { from: "a0", to: "a1" },
+    { from: "a1", to: "a2", dim: p === 0, glow: p === 1 },
+  ];
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <div>
+          <div className="card-title" style={{ fontFamily: "var(--mono)", letterSpacing: 0 }}>mutate_inject_critique</div>
+          <div className="card-subtitle">insert a critic node after a target executor — 1 node becomes an (executor, critic) pair</div>
+        </div>
+        <span className="chip chip-running">mutation</span>
+      </div>
+      <div className="card-body" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <MG nodes={nodes} edges={edges} w={216} h={90} />
+        <PhLabel p={p} before="researcher → writer" after="critic injected after writer" col="#b91c1c" />
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/*  mutate_compact (n → m, m < n)                                  */
+/* ═══════════════════════════════════════════════════════════════ */
+
+function MutateCompactCard() {
+  const p = usePh(2600);
+
+  const beforeNodes: GN[] = [
+    { id: "a0", x: 24,  y: 55, role: "researcher" },
+    { id: "a1", x: 100, y: 55, role: "analyst" },
+    { id: "a2", x: 176, y: 55, role: "writer" },
+  ];
+  const beforeEdges: GE[] = [
+    { from: "a0", to: "a1" }, { from: "a1", to: "a2" },
+  ];
+
+  const afterNodes: GN[] = [
+    { id: "m", x: 100, y: 55, role: "synthesizer", glow: true },
+  ];
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <div>
+          <div className="card-title" style={{ fontFamily: "var(--mono)", letterSpacing: 0 }}>mutate_compact</div>
+          <div className="card-subtitle">merge n adjacent agents into m generalised agents — inverse of mutate_expand</div>
+        </div>
+        <span className="chip chip-running">mutation</span>
+      </div>
+      <div className="card-body" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ position: "relative", width: 200, height: 90 }}>
+          <div style={{ position: "absolute", inset: 0, opacity: p === 0 ? 1 : 0, transition: "opacity 0.5s ease" }}>
+            <MG nodes={beforeNodes} edges={beforeEdges} w={200} h={90} />
+          </div>
+          <div style={{ position: "absolute", inset: 0, opacity: p === 1 ? 1 : 0, transition: "opacity 0.5s ease" }}>
+            <MG nodes={afterNodes} edges={[]} w={200} h={90} />
+          </div>
+        </div>
+        <PhLabel p={p} before="3 sequential specialised agents" after="compacted → 1 generalised synthesizer" col="var(--accent-ink)" />
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
 /*  Page                                                           */
 /* ═══════════════════════════════════════════════════════════════ */
 
@@ -704,6 +889,24 @@ export default function AdminPage() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 36 }}>
         <MutatePromptCard />
         <MutateParamCard />
+      </div>
+
+      {/* Task-Graph Mutation Operators */}
+      <div style={{ marginBottom: 12 }}>
+        <div className="section-eyebrow" style={{ marginBottom: 6 }}>Operators — Task-Graph Mutation</div>
+        <h2 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 600, letterSpacing: "-0.016em" }}>
+          Task-graph mutations
+        </h2>
+        <p style={{ margin: "0 0 18px", fontSize: 13, color: "var(--muted)", lineHeight: 1.6, maxWidth: "70ch" }}>
+          Structural rewrites of the task DAG itself. Each mutation has a defined cardinality (input tasks → output tasks or agents) and a mutable attribute — n, k, or target node — that the GP loop treats as a gene.
+        </p>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 36 }}>
+        <MutateExpandCard />
+        <MutateDelegateCard />
+        <MutateCritiqueCard />
+        <MutateCompactCard />
       </div>
 
       {/* Crossover Operators */}

@@ -112,6 +112,99 @@ def mutate_param(gene: Gene) -> Gene:
     return g
 
 
+def mutate_inject_critique(
+    gene: Gene,
+    allowed_models: list[str] | None = None,
+) -> Gene:
+    """Insert a critic agent immediately after a randomly chosen non-critic agent (1 → 2)."""
+    models = allowed_models if allowed_models else _DEFAULT_ALLOWED_MODELS
+    g = gene.copy()
+    candidates = [a for a in g.agents if a.role != "critic"]
+    if not candidates:
+        return g
+    target = random.choice(candidates)
+    critic_id = f"critic_{target.id}"
+    g.agents.append(Agent(
+        id=critic_id,
+        role="critic",
+        model=random.choice(models),
+        system_prompt=(
+            "You are a quality critic. Review the previous agent's output for "
+            "accuracy, completeness, and logical consistency. Flag any issues."
+        ),
+        temperature=0.3,
+    ))
+    for e in g.edges:
+        if e.from_agent == target.id:
+            e.from_agent = critic_id
+    g.edges.append(Edge(from_agent=target.id, to_agent=critic_id, type="sequential"))
+    return g
+
+
+def mutate_expand(
+    gene: Gene,
+    n: int | None = None,
+    allowed_models: list[str] | None = None,
+) -> Gene:
+    """Expand one randomly chosen agent into n specialised subtask agents (1 → n)."""
+    models = allowed_models if allowed_models else _DEFAULT_ALLOWED_MODELS
+    g = gene.copy()
+    if not g.agents:
+        return g
+    n = n if n is not None else random.randint(2, 4)
+    source = random.choice(g.agents)
+    specialist_roles = ["researcher", "analyst", "writer", "synthesizer", "drafter"]
+    new_agents = [
+        Agent(
+            id=f"{source.id}_sub{i}",
+            role=random.choice(specialist_roles),
+            model=random.choice(models),
+            system_prompt=f"Handle specialised subtask derived from: {source.system_prompt}",
+            temperature=round(random.uniform(0.3, 0.8), 2),
+        )
+        for i in range(n)
+    ]
+    for e in g.edges:
+        if e.to_agent == source.id:
+            e.to_agent = new_agents[0].id
+    g.edges = [e for e in g.edges if e.from_agent != source.id]
+    g.agents = [a for a in g.agents if a.id != source.id] + new_agents
+    return g
+
+
+def mutate_compact(gene: Gene) -> Gene:
+    """Merge two adjacent agents (connected by an edge) into one generalised agent (n → n-1)."""
+    g = gene.copy()
+    pairs = [(e.from_agent, e.to_agent) for e in g.edges]
+    if not pairs:
+        return g
+    from_id, to_id = random.choice(pairs)
+    from_agent = next((a for a in g.agents if a.id == from_id), None)
+    to_agent = next((a for a in g.agents if a.id == to_id), None)
+    if not from_agent or not to_agent:
+        return g
+    merged_id = f"merged_{from_id}_{to_id}"
+    g.agents.append(Agent(
+        id=merged_id,
+        role="synthesizer",
+        model=from_agent.model,
+        system_prompt=(
+            f"Handle generalised task combining: [{from_agent.system_prompt}] "
+            f"and [{to_agent.system_prompt}]"
+        ),
+        temperature=round((from_agent.temperature + to_agent.temperature) / 2, 2),
+    ))
+    remove_ids = {from_id, to_id}
+    g.agents = [a for a in g.agents if a.id not in remove_ids]
+    g.edges = [e for e in g.edges if not (e.from_agent == from_id and e.to_agent == to_id)]
+    for e in g.edges:
+        if e.from_agent in remove_ids:
+            e.from_agent = merged_id
+        if e.to_agent in remove_ids:
+            e.to_agent = merged_id
+    return g
+
+
 def crossover_subgraph(gene1: Gene, gene2: Gene) -> tuple[Gene, Gene]:
     """Exchange agents (and their edges) between two parents at a random split point."""
     g1, g2 = gene1.copy(), gene2.copy()
