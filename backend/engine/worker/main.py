@@ -1,17 +1,10 @@
-"""Fargate worker — polls SQS and runs GP experiments.
-
-Handles SIGTERM gracefully so Fargate Spot interruptions finish the current
-job before the 2-minute drain window expires.
-"""
+"""Fargate worker — runs a single GP experiment given by EXPERIMENT_ID env var."""
 from __future__ import annotations
 
-import json
 import logging
 import os
 import signal
 import sys
-
-import boto3
 
 from backend.api.dynamo_store import DynamoStore
 from backend.api.executor import _build_runner, _build_evaluators
@@ -25,17 +18,20 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-QUEUE_URL: str = os.environ["JOB_QUEUE_URL"]
-POLL_WAIT_SECONDS = 20  # SQS long-poll
-
-_keep_running = True
+_experiment_id: str | None = None
 
 
 def _handle_sigterm(sig: int, frame: object) -> None:
-    """Fargate Spot sends SIGTERM ~2 min before termination."""
-    global _keep_running
-    log.warning("SIGTERM received — will stop after current job")
-    _keep_running = False
+    """Fargate Spot sends SIGTERM ~2 min before reclaiming the task."""
+    log.warning("SIGTERM received — marking experiment as failed")
+    if _experiment_id:
+        try:
+            DynamoStore().update_experiment_status(
+                _experiment_id, "failed", error="Task interrupted (Fargate Spot reclaim)"
+            )
+        except Exception:
+            pass
+    sys.exit(1)
 
 
 signal.signal(signal.SIGTERM, _handle_sigterm)
@@ -59,9 +55,7 @@ def _process_job(experiment_id: str) -> None:
         runner=runner,
         evaluators=evaluators,
         dataset=dataset,
-        on_trial_complete=lambda result: store.put_trial_result(
-            experiment_id, result
-        ),
+        on_trial_complete=lambda result: store.put_trial_result(experiment_id, result),
         on_progress=lambda p: store.update_progress(experiment_id, p),
     )
     try:
@@ -70,9 +64,7 @@ def _process_job(experiment_id: str) -> None:
         store.update_experiment_status(experiment_id, "completed")
         log.info(
             "Experiment %s completed — fitness=%.4f reason=%s",
-            experiment_id,
-            best_fitness,
-            stop_reason,
+            experiment_id, best_fitness, stop_reason,
         )
     except Exception as exc:
         log.exception("GP loop failed for experiment %s", experiment_id)
@@ -81,32 +73,14 @@ def _process_job(experiment_id: str) -> None:
 
 
 def main() -> None:
-    sqs = boto3.client("sqs")
-    log.info("Worker started, polling queue: %s", QUEUE_URL)
-
-    while _keep_running:
-        resp = sqs.receive_message(
-            QueueUrl=QUEUE_URL,
-            MaxNumberOfMessages=1,
-            WaitTimeSeconds=POLL_WAIT_SECONDS,
-            AttributeNames=["ApproximateReceiveCount"],
-        )
-        messages = resp.get("Messages", [])
-        if not messages:
-            continue
-
-        msg = messages[0]
-        receipt = msg["ReceiptHandle"]
-        try:
-            body = json.loads(msg["Body"])
-            experiment_id: str = body["experiment_id"]
-            log.info("Received job: experiment_id=%s", experiment_id)
-            _process_job(experiment_id)
-            sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=receipt)
-        except Exception:
-            log.exception("Job processing failed — message left for retry")
-
-    log.info("Worker shutting down cleanly")
+    global _experiment_id
+    _experiment_id = os.environ.get("EXPERIMENT_ID")
+    if not _experiment_id:
+        log.error("EXPERIMENT_ID env var not set")
+        sys.exit(1)
+    log.info("Worker started for experiment %s", _experiment_id)
+    _process_job(_experiment_id)
+    log.info("Worker done")
 
 
 if __name__ == "__main__":

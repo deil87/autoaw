@@ -38,23 +38,31 @@ export class ApiStack extends cdk.Stack {
         TRIALS_TABLE: props.storage.trialsTable.tableName,
         EVAL_ROWS_TABLE: props.storage.evalRowsTable.tableName,
         DATASETS_BUCKET: props.storage.datasetsBucket.bucketName,
-        JOB_QUEUE_URL: props.engine.jobQueue.queueUrl,
         STORE_BACKEND: 'dynamo',
         ECS_CLUSTER_NAME: props.engine.cluster.clusterName,
-        ECS_SERVICE_NAME: props.engine.fargateService.serviceName,
+        ECS_TASK_DEF: 'autoaw-engine',
+        ECS_TASK_SG_ID: props.engine.taskSg.securityGroupId,
+        ECS_SUBNET_IDS: props.engine.vpcSubnetIds,
       },
     });
 
     fn.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['ecs:DescribeServices', 'ecs:ListTasks', 'ecs:DescribeTasks'],
+      actions: ['ecs:ListTasks', 'ecs:DescribeTasks'],
       resources: ['*'],
+    }));
+    fn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ecs:RunTask'],
+      resources: [props.engine.taskDefinition.taskDefinitionArn],
+    }));
+    fn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['iam:PassRole'],
+      resources: [props.engine.taskRoleArn, props.engine.executionRoleArn],
     }));
 
     props.storage.experimentsTable.grantReadWriteData(fn);
     props.storage.trialsTable.grantReadWriteData(fn);
     props.storage.evalRowsTable.grantReadWriteData(fn);
     props.storage.datasetsBucket.grantReadWrite(fn);
-    props.engine.jobQueue.grantSendMessages(fn);
 
     // HTTP API — pay-per-request, no idle cost
     const api = new apigwv2.HttpApi(this, 'HttpApi', {

@@ -18,20 +18,20 @@ import boto3
 from boto3.dynamodb.conditions import Key
 
 # ── AWS clients (reused across warm invocations) ──────────────────────────────
-_dynamo      = boto3.resource("dynamodb")
-_sqs_client  = boto3.client("sqs")
-_s3_client   = boto3.client("s3")
-_ecs_client  = boto3.client("ecs") if os.environ.get("ECS_CLUSTER_NAME") else None
+_dynamo     = boto3.resource("dynamodb")
+_s3_client  = boto3.client("s3")
+_ecs_client = boto3.client("ecs") if os.environ.get("ECS_CLUSTER_NAME") else None
 
-_ECS_CLUSTER = os.environ.get("ECS_CLUSTER_NAME", "")
-_ECS_SERVICE = os.environ.get("ECS_SERVICE_NAME", "")
+_ECS_CLUSTER  = os.environ.get("ECS_CLUSTER_NAME", "")
+_ECS_TASK_DEF = os.environ.get("ECS_TASK_DEF", "")
+_ECS_TASK_SG  = os.environ.get("ECS_TASK_SG_ID", "")
+_ECS_SUBNETS  = [s for s in os.environ.get("ECS_SUBNET_IDS", "").split(",") if s]
 
 _experiments = _dynamo.Table(os.environ["EXPERIMENTS_TABLE"])
 _trials      = _dynamo.Table(os.environ["TRIALS_TABLE"])
 _eval_rows   = _dynamo.Table(os.environ["EVAL_ROWS_TABLE"])
 
 _DATASETS_BUCKET = os.environ["DATASETS_BUCKET"]
-_JOB_QUEUE_URL   = os.environ["JOB_QUEUE_URL"]
 
 # ── DynamoDB helpers ──────────────────────────────────────────────────────────
 
@@ -144,17 +144,47 @@ def _start_experiment(exp_id: str) -> tuple[Any, int]:
         _get_exp(exp_id)
     except KeyError:
         return {"detail": f"Experiment {exp_id!r} not found"}, 404
-    _sqs_client.send_message(
-        QueueUrl=_JOB_QUEUE_URL,
-        MessageBody=json.dumps({"experiment_id": exp_id}),
+
+    if not _ecs_client or not _ECS_CLUSTER or not _ECS_TASK_DEF:
+        return {"detail": "ECS not configured"}, 503
+
+    resp = _ecs_client.run_task(
+        cluster=_ECS_CLUSTER,
+        taskDefinition=_ECS_TASK_DEF,
+        capacityProviderStrategy=[
+            {"capacityProvider": "FARGATE_SPOT", "weight": 4, "base": 0},
+            {"capacityProvider": "FARGATE", "weight": 1, "base": 0},
+        ],
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": _ECS_SUBNETS,
+                "securityGroups": [_ECS_TASK_SG],
+                "assignPublicIp": "ENABLED",
+            }
+        },
+        overrides={
+            "containerOverrides": [{
+                "name": "Engine",
+                "environment": [{"name": "EXPERIMENT_ID", "value": exp_id}],
+            }]
+        },
     )
+
+    failures = resp.get("failures", [])
+    if failures:
+        reason = failures[0].get("reason", "unknown")
+        return {"detail": f"Task launch failed: {reason}"}, 500
+
+    tasks = resp.get("tasks", [])
+    task_arn = tasks[0].get("taskArn", "") if tasks else ""
+
     _experiments.update_item(
         Key={"id": exp_id},
         UpdateExpression="SET #s = :s, updated_at = :u",
         ExpressionAttributeNames={"#s": "status"},
         ExpressionAttributeValues={":s": "pending", ":u": _now()},
     )
-    return {"status": "submitted", "experiment_id": exp_id}, 200
+    return {"status": "submitted", "experiment_id": exp_id, "task_arn": task_arn}, 200
 
 
 def _stop_experiment(exp_id: str) -> tuple[Any, int]:
@@ -407,33 +437,39 @@ _EVALUATOR_TYPES = [
 # ── Infra ops ─────────────────────────────────────────────────────────────────
 
 def _get_ecs_status() -> tuple[Any, int]:
-    if not _ecs_client:
+    if not _ecs_client or not _ECS_CLUSTER:
         return {"detail": "ECS not configured"}, 503
 
-    resp = _ecs_client.describe_services(cluster=_ECS_CLUSTER, services=[_ECS_SERVICE])
-    services = resp.get("services", [])
-    if not services:
-        return {"detail": "ECS service not found"}, 404
-    svc = services[0]
-
-    # Active tasks (PENDING + RUNNING) — check for stuck-pending details
+    # Active tasks (PENDING + RUNNING) — includes experiment_id from container overrides.
     pending_tasks: list = []
+    running_count = 0
     try:
         arns = _ecs_client.list_tasks(cluster=_ECS_CLUSTER, desiredStatus="RUNNING").get("taskArns", [])
         if arns:
             for t in _ecs_client.describe_tasks(cluster=_ECS_CLUSTER, tasks=arns[:10]).get("tasks", []):
-                if t.get("lastStatus") == "PENDING":
+                last = t.get("lastStatus", "")
+                exp_id = next(
+                    (e["value"]
+                     for co in t.get("overrides", {}).get("containerOverrides", [])
+                     for e in co.get("environment", [])
+                     if e.get("name") == "EXPERIMENT_ID"),
+                    None,
+                )
+                if last == "PENDING":
                     pending_tasks.append({
                         "task_id": t.get("taskArn", "").split("/")[-1],
+                        "experiment_id": exp_id,
                         "containers": [
                             {"name": c.get("name"), "status": c.get("lastStatus"), "reason": c.get("reason", "")}
                             for c in t.get("containers", [])
                         ],
                     })
+                elif last == "RUNNING":
+                    running_count += 1
     except Exception:
         pass
 
-    # Recently stopped tasks — surface failure reasons
+    # Recently stopped tasks — surface failure reasons.
     stopped_tasks: list = []
     try:
         sarns = _ecs_client.list_tasks(cluster=_ECS_CLUSTER, desiredStatus="STOPPED").get("taskArns", [])[:5]
@@ -452,11 +488,12 @@ def _get_ecs_status() -> tuple[Any, int]:
     except Exception:
         pass
 
+    total = len(pending_tasks) + running_count
     return {
-        "desired": svc.get("desiredCount", 0),
-        "pending": svc.get("pendingCount", 0),
-        "running": svc.get("runningCount", 0),
-        "status": svc.get("status", ""),
+        "desired": total,
+        "pending": len(pending_tasks),
+        "running": running_count,
+        "status": "ACTIVE",
         "pending_tasks": pending_tasks,
         "stopped_tasks": stopped_tasks,
     }, 200
