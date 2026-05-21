@@ -112,7 +112,8 @@ def _create_experiment(body: dict) -> tuple[Any, int]:
     config = {
         "name": body["name"],
         "task_description": body["task_description"],
-        "dataset_id": body["dataset_id"],
+        "dataset_id": body.get("dataset_id", ""),
+        "task_type": body.get("task_type", "objective"),
         "evaluators": body.get("evaluators", []),
         "objective_weights": body.get("objective_weights", {"quality": 0.7, "cost": 0.2, "speed": 0.1}),
         "population_size": body.get("population_size", 20),
@@ -122,6 +123,7 @@ def _create_experiment(body: dict) -> tuple[Any, int]:
         "concurrency": body.get("concurrency", 5),
         "runner_type": body.get("runner_type", "raw_llm"),
         "dataset_sample_size": body.get("dataset_sample_size"),
+        "n_generations": body.get("n_generations", 1),
     }
     _experiments.put_item(Item=_to_dynamo({
         "id": exp_id,
