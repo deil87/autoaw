@@ -436,25 +436,28 @@ _EVALUATOR_TYPES = [
 
 # ── Infra ops ─────────────────────────────────────────────────────────────────
 
-def _get_ecs_status() -> tuple[Any, int]:
+def _ecs_task_exp_id(task: dict) -> str | None:
+    for co in task.get("overrides", {}).get("containerOverrides", []):
+        for e in co.get("environment", []):
+            if e.get("name") == "EXPERIMENT_ID":
+                return e["value"]
+    return None
+
+
+def _get_ecs_status(exp_id_filter: str | None = None) -> tuple[Any, int]:
     if not _ecs_client or not _ECS_CLUSTER:
         return {"detail": "ECS not configured"}, 503
 
-    # Active tasks (PENDING + RUNNING) — includes experiment_id from container overrides.
     pending_tasks: list = []
     running_count = 0
     try:
         arns = _ecs_client.list_tasks(cluster=_ECS_CLUSTER, desiredStatus="RUNNING").get("taskArns", [])
         if arns:
-            for t in _ecs_client.describe_tasks(cluster=_ECS_CLUSTER, tasks=arns[:10]).get("tasks", []):
+            for t in _ecs_client.describe_tasks(cluster=_ECS_CLUSTER, tasks=arns[:100]).get("tasks", []):
+                exp_id = _ecs_task_exp_id(t)
+                if exp_id_filter and exp_id != exp_id_filter:
+                    continue
                 last = t.get("lastStatus", "")
-                exp_id = next(
-                    (e["value"]
-                     for co in t.get("overrides", {}).get("containerOverrides", [])
-                     for e in co.get("environment", [])
-                     if e.get("name") == "EXPERIMENT_ID"),
-                    None,
-                )
                 if last == "PENDING":
                     pending_tasks.append({
                         "task_id": t.get("taskArn", "").split("/")[-1],
@@ -469,15 +472,18 @@ def _get_ecs_status() -> tuple[Any, int]:
     except Exception:
         pass
 
-    # Recently stopped tasks — surface failure reasons.
     stopped_tasks: list = []
     try:
-        sarns = _ecs_client.list_tasks(cluster=_ECS_CLUSTER, desiredStatus="STOPPED").get("taskArns", [])[:5]
+        sarns = _ecs_client.list_tasks(cluster=_ECS_CLUSTER, desiredStatus="STOPPED").get("taskArns", [])[:20]
         if sarns:
             for t in _ecs_client.describe_tasks(cluster=_ECS_CLUSTER, tasks=sarns).get("tasks", []):
+                exp_id = _ecs_task_exp_id(t)
+                if exp_id_filter and exp_id != exp_id_filter:
+                    continue
                 stopped_at = t.get("stoppedAt")
                 stopped_tasks.append({
                     "task_id": t.get("taskArn", "").split("/")[-1],
+                    "experiment_id": exp_id,
                     "stopped_reason": t.get("stoppedReason", ""),
                     "stopped_at": stopped_at.isoformat() if hasattr(stopped_at, "isoformat") else None,
                     "containers": [
@@ -485,6 +491,7 @@ def _get_ecs_status() -> tuple[Any, int]:
                         for c in t.get("containers", [])
                     ],
                 })
+        stopped_tasks = stopped_tasks[:5]
     except Exception:
         pass
 
@@ -507,7 +514,7 @@ def _route(method: str, path: str, qs: dict, body: dict, event: dict) -> tuple[A
     if p == "/health":
         return {"status": "ok"}, 200
     if p == "/infra/ecs" and method == "GET":
-        return _get_ecs_status()
+        return _get_ecs_status(qs.get("experiment_id") or None)
     if p == "/benchmarks" and method == "GET":
         return _BENCHMARKS, 200
     if p == "/evaluator-types" and method == "GET":

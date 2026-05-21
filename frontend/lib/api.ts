@@ -87,6 +87,7 @@ export const api = {
   },
 
   infra: {
-    ecsStatus: () => request<EcsStatus>("/infra/ecs"),
+    ecsStatus: (experimentId?: string) =>
+      request<EcsStatus>(experimentId ? `/infra/ecs?experiment_id=${experimentId}` : "/infra/ecs"),
   },
 };

@@ -159,7 +159,7 @@ export default function MonitorPage() {
   // Poll ECS status every 15 s when experiment is pending (tasks may be stuck)
   useEffect(() => {
     if (!experiment || experiment.status !== "pending") return;
-    const fetchEcs = () => api.infra.ecsStatus().then(setEcsStatus).catch(() => null);
+    const fetchEcs = () => api.infra.ecsStatus(id).then(setEcsStatus).catch(() => null);
     fetchEcs();
     const t = setInterval(fetchEcs, 15_000);
     return () => clearInterval(t);
