@@ -90,13 +90,13 @@ class GPLoop:
         last_scores: list[Score] = []
 
         for idx, sample in enumerate(self.dataset):
-            run_result = self.runner.run(gene, sample["input"])
+            run_result = self.runner.run(gene, sample.get("input", ""))
 
             with self._lock:
                 self._total_cost += run_result.cost_usd
 
             scores = [
-                ev.score(sample["input"], run_result.output, sample.get("expected"))
+                ev.score(sample.get("input", ""), run_result.output, sample.get("expected"))
                 for ev in self.evaluators
             ]
             last_scores = scores
