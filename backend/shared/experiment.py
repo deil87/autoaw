@@ -47,9 +47,10 @@ class EvaluatorConfig:
 class ExperimentConfig:
     name: str
     task_description: str
-    dataset_id: str
     evaluators: list[EvaluatorConfig]
     objective_weights: ObjectiveWeights
+    dataset_id: str = ""
+    task_type: str = "objective"  # "objective" | "generative" | "hybrid"
     population_size: int = 20
     budget_max_trials: int | None = None
     budget_max_usd: float | None = None
@@ -69,6 +70,7 @@ class ExperimentConfig:
             "name": self.name,
             "task_description": self.task_description,
             "dataset_id": self.dataset_id,
+            "task_type": self.task_type,
             "evaluators": [e.to_dict() for e in self.evaluators],
             "objective_weights": self.objective_weights.to_dict(),
             "population_size": self.population_size,
@@ -96,7 +98,8 @@ class ExperimentConfig:
         return cls(
             name=d["name"],
             task_description=d["task_description"],
-            dataset_id=d["dataset_id"],
+            dataset_id=d.get("dataset_id", ""),
+            task_type=d.get("task_type", "objective"),
             evaluators=[EvaluatorConfig.from_dict(e) for e in d["evaluators"]],
             objective_weights=ObjectiveWeights.from_dict(d["objective_weights"]),
             population_size=d.get("population_size", 20),

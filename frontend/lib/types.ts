@@ -80,9 +80,10 @@ export interface BenchmarkDescriptor {
 export interface ExperimentConfig {
   name: string;
   task_description: string;
-  dataset_id: string;
   evaluators: EvaluatorConfig[];
   objective_weights: ObjectiveWeights;
+  dataset_id?: string;
+  task_type?: string;
   population_size: number;
   budget_max_trials?: number;
   budget_max_usd?: number;

@@ -18,6 +18,7 @@ import { ObjectiveSliders } from "@/components/objective-sliders";
 import { EvaluatorList } from "@/components/evaluator-list";
 import { EvaluatorPicker } from "@/components/evaluator-picker";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type { ExperimentConfig, ObjectiveWeights, EvaluatorConfig, EvaluatorTypeDescriptor } from "@/lib/types";
 
 const DEFAULT_WEIGHTS: ObjectiveWeights = { quality: 0.6, cost: 0.2, speed: 0.2 };
@@ -25,10 +26,33 @@ const DEFAULT_EVALUATORS: EvaluatorConfig[] = [
   { type: "llm_judge", params: { model: "gpt-4o-mini", rubric: "Rate the output 0 to 1 on accuracy, completeness, and clarity." } }
 ];
 
+const TASK_TYPES = [
+  {
+    value: "objective",
+    label: "Objective",
+    description: "Fixed dataset, deterministic validator",
+  },
+  {
+    value: "generative",
+    label: "Generative",
+    description: "Agent generates tasks + ground truth",
+  },
+  {
+    value: "hybrid",
+    label: "Hybrid",
+    description: "Generative with deterministic gate",
+  },
+] as const;
+
+type TaskType = (typeof TASK_TYPES)[number]["value"];
+
+const NEEDS_DATASET: TaskType[] = ["objective", "hybrid"];
+
 export interface ExperimentFormInitialValues {
   name?: string;
   task_description?: string;
   dataset_id?: string;
+  task_type?: string;
   objective_weights?: ObjectiveWeights;
   population_size?: number;
   budget_max_trials?: number;
@@ -43,6 +67,9 @@ interface ExperimentFormProps {
 
 export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   const router = useRouter();
+  const [taskType, setTaskType] = useState<TaskType>(
+    (initialValues?.task_type as TaskType) ?? "objective"
+  );
   const [name, setName] = useState(initialValues?.name ?? "");
   const [taskDescription, setTaskDescription] = useState(initialValues?.task_description ?? "");
   const [datasetId, setDatasetId] = useState(initialValues?.dataset_id ?? "");
@@ -63,14 +90,14 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const needsDataset = NEEDS_DATASET.includes(taskType);
+
   useEffect(() => {
     api.datasets.list().then((list) => {
       const ids = list.map((d) => d.dataset_id);
       setDatasetOptions(ids);
       if (ids.length > 0 && !datasetId) setDatasetId(ids[0]);
-    }).catch(() => {
-      // silently fall back to text input
-    });
+    }).catch(() => {});
     api.evaluatorTypes.list().then(setCatalog).catch(() => {});
   }, []);
 
@@ -81,15 +108,16 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
     const config: ExperimentConfig = {
       name,
       task_description: taskDescription,
-      dataset_id: datasetId,
-      evaluators: evaluators,
+      task_type: taskType,
+      dataset_id: needsDataset ? datasetId : undefined,
+      evaluators,
       objective_weights: weights,
       population_size: populationSize,
       budget_max_trials: budgetTrials,
       convergence_patience: 10,
       concurrency: 5,
       runner_type: runnerType,
-      dataset_sample_size: datasetSampleSize === "" ? null : datasetSampleSize,
+      dataset_sample_size: needsDataset ? (datasetSampleSize === "" ? null : datasetSampleSize) : null,
     };
     try {
       const exp = await api.experiments.create(config);
@@ -104,6 +132,28 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-xl">
       <div className="space-y-2">
+        <Label>Experiment Type</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {TASK_TYPES.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => setTaskType(t.value)}
+              className={cn(
+                "flex flex-col items-start gap-0.5 rounded-md border p-3 text-left text-sm transition-colors",
+                taskType === t.value
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:bg-accent"
+              )}
+            >
+              <span className="font-medium">{t.label}</span>
+              <span className="text-xs text-muted-foreground leading-snug">{t.description}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="name">Experiment Name</Label>
         <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. summarize-research-v1" />
       </div>
@@ -113,45 +163,49 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
         <Textarea id="task" value={taskDescription} onChange={(e) => setTaskDescription(e.target.value)} required placeholder="Describe the task the workflow should solve..." rows={3} />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="dataset">Dataset</Label>
-        {datasetOptions.length > 0 ? (
-          <Select value={datasetId} onValueChange={(v) => v && setDatasetId(v)} required>
-            <SelectTrigger id="dataset">
-              <SelectValue placeholder="Select a dataset" />
-            </SelectTrigger>
-            <SelectContent>
-              {datasetOptions.map((id) => (
-                <SelectItem key={id} value={id}>{id}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <div className="space-y-1">
-            <Input id="dataset" value={datasetId} onChange={(e) => setDatasetId(e.target.value)} required placeholder="e.g. ds1" />
-            <p className="text-xs text-muted-foreground">
-              No datasets found. <a href="/datasets" className="underline">Upload one</a> or enter an ID manually.
-            </p>
+      {needsDataset && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="dataset">Dataset</Label>
+            {datasetOptions.length > 0 ? (
+              <Select value={datasetId} onValueChange={(v) => v && setDatasetId(v)} required>
+                <SelectTrigger id="dataset">
+                  <SelectValue placeholder="Select a dataset" />
+                </SelectTrigger>
+                <SelectContent>
+                  {datasetOptions.map((id) => (
+                    <SelectItem key={id} value={id}>{id}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="space-y-1">
+                <Input id="dataset" value={datasetId} onChange={(e) => setDatasetId(e.target.value)} required placeholder="e.g. ds1" />
+                <p className="text-xs text-muted-foreground">
+                  No datasets found. <a href="/datasets" className="underline">Upload one</a> or enter an ID manually.
+                </p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2 col-span-2 sm:col-span-1">
-          <Label htmlFor="sample-size">Dataset Sample Size</Label>
-          <Input
-            id="sample-size"
-            type="number"
-            min={1}
-            placeholder="All rows"
-            value={datasetSampleSize}
-            onChange={(e) => setDatasetSampleSize(e.target.value === "" ? "" : Number(e.target.value))}
-          />
-          <p className="text-xs text-muted-foreground">
-            Number of rows to use. Leave blank to use all rows.
-          </p>
-        </div>
-      </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2 col-span-2 sm:col-span-1">
+              <Label htmlFor="sample-size">Dataset Sample Size</Label>
+              <Input
+                id="sample-size"
+                type="number"
+                min={1}
+                placeholder="All rows"
+                value={datasetSampleSize}
+                onChange={(e) => setDatasetSampleSize(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Number of rows to use. Leave blank to use all rows.
+              </p>
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">

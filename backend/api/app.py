@@ -78,9 +78,10 @@ class ObjectiveWeightsIn(BaseModel):
 class CreateExperimentRequest(BaseModel):
     name: str
     task_description: str
-    dataset_id: str
     evaluators: list[EvaluatorConfigIn]
     objective_weights: ObjectiveWeightsIn
+    dataset_id: str | None = None
+    task_type: str = "objective"  # "objective" | "generative" | "hybrid"
     population_size: int = 20
     budget_max_trials: int | None = None
     budget_max_usd: float | None = None
@@ -153,7 +154,8 @@ def create_experiment(req: CreateExperimentRequest):
     config = ExperimentConfig(
         name=req.name,
         task_description=req.task_description,
-        dataset_id=req.dataset_id,
+        dataset_id=req.dataset_id or "",
+        task_type=req.task_type,
         evaluators=[
             EvaluatorConfig(type=e.type, params=e.params) for e in req.evaluators
         ],
