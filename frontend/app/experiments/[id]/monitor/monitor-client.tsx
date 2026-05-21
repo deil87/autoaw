@@ -89,6 +89,121 @@ function GenerationsLog({ trials }: { trials: Trial[] }) {
   );
 }
 
+function LaunchProgress({
+  ecsStatus,
+  experimentStatus,
+}: {
+  ecsStatus: EcsStatus | null;
+  experimentStatus: string;
+}) {
+  const hasPending = !!ecsStatus && (ecsStatus.pending > 0 || ecsStatus.running > 0);
+  const hasRunning = !!ecsStatus && ecsStatus.running > 0;
+  const isRunning = experimentStatus === "running";
+
+  const steps = [
+    { label: "Task submitted", done: true },
+    { label: "ECS registered", done: hasPending },
+    { label: "Container up",   done: hasRunning },
+    { label: "Experiment live", done: isRunning },
+  ];
+
+  const doneCount = steps.filter((s) => s.done).length;
+  const activeIdx = steps.findIndex((s) => !s.done);
+  const pct = Math.round((doneCount / steps.length) * 100);
+
+  const hints: Record<number, string> = {
+    1: "Waiting for task to appear in ECS — typically 10–20 s…",
+    2: "Fargate is provisioning the container — cold starts take 60–90 s…",
+    3: "Container is up, experiment initialising…",
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: 18, borderColor: "rgba(99,102,241,0.35)" }}>
+      <div className="card-header">
+        <div className="card-title">Launching Fargate task</div>
+        <span className="chip chip-pending" style={{ gap: 5 }}>
+          <span className="chip-dot pulse" />
+          {pct}%
+        </span>
+      </div>
+      <div className="card-body">
+        <div className="bar" style={{ marginBottom: 16 }}>
+          <div
+            className="bar-fill running"
+            style={{ width: `${pct}%`, transition: "width 0.7s ease" }}
+          />
+        </div>
+        <div style={{ display: "flex" }}>
+          {steps.map((step, i) => (
+            <div
+              key={i}
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 6,
+                opacity: activeIdx !== -1 && i > activeIdx ? 0.35 : 1,
+              }}
+            >
+              <div
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  background: step.done
+                    ? "var(--primary, #6366f1)"
+                    : "transparent",
+                  border: step.done
+                    ? "none"
+                    : i === activeIdx
+                    ? "2px solid var(--primary, #6366f1)"
+                    : "2px solid var(--border)",
+                  fontSize: 12,
+                  color: step.done ? "#fff" : "var(--muted)",
+                }}
+              >
+                {step.done ? "✓" : i === activeIdx ? (
+                  <span className="chip-dot pulse" />
+                ) : (
+                  String(i + 1)
+                )}
+              </div>
+              <span
+                style={{
+                  fontSize: 11,
+                  color: step.done || i === activeIdx ? "var(--text)" : "var(--muted)",
+                  textAlign: "center",
+                  lineHeight: 1.3,
+                }}
+              >
+                {step.label}
+              </span>
+            </div>
+          ))}
+        </div>
+        {activeIdx !== -1 && hints[activeIdx] && (
+          <div
+            style={{
+              marginTop: 14,
+              fontSize: 12,
+              color: "var(--muted)",
+              textAlign: "center",
+              fontFamily: "var(--mono)",
+            }}
+          >
+            {hints[activeIdx]}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function RunStats({ trials, experiment }: { trials: Trial[]; experiment: Experiment }) {
   const totalCost = trials.reduce((s, t) => s + t.cost_usd, 0);
   const avgLatency = trials.length
@@ -139,6 +254,7 @@ export default function MonitorPage() {
   const [trials, setTrials] = useState<Trial[]>([]);
   const [chartData, setChartData] = useState<FitnessPoint[]>([]);
   const [stopping, setStopping] = useState(false);
+  const [launching, setLaunching] = useState(false);
   const [tab, setTab] = useState("monitor");
   const [ecsStatus, setEcsStatus] = useState<EcsStatus | null>(null);
 
@@ -156,14 +272,19 @@ export default function MonitorPage() {
     return () => clearInterval(interval);
   }, [refresh]);
 
-  // Poll ECS status every 15 s when experiment is pending (tasks may be stuck)
+  // Clear launching state once the experiment is no longer pending
+  useEffect(() => {
+    if (experiment && experiment.status !== "pending") setLaunching(false);
+  }, [experiment?.status]);
+
+  // Poll ECS status: every 3 s while launching, every 15 s otherwise when pending
   useEffect(() => {
     if (!experiment || experiment.status !== "pending") return;
     const fetchEcs = () => api.infra.ecsStatus(id).then(setEcsStatus).catch(() => null);
     fetchEcs();
-    const t = setInterval(fetchEcs, 15_000);
+    const t = setInterval(fetchEcs, launching ? 3_000 : 15_000);
     return () => clearInterval(t);
-  }, [experiment?.status]);
+  }, [experiment?.status, launching]);
 
   useExperimentSocket(id, (event) => {
     if (event.type === "trial_complete") {
@@ -189,8 +310,12 @@ export default function MonitorPage() {
     }
   });
 
-  const handleStart = () =>
-    api.experiments.start(id).then(() => api.experiments.get(id).then(setExperiment));
+  const handleStart = () => {
+    setLaunching(true);
+    api.experiments.start(id)
+      .then(() => api.experiments.get(id).then(setExperiment))
+      .catch(() => setLaunching(false));
+  };
 
   const handleStop = () => {
     setStopping(true);
@@ -255,7 +380,14 @@ export default function MonitorPage() {
 
         <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "flex-start" }}>
           {experiment.status === "pending" && (
-            <button onClick={handleStart} className="btn btn-primary">Start</button>
+            <button
+              onClick={launching ? undefined : handleStart}
+              disabled={launching}
+              className="btn btn-primary"
+              style={launching ? { opacity: 0.65, cursor: "default" } : undefined}
+            >
+              {launching ? "Launching…" : "Start"}
+            </button>
           )}
           {experiment.status === "running" && (
             <button onClick={handleStop} disabled={stopping} className="btn btn-danger">
@@ -299,8 +431,13 @@ export default function MonitorPage() {
             />
           </div>
 
-          {/* ECS infra status — visible when experiment is pending and tasks are stuck */}
-          {experiment.status === "pending" && ecsStatus && (
+          {/* Launch progress — shown while user-initiated Fargate launch is in flight */}
+          {launching && (
+            <LaunchProgress ecsStatus={ecsStatus} experimentStatus={experiment.status} />
+          )}
+
+          {/* ECS infra status — visible when pending but not actively launching */}
+          {experiment.status === "pending" && ecsStatus && !launching && (
             <div className="card" style={{ marginBottom: 18, borderColor: ecsStatus.pending > 0 && ecsStatus.running === 0 ? "rgba(234,179,8,0.4)" : undefined }}>
               <div className="card-header">
                 <div className="card-title">Engine infrastructure</div>
