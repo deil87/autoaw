@@ -34,6 +34,7 @@ jobs:
           filters: |
             engine:
               - 'backend/**'
+              - '.github/workflows/deploy.yml'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
