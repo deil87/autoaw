@@ -67,7 +67,7 @@ export class EngineStack extends cdk.Stack {
       executionRole,
       runtimePlatform: {
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-        cpuArchitecture: ecs.CpuArchitecture.X86_64,
+        cpuArchitecture: ecs.CpuArchitecture.ARM64,
       },
     });
     const openAiKeySecret = ecs.Secret.fromSsmParameter(
