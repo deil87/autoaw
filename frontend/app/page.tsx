@@ -617,18 +617,18 @@ function FinalCTA() {
       <div style={{ border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "40px 36px", background: "var(--ink)", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
         <div>
           <div className="mono" style={{ fontSize: 11, color: "#9aa5b8", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-            Ready when you are
+            Request a demo &amp; quotation
           </div>
           <h3 style={{ fontSize: 26, fontWeight: 500, letterSpacing: "-0.02em", margin: "10px 0 6px" }}>
-            Bring a task or a workflow. We&apos;ll search the frontier.
+            See AutoAW in action on your own workflow.
           </h3>
           <div style={{ color: "#9aa5b8", fontSize: 14 }}>
-            Free during beta · works with LangGraph, DSPy, Inspect, or raw Python.
+            We&apos;ll walk you through a live demo and put together a custom quote for your team.
           </div>
         </div>
-        <Link href="/experiments/new" className="btn btn-lg" style={{ background: "white", color: "#0b0d10", borderColor: "white", flexShrink: 0 }}>
-          Open the dashboard <Icon name="arrow-right" size={13}/>
-        </Link>
+        <a href="mailto:spirtik87@gmail.com?subject=AutoAW%20demo%20%26%20quotation" className="btn btn-lg" style={{ background: "white", color: "#0b0d10", borderColor: "white", flexShrink: 0 }}>
+          Request a demo <Icon name="arrow-right" size={13}/>
+        </a>
       </div>
     </section>
   );
@@ -666,7 +666,6 @@ export default function HomePage() {
       <HowItWorks/>
       <BenchmarkNumbers/>
       <LeaderboardPreview/>
-      <Pricing/>
       <FinalCTA/>
       <Footer/>
     </div>
