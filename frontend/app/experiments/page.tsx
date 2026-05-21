@@ -50,8 +50,41 @@ function SkeletonRow() {
   );
 }
 
-function ExperimentRow({ exp }: { exp: Experiment }) {
+function ExperimentRow({
+  exp,
+  onStopSuccess,
+  onDeleteSuccess,
+}: {
+  exp: Experiment;
+  onStopSuccess: (id: string) => void;
+  onDeleteSuccess: (id: string) => void;
+}) {
   const router = useRouter();
+  const [stopping, setStopping] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleStop = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setStopping(true);
+    try {
+      await api.experiments.stop(exp.id);
+      onStopSuccess(exp.id);
+    } finally {
+      setStopping(false);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`Delete experiment "${exp.name}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await api.experiments.delete(exp.id);
+      onDeleteSuccess(exp.id);
+    } finally {
+      setDeleting(false);
+    }
+  };
   const config = (() => {
     try { return exp.config_json ? JSON.parse(exp.config_json) : null; } catch { return null; }
   })();
@@ -124,11 +157,28 @@ function ExperimentRow({ exp }: { exp: Experiment }) {
         >
           Monitor
         </button>
+        {(exp.status === "running" || exp.status === "pending") && (
+          <button
+            className="btn btn-sm btn-danger"
+            onClick={handleStop}
+            disabled={stopping}
+          >
+            {stopping ? "Stopping…" : "Stop"}
+          </button>
+        )}
         <button
           className="btn btn-sm btn-ghost mono"
           onClick={(e) => { e.stopPropagation(); router.push(`/experiments/new?from=${exp.id}`); }}
         >
           Fork →
+        </button>
+        <button
+          className="btn btn-sm btn-ghost mono"
+          onClick={handleDelete}
+          disabled={deleting}
+          style={{ color: "var(--err, #ef4444)" }}
+        >
+          {deleting ? "…" : "Delete"}
         </button>
       </div>
     </div>
@@ -245,7 +295,20 @@ export default function ExperimentsPage() {
           </div>
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)
-            : visible.map((exp) => <ExperimentRow key={exp.id} exp={exp} />)}
+            : visible.map((exp) => (
+                <ExperimentRow
+                  key={exp.id}
+                  exp={exp}
+                  onStopSuccess={(id) =>
+                    setExperiments((prev) =>
+                      prev.map((e) => e.id === id ? { ...e, status: "cancelled" } : e)
+                    )
+                  }
+                  onDeleteSuccess={(id) =>
+                    setExperiments((prev) => prev.filter((e) => e.id !== id))
+                  }
+                />
+              ))}
         </div>
       )}
     </div>

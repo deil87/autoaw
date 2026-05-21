@@ -11,6 +11,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const err = await resp.json().catch(() => ({ detail: resp.statusText }));
     throw new Error(err.detail ?? `HTTP ${resp.status}`);
   }
+  if (resp.status === 204) return undefined as T;
   return resp.json() as Promise<T>;
 }
 

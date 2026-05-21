@@ -187,11 +187,39 @@ def _start_experiment(exp_id: str) -> tuple[Any, int]:
     return {"status": "submitted", "experiment_id": exp_id, "task_arn": task_arn}, 200
 
 
+def _stop_fargate_tasks(exp_id: str) -> None:
+    """Stop any running/pending Fargate tasks for this experiment."""
+    if not _ecs_client or not _ECS_CLUSTER:
+        return
+    try:
+        arns = _ecs_client.list_tasks(
+            cluster=_ECS_CLUSTER, desiredStatus="RUNNING"
+        ).get("taskArns", [])
+        if not arns:
+            return
+        tasks = _ecs_client.describe_tasks(
+            cluster=_ECS_CLUSTER, tasks=arns[:100]
+        ).get("tasks", [])
+        for t in tasks:
+            if _ecs_task_exp_id(t) == exp_id:
+                try:
+                    _ecs_client.stop_task(
+                        cluster=_ECS_CLUSTER,
+                        task=t["taskArn"],
+                        reason="Stopped by user",
+                    )
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+
 def _stop_experiment(exp_id: str) -> tuple[Any, int]:
     try:
         _get_exp(exp_id)
     except KeyError:
         return {"detail": f"Experiment {exp_id!r} not found"}, 404
+    _stop_fargate_tasks(exp_id)
     _experiments.update_item(
         Key={"id": exp_id},
         UpdateExpression="SET #s = :s, updated_at = :u",
@@ -206,12 +234,8 @@ def _delete_experiment(exp_id: str) -> tuple[Any, int]:
         _get_exp(exp_id)
     except KeyError:
         return {"detail": f"Experiment {exp_id!r} not found"}, 404
-    _experiments.update_item(
-        Key={"id": exp_id},
-        UpdateExpression="SET #s = :s, updated_at = :u",
-        ExpressionAttributeNames={"#s": "status"},
-        ExpressionAttributeValues={":s": "cancelled", ":u": _now()},
-    )
+    _stop_fargate_tasks(exp_id)
+    _experiments.delete_item(Key={"id": exp_id})
     return None, 204
 
 

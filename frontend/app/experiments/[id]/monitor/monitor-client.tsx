@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FitnessChart } from "@/components/fitness-chart";
 import { ExperimentDetails } from "@/components/experiment-details";
 import { api } from "@/lib/api";
@@ -250,10 +250,12 @@ const TABS = [
 
 export default function MonitorPage() {
   const id = usePathname().split("/")[2];
+  const router = useRouter();
   const [experiment, setExperiment] = useState<Experiment | null>(null);
   const [trials, setTrials] = useState<Trial[]>([]);
   const [chartData, setChartData] = useState<FitnessPoint[]>([]);
   const [stopping, setStopping] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [tab, setTab] = useState("monitor");
   const [ecsStatus, setEcsStatus] = useState<EcsStatus | null>(null);
@@ -322,6 +324,15 @@ export default function MonitorPage() {
     api.experiments.stop(id)
       .then(() => api.experiments.get(id).then(setExperiment))
       .catch(() => setStopping(false));
+  };
+
+  const handleDelete = () => {
+    if (!experiment) return;
+    if (!window.confirm(`Delete experiment "${experiment.name}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    api.experiments.delete(id)
+      .then(() => router.push("/experiments"))
+      .catch(() => setDeleting(false));
   };
 
   if (!experiment) {
@@ -397,6 +408,14 @@ export default function MonitorPage() {
           <Link href={`/experiments/new?from=${id}`} className="btn">Fork</Link>
           <Link href={`/experiments/${id}/leaderboard`} className="btn">Leaderboard</Link>
           <Link href={`/experiments/${id}/evolution`} className="btn">Evolution</Link>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="btn btn-ghost mono"
+            style={{ color: "var(--err, #ef4444)" }}
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
         </div>
       </div>
 

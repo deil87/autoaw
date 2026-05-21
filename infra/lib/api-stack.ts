@@ -53,7 +53,7 @@ export class ApiStack extends cdk.Stack {
     });
 
     fn.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['ecs:ListTasks', 'ecs:DescribeTasks'],
+      actions: ['ecs:ListTasks', 'ecs:DescribeTasks', 'ecs:StopTask'],
       resources: ['*'],
     }));
     fn.addToRolePolicy(new iam.PolicyStatement({
