@@ -139,7 +139,10 @@ class RawLLMRunner(WorkflowRunner):
 
         parallel_outputs: list[str] = []
         for aid in parallel_ids:
-            agent = agent_map[aid]
+            agent = agent_map.get(aid)
+            if agent is None:
+                logger.warning("parallel_reduce: agent id %r missing from gene, skipping", aid)
+                continue
             messages = [
                 {"role": "system", "content": agent.system_prompt},
                 {"role": "user", "content": input},

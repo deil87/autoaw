@@ -67,6 +67,13 @@ def mutate_structure(
             for e in g.edges
             if e.from_agent != removed.id and e.to_agent != removed.id
         ]
+        if "parallel_agent_ids" in g.topology_params:
+            g.topology_params["parallel_agent_ids"] = [
+                aid for aid in g.topology_params["parallel_agent_ids"]
+                if aid != removed.id
+            ]
+        if g.topology_params.get("reducer_id") == removed.id:
+            g.topology_params.pop("reducer_id")
 
     elif action == "swap_topology":
         topologies = list(TopologyType)
@@ -125,6 +132,16 @@ def crossover_subgraph(gene1: Gene, gene2: Gene) -> tuple[Gene, Gene]:
     ids2 = {a.id for a in g2.agents}
     g1.edges = [e for e in g1.edges if e.from_agent in ids1 and e.to_agent in ids1]
     g2.edges = [e for e in g2.edges if e.from_agent in ids2 and e.to_agent in ids2]
+
+    # Purge stale agent references from topology_params
+    for g, valid_ids in ((g1, ids1), (g2, ids2)):
+        if "parallel_agent_ids" in g.topology_params:
+            g.topology_params["parallel_agent_ids"] = [
+                aid for aid in g.topology_params["parallel_agent_ids"]
+                if aid in valid_ids
+            ]
+        if g.topology_params.get("reducer_id") not in valid_ids:
+            g.topology_params.pop("reducer_id", None)
 
     return g1, g2
 
