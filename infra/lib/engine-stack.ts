@@ -45,6 +45,13 @@ export class EngineStack extends cdk.Stack {
         iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonECSTaskExecutionRolePolicy'),
       ],
     });
+    // Allow the execution role to pull the OpenAI key from SSM at task start
+    executionRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameters'],
+      resources: [
+        `arn:aws:ssm:${this.region}:${this.account}:parameter/autoaw/engine/OPENAI_API_KEY`,
+      ],
+    }));
 
     const logGroup = new logs.LogGroup(this, 'EngineLogGroup', {
       logGroupName: '/ecs/autoaw-engine',
@@ -63,6 +70,12 @@ export class EngineStack extends cdk.Stack {
         cpuArchitecture: ecs.CpuArchitecture.X86_64,
       },
     });
+    const openAiKeySecret = ecs.Secret.fromSsmParameter(
+      ssm.StringParameter.fromSecureStringParameterAttributes(this, 'OpenAiKeyParam', {
+        parameterName: '/autoaw/engine/OPENAI_API_KEY',
+      })
+    );
+
     runTaskDef.addContainer('Engine', {
       image: ecs.ContainerImage.fromEcrRepository(engineRepo, 'latest'),
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'autoaw-engine', logGroup }),
@@ -73,6 +86,9 @@ export class EngineStack extends cdk.Stack {
         DATASETS_BUCKET: props.storage.datasetsBucket.bucketName,
         SNAPSHOTS_BUCKET: props.storage.snapshotsBucket.bucketName,
         // EXPERIMENT_ID injected per-task via RunTask container override
+      },
+      secrets: {
+        OPENAI_API_KEY: openAiKeySecret,
       },
     });
 
