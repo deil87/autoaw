@@ -8,6 +8,7 @@ const links = [
   { href: "/leaderboard", label: "Leaderboard", disabled: true },
   { href: "/docs",        label: "Docs",        disabled: true },
   { href: "/pricing",     label: "Pricing",     disabled: true },
+  { href: "/admin",       label: "GP Operators" },
 ];
 
 function Logo({ size = 22 }: { size?: number }) {
