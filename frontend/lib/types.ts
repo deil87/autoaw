@@ -91,6 +91,7 @@ export interface ExperimentConfig {
   concurrency: number;
   runner_type?: string;
   dataset_sample_size?: number | null;
+  n_generations?: number;
 }
 
 export interface ExperimentProgress {

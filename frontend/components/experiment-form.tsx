@@ -59,6 +59,7 @@ export interface ExperimentFormInitialValues {
   runner_type?: string;
   evaluators?: EvaluatorConfig[];
   dataset_sample_size?: number | null;
+  n_generations?: number;
 }
 
 interface ExperimentFormProps {
@@ -86,6 +87,9 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   const [runnerType, setRunnerType] = useState(initialValues?.runner_type ?? "raw_llm");
   const [datasetSampleSize, setDatasetSampleSize] = useState<number | "">(
     initialValues?.dataset_sample_size ?? ""
+  );
+  const [nGenerations, setNGenerations] = useState<number>(
+    initialValues?.n_generations ?? 1
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +122,7 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
       concurrency: 5,
       runner_type: runnerType,
       dataset_sample_size: needsDataset ? (datasetSampleSize === "" ? null : datasetSampleSize) : null,
+      n_generations: taskType === "generative" ? nGenerations : undefined,
     };
     try {
       const exp = await api.experiments.create(config);
@@ -162,6 +167,22 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
         <Label htmlFor="task">Task Description</Label>
         <Textarea id="task" value={taskDescription} onChange={(e) => setTaskDescription(e.target.value)} required placeholder="Describe the task the workflow should solve..." rows={3} />
       </div>
+
+      {taskType === "generative" && (
+        <div className="space-y-2">
+          <Label htmlFor="n-generations">Generations per trial</Label>
+          <Input
+            id="n-generations"
+            type="number"
+            min={1}
+            value={nGenerations}
+            onChange={(e) => setNGenerations(Math.max(1, Number(e.target.value)))}
+          />
+          <p className="text-xs text-muted-foreground">
+            Number of synthetic task–answer pairs generated per trial evaluation.
+          </p>
+        </div>
+      )}
 
       {needsDataset && (
         <>

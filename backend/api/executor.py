@@ -142,10 +142,12 @@ def _run_experiment(
         store.update_experiment_status(experiment_id, "running")
         config = store.get_experiment_config(experiment_id)
 
-        dataset = load_dataset(config.dataset_id)
-
-        if config.dataset_sample_size is not None:
-            dataset = dataset[: config.dataset_sample_size]
+        if config.task_type == "generative":
+            dataset = [{"index": i} for i in range(config.n_generations)]
+        else:
+            dataset = load_dataset(config.dataset_id)
+            if config.dataset_sample_size is not None:
+                dataset = dataset[: config.dataset_sample_size]
 
         runner = _build_runner(config)
         evaluators = _build_evaluators(config)

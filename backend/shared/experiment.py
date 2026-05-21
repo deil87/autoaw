@@ -64,6 +64,7 @@ class ExperimentConfig:
     runner_type: str = "raw_llm"
     evaluator_type: str = "llm_judge"
     dataset_sample_size: int | None = None  # None = use all rows; N = use first N rows
+    n_generations: int = 1  # generative only: synthetic tasks generated per trial evaluation
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -84,6 +85,7 @@ class ExperimentConfig:
             "runner_type": self.runner_type,
             "evaluator_type": self.evaluator_type,
             "dataset_sample_size": self.dataset_sample_size,
+            "n_generations": self.n_generations,
         }
 
     @classmethod
@@ -113,4 +115,5 @@ class ExperimentConfig:
             runner_type=d.get("runner_type", "raw_llm"),
             evaluator_type=d.get("evaluator_type", "llm_judge"),
             dataset_sample_size=d.get("dataset_sample_size"),
+            n_generations=d.get("n_generations", 1),
         )

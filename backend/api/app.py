@@ -89,6 +89,7 @@ class CreateExperimentRequest(BaseModel):
     concurrency: int = 5
     runner_type: str = "raw_llm"
     dataset_sample_size: int | None = None
+    n_generations: int = 1
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -171,6 +172,7 @@ def create_experiment(req: CreateExperimentRequest):
         concurrency=req.concurrency,
         runner_type=req.runner_type,
         dataset_sample_size=req.dataset_sample_size,
+        n_generations=req.n_generations,
     )
     _store.create_experiment(exp_id, config)
     return _store.get_experiment(exp_id)

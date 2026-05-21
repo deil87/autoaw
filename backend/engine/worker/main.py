@@ -43,9 +43,12 @@ def _process_job(experiment_id: str) -> None:
     store.update_experiment_status(experiment_id, "running")
     log.info("Starting GP loop for experiment %s", experiment_id)
 
-    dataset = load_dataset(config.dataset_id)
-    if config.dataset_sample_size is not None:
-        dataset = dataset[: config.dataset_sample_size]
+    if config.task_type == "generative":
+        dataset = [{"index": i} for i in range(config.n_generations)]
+    else:
+        dataset = load_dataset(config.dataset_id)
+        if config.dataset_sample_size is not None:
+            dataset = dataset[: config.dataset_sample_size]
 
     runner = _build_runner(config)
     evaluators = _build_evaluators(config)
