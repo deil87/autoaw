@@ -256,7 +256,7 @@ class GPLoop:
                     TrialResult(
                         gene=gene,
                         generation=generation,
-                        input=self.dataset[0]["input"] if self.dataset else "",
+                        input=self.dataset[0].get("input", "") if self.dataset else "",
                         run_result=first_run,
                         scores=last_scores,
                         pareto=pareto,

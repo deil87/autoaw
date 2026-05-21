@@ -43,9 +43,9 @@ def smbo_polish(
             )
 
         sample = random.choice(dataset)
-        run_result = runner.run(candidate, sample["input"])
+        run_result = runner.run(candidate, sample.get("input", ""))
         scores = [
-            ev.score(sample["input"], run_result.output, sample.get("expected"))
+            ev.score(sample.get("input", ""), run_result.output, sample.get("expected"))
             for ev in evaluators
         ]
         avg_quality = sum(s.quality for s in scores) / len(scores) if scores else 0.0
