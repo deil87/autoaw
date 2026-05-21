@@ -1,9 +1,13 @@
 import * as cdk from 'aws-cdk-lib';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as appscaling from 'aws-cdk-lib/aws-applicationautoscaling';
+import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
 import { StorageStack } from './storage-stack';
 
@@ -12,21 +16,29 @@ export interface EngineStackProps extends cdk.StackProps {
 }
 
 export class EngineStack extends cdk.Stack {
+  // Kept for one deploy cycle so AutoAwApi can drop its Fn::ImportValue before
+  // we delete these exports. Remove in the next deploy.
+  readonly jobQueue: sqs.Queue;
+  readonly fargateService: ecs.FargateService;
+
   readonly cluster: ecs.Cluster;
-  readonly taskDefinition: ecs.FargateTaskDefinition;
-  readonly taskSg: ec2.SecurityGroup;
-  readonly executionRole: iam.Role;
-  readonly vpcSubnetIds: string;
-  readonly taskRoleArn: string;
-  readonly executionRoleArn: string;
 
   constructor(scope: Construct, id: string, props: EngineStackProps) {
     super(scope, id, props);
 
-    // Reuse the default VPC — public subnets with an Internet Gateway, no NAT cost.
     const vpc = ec2.Vpc.fromLookup(this, 'Vpc', { isDefault: true });
 
-    // ECS cluster — Fargate only, Spot capacity enabled.
+    // ── KEPT: SQS (exported; AutoAwApi still imports queueUrl in current deploy) ──
+    const dlq = new sqs.Queue(this, 'JobDlq', {
+      queueName: 'autoaw-jobs-dlq',
+      retentionPeriod: cdk.Duration.days(14),
+    });
+    this.jobQueue = new sqs.Queue(this, 'JobQueue', {
+      queueName: 'autoaw-jobs',
+      visibilityTimeout: cdk.Duration.hours(2),
+      deadLetterQueue: { queue: dlq, maxReceiveCount: 3 },
+    });
+
     this.cluster = new ecs.Cluster(this, 'Cluster', {
       vpc,
       clusterName: 'autoaw-engine',
@@ -35,7 +47,6 @@ export class EngineStack extends cdk.Stack {
 
     const engineRepo = ecr.Repository.fromRepositoryName(this, 'EngineRepo', 'autoaw-engine');
 
-    // Task role — accesses DynamoDB, S3 during experiment execution.
     const taskRole = new iam.Role(this, 'TaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
       roleName: 'autoaw-engine-task-role',
@@ -45,37 +56,97 @@ export class EngineStack extends cdk.Stack {
     props.storage.evalRowsTable.grantReadWriteData(taskRole);
     props.storage.datasetsBucket.grantRead(taskRole);
     props.storage.snapshotsBucket.grantReadWrite(taskRole);
+    this.jobQueue.grantConsumeMessages(taskRole);
 
-    // Execution role — used by the ECS agent to pull images and write logs.
-    this.executionRole = new iam.Role(this, 'TaskExecutionRole', {
+    // ── KEPT: original task def + FargateService (exports must survive until
+    //    AutoAwApi's Fn::ImportValue is removed in this same deploy) ───────────
+    const oldTaskDef = new ecs.FargateTaskDefinition(this, 'EngineTaskDef', {
+      cpu: 1024,
+      memoryLimitMiB: 2048,
+      taskRole,
+      runtimePlatform: {
+        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+        cpuArchitecture: ecs.CpuArchitecture.X86_64,
+      },
+    });
+    oldTaskDef.addContainer('Engine', {
+      image: ecs.ContainerImage.fromRegistry('public.ecr.aws/docker/library/python:3.12-slim'),
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'autoaw-engine' }),
+      environment: {
+        EXPERIMENTS_TABLE: props.storage.experimentsTable.tableName,
+        TRIALS_TABLE: props.storage.trialsTable.tableName,
+        EVAL_ROWS_TABLE: props.storage.evalRowsTable.tableName,
+        DATASETS_BUCKET: props.storage.datasetsBucket.bucketName,
+        SNAPSHOTS_BUCKET: props.storage.snapshotsBucket.bucketName,
+        JOB_QUEUE_URL: this.jobQueue.queueUrl,
+      },
+    });
+
+    this.fargateService = new ecs.FargateService(this, 'EngineService', {
+      cluster: this.cluster,
+      taskDefinition: oldTaskDef,
+      serviceName: 'autoaw-engine',
+      desiredCount: 0,
+      capacityProviderStrategies: [
+        { capacityProvider: 'FARGATE_SPOT', weight: 4 },
+        { capacityProvider: 'FARGATE', weight: 1 },
+      ],
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      assignPublicIp: true,
+      minHealthyPercent: 0,
+      circuitBreaker: { rollback: true },
+    });
+
+    const scaling = this.fargateService.autoScaleTaskCount({ minCapacity: 0, maxCapacity: 4 });
+    const queueDepth = new cloudwatch.Metric({
+      namespace: 'AWS/SQS',
+      metricName: 'ApproximateNumberOfMessagesVisible',
+      dimensionsMap: { QueueName: this.jobQueue.queueName },
+      statistic: 'Maximum',
+      period: cdk.Duration.minutes(1),
+    });
+    scaling.scaleOnMetric('ScaleOnQueueDepth', {
+      metric: queueDepth,
+      scalingSteps: [
+        { upper: 0, change: -4 },
+        { lower: 1, change: +1 },
+        { lower: 3, change: +2 },
+      ],
+      adjustmentType: appscaling.AdjustmentType.CHANGE_IN_CAPACITY,
+      cooldown: cdk.Duration.minutes(2),
+    });
+
+    // ── NEW: explicit execution role with a fixed name so api-stack can
+    //    reference the ARN directly without a cross-stack CloudFormation export ─
+    const executionRole = new iam.Role(this, 'TaskExecutionRole', {
+      roleName: 'autoaw-engine-execution-role',
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonECSTaskExecutionRolePolicy'),
       ],
     });
 
-    // Explicit log group — ensures the group exists before any task tries to write.
+    // ── NEW: CloudWatch log group — must exist before any task tries to write ──
     const logGroup = new logs.LogGroup(this, 'EngineLogGroup', {
       logGroupName: '/ecs/autoaw-engine',
       retention: logs.RetentionDays.ONE_WEEK,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    // Fargate task definition — fixed family name so the Lambda can reference it
-    // without knowing the CDK-generated ARN revision.
-    this.taskDefinition = new ecs.FargateTaskDefinition(this, 'EngineTaskDef', {
+    // ── NEW: task definition with a fixed family name so Lambda can call
+    //    RunTask with 'autoaw-engine' without knowing the CDK-generated ARN ────
+    const runTaskDef = new ecs.FargateTaskDefinition(this, 'EngineRunTaskDef', {
       family: 'autoaw-engine',
       cpu: 1024,
       memoryLimitMiB: 2048,
       taskRole,
-      executionRole: this.executionRole,
+      executionRole,
       runtimePlatform: {
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
         cpuArchitecture: ecs.CpuArchitecture.X86_64,
       },
     });
-
-    this.taskDefinition.addContainer('Engine', {
+    runTaskDef.addContainer('Engine', {
       image: ecs.ContainerImage.fromEcrRepository(engineRepo, 'latest'),
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'autoaw-engine', logGroup }),
       environment: {
@@ -84,21 +155,28 @@ export class EngineStack extends cdk.Stack {
         EVAL_ROWS_TABLE: props.storage.evalRowsTable.tableName,
         DATASETS_BUCKET: props.storage.datasetsBucket.bucketName,
         SNAPSHOTS_BUCKET: props.storage.snapshotsBucket.bucketName,
-        // EXPERIMENT_ID is injected per-task via RunTask container override.
+        // EXPERIMENT_ID injected per-task via RunTask container override
       },
     });
 
-    // Security group for tasks — outbound only (tasks reach AWS APIs via public IP).
-    this.taskSg = new ec2.SecurityGroup(this, 'TaskSg', {
+    // ── NEW: security group for RunTask — outbound only ────────────────────────
+    const taskSg = new ec2.SecurityGroup(this, 'TaskSg', {
       vpc,
       description: 'autoaw engine task',
       allowAllOutbound: true,
     });
 
-    this.vpcSubnetIds = vpc.publicSubnets.map(s => s.subnetId).join(',');
-    this.taskRoleArn = taskRole.roleArn;
-    this.executionRoleArn = this.executionRole.roleArn;
+    // Store SG ID in SSM so api-stack can use a CloudFormation dynamic reference
+    // ({{resolve:ssm:...}}) instead of a cross-stack Fn::ImportValue.
+    new ssm.StringParameter(this, 'TaskSgIdParam', {
+      parameterName: '/autoaw/engine/task-sg-id',
+      stringValue: taskSg.securityGroupId,
+    });
 
+    new cdk.CfnOutput(this, 'JobQueueUrl', {
+      value: this.jobQueue.queueUrl,
+      exportName: 'AutoAwJobQueueUrl',
+    });
     new cdk.CfnOutput(this, 'EngineRepoUri', {
       value: engineRepo.repositoryUri,
       exportName: 'AutoAwEngineRepoUri',

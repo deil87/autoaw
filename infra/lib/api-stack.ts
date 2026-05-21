@@ -3,6 +3,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as path from 'path';
 import { Construct } from 'constructs';
 import { StorageStack } from './storage-stack';
@@ -39,10 +40,15 @@ export class ApiStack extends cdk.Stack {
         EVAL_ROWS_TABLE: props.storage.evalRowsTable.tableName,
         DATASETS_BUCKET: props.storage.datasetsBucket.bucketName,
         STORE_BACKEND: 'dynamo',
-        ECS_CLUSTER_NAME: props.engine.cluster.clusterName,
+        // These names are set explicitly in engine-stack so they never change,
+        // allowing us to hardcode them here and avoid cross-stack Fn::ImportValue.
+        ECS_CLUSTER_NAME: 'autoaw-engine',
         ECS_TASK_DEF: 'autoaw-engine',
-        ECS_TASK_SG_ID: props.engine.taskSg.securityGroupId,
-        ECS_SUBNET_IDS: props.engine.vpcSubnetIds,
+        // SG ID is CloudFormation-generated; engine-stack writes it to SSM so we
+        // can use a dynamic reference ({{resolve:ssm:...}}) with no cross-stack export.
+        ECS_TASK_SG_ID: ssm.StringParameter.valueForStringParameter(this, '/autoaw/engine/task-sg-id'),
+        // Subnet IDs from the default VPC in eu-central-1 (matches cdk.context.json).
+        ECS_SUBNET_IDS: 'subnet-093e4d4acd65d78d6,subnet-05a4cb04f08c633a3,subnet-086f54fee1c6e523d',
       },
     });
 
@@ -52,11 +58,16 @@ export class ApiStack extends cdk.Stack {
     }));
     fn.addToRolePolicy(new iam.PolicyStatement({
       actions: ['ecs:RunTask'],
-      resources: [props.engine.taskDefinition.taskDefinitionArn],
+      // Wildcard revision — Lambda always runs the latest registered revision.
+      resources: [`arn:aws:ecs:${this.region}:${this.account}:task-definition/autoaw-engine:*`],
     }));
     fn.addToRolePolicy(new iam.PolicyStatement({
       actions: ['iam:PassRole'],
-      resources: [props.engine.taskRoleArn, props.engine.executionRoleArn],
+      // Fixed role names set in engine-stack — no Fn::ImportValue needed.
+      resources: [
+        `arn:aws:iam::${this.account}:role/autoaw-engine-task-role`,
+        `arn:aws:iam::${this.account}:role/autoaw-engine-execution-role`,
+      ],
     }));
 
     props.storage.experimentsTable.grantReadWriteData(fn);

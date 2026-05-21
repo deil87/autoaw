@@ -15,7 +15,10 @@ const env: cdk.Environment = {
 
 const storage = new StorageStack(app, 'AutoAwStorage', { env });
 const engine = new EngineStack(app, 'AutoAwEngine', { env, storage });
-new ApiStack(app, 'AutoAwApi', { env, storage, engine });
+// Explicit ordering: engine must deploy before api so the SSM param
+// /autoaw/engine/task-sg-id exists when CloudFormation resolves it.
+const api = new ApiStack(app, 'AutoAwApi', { env, storage, engine });
+api.addDependency(engine);
 new FrontendStack(app, 'AutoAwFrontend', { env });
 
 new GitHubActionsStack(app, 'AutoAw-GitHubActions', {
