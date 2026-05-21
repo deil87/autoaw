@@ -59,12 +59,12 @@ def _process_job(experiment_id: str) -> None:
         on_progress=lambda p: store.update_progress(experiment_id, p),
     )
     try:
-        best_gene, best_fitness, stop_reason = loop.run()
-        store.put_best_gene(experiment_id, best_gene, best_fitness, stop_reason)
+        result = loop.run()
+        store.put_best_gene(experiment_id, result.best_gene, result.best_fitness, result.stop_reason)
         store.update_experiment_status(experiment_id, "completed")
         log.info(
             "Experiment %s completed — fitness=%.4f reason=%s",
-            experiment_id, best_fitness, stop_reason,
+            experiment_id, result.best_fitness, result.stop_reason,
         )
     except Exception as exc:
         log.exception("GP loop failed for experiment %s", experiment_id)
