@@ -20,7 +20,31 @@ _RETRY_BASE_DELAY = 5.0
 _RETRY_MAX_DELAY = 300.0
 
 # Model ID prefixes that should be routed to AWS Bedrock
-_BEDROCK_PREFIXES = ("amazon.", "meta.llama")
+_BEDROCK_PREFIXES = ("amazon.", "eu.amazon.", "us.amazon.", "ap.amazon.", "meta.llama")
+
+# Nova models cannot be called with on-demand throughput; they require a
+# cross-region inference profile ID (e.g. eu.amazon.nova-micro-v1:0).
+_NOVA_PROFILE_MODELS = frozenset({
+    "amazon.nova-micro-v1:0",
+    "amazon.nova-lite-v1:0",
+    "amazon.nova-pro-v1:0",
+})
+
+_REGION_PREFIX_MAP = {
+    "us-east-1": "us", "us-east-2": "us", "us-west-2": "us",
+    "eu-central-1": "eu", "eu-west-1": "eu", "eu-west-2": "eu",
+    "eu-west-3": "eu", "eu-north-1": "eu",
+    "ap-northeast-1": "ap", "ap-northeast-2": "ap",
+    "ap-southeast-1": "ap", "ap-southeast-2": "ap", "ap-south-1": "ap",
+}
+
+
+def _resolve_bedrock_model_id(model: str, region: str) -> str:
+    """Return the inference profile ID for models that require it."""
+    if model in _NOVA_PROFILE_MODELS:
+        prefix = _REGION_PREFIX_MAP.get(region, "us")
+        return f"{prefix}.{model}"
+    return model
 
 
 def is_bedrock_model(model: str) -> bool:
@@ -70,6 +94,7 @@ def bedrock_chat_with_retry(model: str, messages: list[dict], temperature: float
     client = boto3.client("bedrock-runtime", region_name=region)
     system, bedrock_msgs = _to_bedrock_messages(messages)
 
+    model = _resolve_bedrock_model_id(model, region)
     delay = _RETRY_BASE_DELAY
     for attempt in range(_MAX_RETRIES + 1):
         try:

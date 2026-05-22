@@ -29,13 +29,14 @@ def _ensure_single_sink(
         return gene
     sink_ids = [a.id for a in sinks]
     reducer_id = f"reducer_{'_'.join(sink_ids[:3])}"  # cap id length
+    task_list = "\n".join(f"- {a.system_prompt}" for a in sinks)
     gene.agents.append(Agent(
         id=reducer_id,
         role="synthesizer",
         model=random.choice(models),
         system_prompt=(
-            "You are a synthesizer. Combine the outputs of the parallel agents "
-            "above into a single, coherent final response."
+            f"Synthesize the outputs of the following parallel tasks into one "
+            f"coherent final response:\n{task_list}"
         ),
         temperature=0.3,
     ))
@@ -69,7 +70,7 @@ def mutate_structure(
     """Randomly apply one structural mutation: add agent, remove agent, swap topology, or rewire edge."""
     models = allowed_models if allowed_models else _DEFAULT_ALLOWED_MODELS
     g = gene.copy()
-    choices = ["add_agent", "swap_topology"]
+    choices = ["swap_topology"]
     if len(g.agents) > 1:
         choices.append("remove_agent")
     if len(g.edges) > 0:
@@ -77,26 +78,7 @@ def mutate_structure(
 
     action = random.choice(choices)
 
-    if action == "add_agent":
-        new_id = f"a{len(g.agents)}"
-        g.agents.append(
-            Agent(
-                id=new_id,
-                role=random.choice(
-                    ["analyst", "critic", "writer", "researcher", "synthesizer"]
-                ),
-                model=random.choice(models),
-                system_prompt="You assist with tasks assigned to you. Be helpful and precise.",
-                temperature=round(random.uniform(0.3, 0.9), 2),
-            )
-        )
-        if g.agents:
-            source = random.choice(g.agents[:-1])
-            g.edges.append(
-                Edge(from_agent=source.id, to_agent=new_id, type="sequential")
-            )
-
-    elif action == "remove_agent":
+    if action == "remove_agent":
         removed = random.choice(g.agents)
         g.agents = [a for a in g.agents if a.id != removed.id]
         g.edges = [
@@ -232,8 +214,10 @@ def mutate_inject_critique(
         role="critic",
         model=random.choice(models),
         system_prompt=(
-            "You are a quality critic. Review the previous agent's output for "
-            "accuracy, completeness, and logical consistency. Flag any issues."
+            f"Evaluate whether the following output successfully completes this task: "
+            f"{target.system_prompt}\n\n"
+            f"Identify specific inaccuracies, gaps, or logical flaws. "
+            f"If the output is satisfactory, confirm it and explain why."
         ),
         temperature=0.3,
     ))
@@ -248,24 +232,33 @@ def mutate_expand(
     gene: Gene,
     n: int | None = None,
     allowed_models: list[str] | None = None,
+    provider_config: ProviderConfig | None = None,
 ) -> Gene:
-    """Expand one randomly chosen agent into n specialised subtask agents (1 → n)."""
+    """Expand one randomly chosen agent into subtask agents derived from its task (1 → n).
+
+    Each new agent's system_prompt is the isolated subtask prompt from detect_subtasks.
+    If the source task is not decomposable (only one subtask detected), the gene is
+    returned unchanged.
+    """
     models = allowed_models if allowed_models else _DEFAULT_ALLOWED_MODELS
     g = gene.copy()
     if not g.agents:
         return g
-    n = n if n is not None else random.randint(2, 4)
     source = random.choice(g.agents)
-    specialist_roles = ["researcher", "analyst", "writer", "synthesizer", "drafter"]
+    detect_subtasks(source, provider_config)
+    subtasks = source.subtasks
+    if len(subtasks) <= 1:
+        return g
+    selected = subtasks[:n] if n is not None else subtasks
     new_agents = [
         Agent(
             id=f"{source.id}_sub{i}",
-            role=random.choice(specialist_roles),
+            role="agent",
             model=random.choice(models),
-            system_prompt=f"Handle specialised subtask derived from: {source.system_prompt}",
+            system_prompt=st.prompt,
             temperature=round(random.uniform(0.3, 0.8), 2),
         )
-        for i in range(n)
+        for i, st in enumerate(selected)
     ]
     for e in g.edges:
         if e.to_agent == source.id:
@@ -289,11 +282,12 @@ def mutate_compact(gene: Gene) -> Gene:
     merged_id = f"merged_{from_id}_{to_id}"
     g.agents.append(Agent(
         id=merged_id,
-        role="synthesizer",
+        role="agent",
         model=from_agent.model,
         system_prompt=(
-            f"Handle generalised task combining: [{from_agent.system_prompt}] "
-            f"and [{to_agent.system_prompt}]"
+            f"Complete the following tasks in sequence:\n"
+            f"1. {from_agent.system_prompt}\n"
+            f"2. {to_agent.system_prompt}"
         ),
         temperature=round((from_agent.temperature + to_agent.temperature) / 2, 2),
     ))
