@@ -9,6 +9,8 @@ from backend.engine.llm_client import (
     ProviderConfig,
     make_client,
     provider_from_env,
+    is_bedrock_model,
+    bedrock_chat_with_retry,
     _parse_retry_after,
     _MAX_RETRIES,
     _RETRY_BASE_DELAY,
@@ -27,6 +29,12 @@ _COST_TABLE: dict[str, tuple[float, float]] = {
     "gpt-4.1-mini": (0.000400, 0.001600),
     "claude-3-5-sonnet": (0.003, 0.015),
     "claude-3-haiku": (0.00025, 0.00125),
+    # AWS Bedrock models
+    "amazon.nova-micro": (0.000035, 0.00014),
+    "amazon.nova-lite": (0.00006, 0.00024),
+    "meta.llama3-2-1b": (0.0001, 0.0001),
+    "meta.llama3-2-3b": (0.00015, 0.00015),
+    "meta.llama3-1-8b": (0.0002, 0.0002),
 }
 
 
@@ -51,6 +59,8 @@ class RawLLMRunner(WorkflowRunner):
         self, model: str, messages: list[dict], temperature: float
     ) -> Any:
         """Single LLM call with no retry. Separated from _call_llm for testability."""
+        if is_bedrock_model(model):
+            return bedrock_chat_with_retry(model, messages, temperature)
         cfg = self._provider_config or provider_from_env()
         client = make_client(cfg)
         return client.chat.completions.create(

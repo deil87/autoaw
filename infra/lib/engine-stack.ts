@@ -37,6 +37,16 @@ export class EngineStack extends cdk.Stack {
     props.storage.evalRowsTable.grantReadWriteData(taskRole);
     props.storage.datasetsBucket.grantRead(taskRole);
     props.storage.snapshotsBucket.grantReadWrite(taskRole);
+    taskRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['bedrock:Converse', 'bedrock:InvokeModel'],
+      resources: [
+        `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-micro-v1:0`,
+        `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-lite-v1:0`,
+        `arn:aws:bedrock:${this.region}::foundation-model/meta.llama3-2-1b-instruct-v1:0`,
+        `arn:aws:bedrock:${this.region}::foundation-model/meta.llama3-2-3b-instruct-v1:0`,
+        `arn:aws:bedrock:${this.region}::foundation-model/meta.llama3-1-8b-instruct-v1:0`,
+      ],
+    }));
 
     const executionRole = new iam.Role(this, 'TaskExecutionRole', {
       roleName: 'autoaw-engine-execution-role',

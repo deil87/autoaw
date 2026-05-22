@@ -1,8 +1,9 @@
 from __future__ import annotations
 import logging
+import os
 import re
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 import openai
 from openai import RateLimitError
@@ -17,6 +18,90 @@ _PROVIDER_BASE_URLS: dict[str, str | None] = {
 _MAX_RETRIES = 5
 _RETRY_BASE_DELAY = 5.0
 _RETRY_MAX_DELAY = 300.0
+
+# Model ID prefixes that should be routed to AWS Bedrock
+_BEDROCK_PREFIXES = ("amazon.", "meta.llama")
+
+
+def is_bedrock_model(model: str) -> bool:
+    return any(model.startswith(p) for p in _BEDROCK_PREFIXES)
+
+
+@dataclass
+class _FakeMessage:
+    content: str
+
+
+@dataclass
+class _FakeChoice:
+    message: _FakeMessage
+
+
+@dataclass
+class _FakeUsage:
+    prompt_tokens: int
+    completion_tokens: int
+
+
+@dataclass
+class _FakeResponse:
+    choices: list[_FakeChoice]
+    usage: _FakeUsage
+
+
+def _to_bedrock_messages(messages: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Split OpenAI-style messages into (system, messages) for Bedrock Converse API."""
+    system = []
+    bedrock_msgs = []
+    for m in messages:
+        if m["role"] == "system":
+            system.append({"text": m["content"]})
+        else:
+            bedrock_msgs.append({"role": m["role"], "content": [{"text": m["content"]}]})
+    return system, bedrock_msgs
+
+
+def bedrock_chat_with_retry(model: str, messages: list[dict], temperature: float) -> Any:
+    """Call AWS Bedrock Converse API with exponential-backoff retry on throttling."""
+    import boto3
+    from botocore.exceptions import ClientError
+
+    region = os.environ.get("AWS_REGION", "eu-central-1")
+    client = boto3.client("bedrock-runtime", region_name=region)
+    system, bedrock_msgs = _to_bedrock_messages(messages)
+
+    delay = _RETRY_BASE_DELAY
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            kwargs: dict = {
+                "modelId": model,
+                "messages": bedrock_msgs,
+                "inferenceConfig": {"temperature": temperature},
+            }
+            if system:
+                kwargs["system"] = system
+            resp = client.converse(**kwargs)
+            text = resp["output"]["message"]["content"][0]["text"]
+            usage = resp["usage"]
+            return _FakeResponse(
+                choices=[_FakeChoice(message=_FakeMessage(content=text))],
+                usage=_FakeUsage(
+                    prompt_tokens=usage["inputTokens"],
+                    completion_tokens=usage["outputTokens"],
+                ),
+            )
+        except ClientError as exc:
+            if attempt == _MAX_RETRIES or exc.response["Error"]["Code"] != "ThrottlingException":
+                raise
+            wait = min(delay, _RETRY_MAX_DELAY)
+            logger.warning(
+                "Bedrock throttled on attempt %d/%d; waiting %.0fs before retry.",
+                attempt + 1,
+                _MAX_RETRIES,
+                wait,
+            )
+            time.sleep(wait)
+            delay = min(delay * 2, _RETRY_MAX_DELAY)
 
 
 @dataclass
@@ -101,7 +186,9 @@ def chat_with_retry(
     messages: list[dict],
     temperature: float,
 ) -> Any:
-    """Call client.chat.completions.create with exponential-backoff retry on 429."""
+    """Call LLM with exponential-backoff retry. Routes Bedrock model IDs to boto3."""
+    if is_bedrock_model(model):
+        return bedrock_chat_with_retry(model, messages, temperature)
     delay = _RETRY_BASE_DELAY
     for attempt in range(_MAX_RETRIES + 1):
         try:

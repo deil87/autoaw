@@ -10,6 +10,11 @@ _MODEL_OPTIONS = [
     "gpt-4o",
     "claude-3-5-haiku-20241022",
     "claude-3-5-sonnet-20241022",
+    "amazon.nova-micro-v1:0",
+    "amazon.nova-lite-v1:0",
+    "meta.llama3-2-1b-instruct-v1:0",
+    "meta.llama3-2-3b-instruct-v1:0",
+    "meta.llama3-1-8b-instruct-v1:0",
 ]
 
 
