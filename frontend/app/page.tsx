@@ -342,6 +342,230 @@ function BeforeAfter() {
   );
 }
 
+/* ---- Architecture Comparison ---- */
+function CommitteeGraph({ height = 148 }: { height?: number }) {
+  const agents = [
+    { id: "plan", label: "planner",    x: 100, y: 75,  m: "gpt-5" },
+    { id: "res",  label: "researcher", x: 195, y: 28,  m: "cs-4.5" },
+    { id: "wrt",  label: "writer",     x: 195, y: 122, m: "cs-4.5" },
+    { id: "jdg",  label: "validator",  x: 286, y: 75,  m: "haiku" },
+  ];
+  const mainLines: [number,number,number,number][] = [
+    [40,75,60,75],[100,75,195,28],[100,75,195,122],[195,28,286,75],[195,122,286,75],[326,75,340,75],
+  ];
+  return (
+    <svg viewBox="0 0 364 150" width="100%" height={height} style={{ display:"block" }}>
+      <defs>
+        <marker id="arr-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/>
+        </marker>
+      </defs>
+      <g opacity="0.35">
+        {Array.from({length:11}).map((_,i) => Array.from({length:5}).map((_,j) => (
+          <circle key={`${i}-${j}`} cx={16+i*33} cy={15+j*30} r="0.7" fill="#d4d7dc"/>
+        )))}
+      </g>
+      {/* cross-talk & feedback (dashed) */}
+      <line x1="195" y1="44" x2="195" y2="106" stroke="#cbd0d6" strokeWidth="1" strokeDasharray="3 3"/>
+      <path d="M 286 90 Q 193 148 100 90" fill="none" stroke="#cbd0d6" strokeWidth="1" strokeDasharray="3 3" markerEnd="url(#arr-c)"/>
+      {/* main edges */}
+      {mainLines.map(([x1,y1,x2,y2],i) => (
+        <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#9ca3af" strokeWidth="1.1" markerEnd="url(#arr-c)"/>
+      ))}
+      {/* IO */}
+      <circle cx="24" cy="75" r="16" fill="#0b0d10"/>
+      <text x="24" y="79" textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="9" fill="white">task</text>
+      <circle cx="340" cy="75" r="16" fill="#0b0d10"/>
+      <text x="340" y="79" textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="8" fill="white">answer</text>
+      {/* agent nodes */}
+      {agents.map(n => (
+        <g key={n.id}>
+          <rect x={n.x-40} y={n.y-16} width="80" height="32" rx="5" fill="white" stroke="#d4d7dc" strokeWidth="1.2"/>
+          <text x={n.x} y={n.y-2} textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="10" fill="#0b0d10" fontWeight="600">{n.label}</text>
+          <text x={n.x} y={n.y+10} textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="8.5" fill="#9ca3af">{n.m}</text>
+        </g>
+      ))}
+      {/* overhead label */}
+      <text x="195" y="9" textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="8.5" fill="#9ca3af">cross-talk</text>
+      <text x="192" y="148" textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="8.5" fill="#9ca3af">feedback loop</text>
+    </svg>
+  );
+}
+
+function GlueGraph({ height = 148 }: { height?: number }) {
+  const skills = [
+    { label: "web_search", x: 82,  y: 118 },
+    { label: "sql_query",  x: 165, y: 118 },
+    { label: "code_exec",  x: 248, y: 118 },
+  ];
+  const skillAnchors: [number,number][] = [[132,72],[155,72],[178,72]];
+  return (
+    <svg viewBox="0 0 364 148" width="100%" height={height} style={{ display:"block" }}>
+      <defs>
+        <marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#119760"/>
+        </marker>
+      </defs>
+      <g opacity="0.35">
+        {Array.from({length:11}).map((_,i) => Array.from({length:5}).map((_,j) => (
+          <circle key={`${i}-${j}`} cx={16+i*33} cy={15+j*30} r="0.7" fill="#d4d7dc"/>
+        )))}
+      </g>
+      {/* skill spokes */}
+      {skills.map((s,i) => (
+        <line key={i} x1={skillAnchors[i][0]} y1={skillAnchors[i][1]} x2={s.x} y2={s.y-12}
+          stroke="#119760" strokeWidth="1" strokeOpacity="0.45" strokeDasharray="2 3"/>
+      ))}
+      {/* main path */}
+      <line x1="40" y1="56" x2="105" y2="56" stroke="#119760" strokeWidth="1.3" markerEnd="url(#arr-g)"/>
+      <line x1="215" y1="56" x2="320" y2="56" stroke="#119760" strokeWidth="1.3" markerEnd="url(#arr-g)"/>
+      {/* IO */}
+      <circle cx="24" cy="56" r="16" fill="#0b0d10"/>
+      <text x="24" y="60" textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="9" fill="white">task</text>
+      <circle cx="336" cy="56" r="16" fill="#0b0d10"/>
+      <text x="336" y="60" textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="8" fill="white">answer</text>
+      {/* conductor */}
+      <rect x="105" y="38" width="110" height="36" rx="6" fill="white" stroke="#119760" strokeWidth="1.5"/>
+      <text x="160" y="54" textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="10.5" fill="#0b0d10" fontWeight="600">conductor</text>
+      <text x="160" y="67" textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="9" fill="#119760">claude-sonnet</text>
+      {/* skill pills */}
+      {skills.map((s,i) => (
+        <g key={i}>
+          <rect x={s.x-36} y={s.y-12} width="72" height="24" rx="12" fill="#f0fdf7" stroke="#119760" strokeWidth="1" strokeDasharray="3 3"/>
+          <text x={s.x} y={s.y+4} textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="8.5" fill="#064d31">{s.label}</text>
+        </g>
+      ))}
+      <text x="165" y="143" textAnchor="middle" fontFamily="Geist Mono,monospace" fontSize="8.5" fill="#119760" opacity="0.7">deterministic tools — no LLM calls</text>
+    </svg>
+  );
+}
+
+function ArchitectureComparison() {
+  const tradeoffs = [
+    { dim: "Latency",        committee: "High — each hand-off is a fresh LLM call",         glue: "Low — one LLM, tools run as fast code" },
+    { dim: "Context",        committee: "Fragmented — state re-interpreted at each hop",     glue: "Unified — one context window, no drift" },
+    { dim: "Debugging",      committee: "Complex — trace across N reasoning chains",         glue: "Standard — did the LLM call the skill? Did it run?" },
+    { dim: "Cost",           committee: "Proportional to agent count × task length",         glue: "Proportional to conductor reasoning only" },
+  ];
+  return (
+    <section className="page" style={{ paddingTop: 56, paddingBottom: 28 }}>
+      <div style={{ marginBottom: 26 }}>
+        <div className="section-eyebrow">04 · architectures</div>
+        <h2 className="section-title">Two paradigms. One optimizer. No assumptions.</h2>
+        <p className="section-lede">
+          Multi-agent committees and agentic glue are different bets on where reasoning should live.
+          AutoAW makes neither bet upfront — it searches both and lets your fitness function settle the argument.
+        </p>
+      </div>
+
+      {/* Two panels */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", border:"1px solid var(--border)", borderRadius:"var(--r-3)", overflow:"hidden", background:"var(--bg-alt)", marginBottom: 14 }}>
+        <div style={{ padding: 20, borderRight:"1px solid var(--border)", background:"var(--bg-alt)" }}>
+          <div className="ba-label">
+            <span style={{ width:6, height:6, background:"var(--muted)", borderRadius:99, display:"inline-block" }}/>
+            multi-agent committee
+          </div>
+          <CommitteeGraph/>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:12 }}>
+            {["LLM-to-LLM hand-offs","fragmented context","high coordination overhead"].map(t => (
+              <span key={t} className="chip" style={{ fontSize: 10 }}>{t}</span>
+            ))}
+          </div>
+          <div className="mono" style={{ fontSize:12, color:"var(--muted)", marginTop:14 }}>
+            <div style={{ fontSize:10, color:"var(--faint)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>wins when</div>
+            {[
+              "Security or permission isolation is required between agents",
+              "Domain knowledge is too large for a single context window",
+              "Task genuinely needs competing hypotheses (debate topology)",
+            ].map((b,i) => (
+              <div key={i} style={{ display:"flex", gap:8, marginBottom:6, alignItems:"flex-start" }}>
+                <span style={{ color:"var(--faint)", flexShrink:0 }}>·</span><span>{b}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ padding: 20, background:"var(--bg)" }}>
+          <div className="ba-label">
+            <span style={{ width:6, height:6, background:"var(--accent)", borderRadius:99, display:"inline-block" }}/>
+            agentic glue + skills
+          </div>
+          <GlueGraph/>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:12 }}>
+            {["one conductor","deterministic tools","unified context"].map(t => (
+              <span key={t} className="chip chip-running" style={{ fontSize: 10 }}>{t}</span>
+            ))}
+          </div>
+          <div className="mono" style={{ fontSize:12, color:"var(--muted)", marginTop:14 }}>
+            <div style={{ fontSize:10, color:"var(--faint)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>wins when</div>
+            {[
+              "Standard engineering, data extraction, or enterprise automation tasks",
+              "Cost and latency are in the objective — the fitness function will find it",
+              "One capable model can hold the full reasoning context end-to-end",
+            ].map((b,i) => (
+              <div key={i} style={{ display:"flex", gap:8, marginBottom:6, alignItems:"flex-start" }}>
+                <span style={{ color:"var(--accent)", flexShrink:0 }}>·</span><span>{b}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Tradeoff table */}
+      <div className="card" style={{ marginBottom: 14 }}>
+        <table className="t">
+          <thead>
+            <tr>
+              <th style={{ width:140 }}>Dimension</th>
+              <th>Multi-Agent Committee</th>
+              <th>Agentic Glue + Skills</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tradeoffs.map((r,i) => (
+              <tr key={i}>
+                <td className="mono" style={{ fontSize:12, fontWeight:600, color:"var(--text)" }}>{r.dim}</td>
+                <td style={{ fontSize:12.5, color:"var(--muted)" }}>{r.committee}</td>
+                <td style={{ fontSize:12.5, color:"var(--accent-ink)" }}>{r.glue}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* How AutoAW discovers the winner */}
+      <div style={{ border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"20px 24px", background:"var(--surface)" }}>
+        <div style={{ display:"flex", alignItems:"flex-start", gap:20 }}>
+          <div style={{ flex:1 }}>
+            <div className="mono" style={{ fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>
+              How AutoAW discovers which wins — without assuming either
+            </div>
+            <p style={{ margin:"0 0 10px", fontSize:13.5, color:"var(--text)", lineHeight:1.55 }}>
+              AutoAW seeds its initial population with candidates spanning both paradigms.
+              The multi-objective fitness function — penalizing cost and latency directly — creates natural selection pressure toward whichever architecture is actually cheaper and faster for your specific task and dataset.
+            </p>
+            <p style={{ margin:0, fontSize:13.5, color:"var(--text)", lineHeight:1.55 }}>
+              The genetic operators handle the transitions: <span className="mono" style={{ fontSize:12.5 }}>mutate_structure</span> and the <em>Compaction</em> operator collapse N agents into a single conductor when the fitness landscape rewards it; the <em>Delegation Split</em> operator spawns parallel agents when the task benefits from specialization. No topology is privileged — the search finds where your task lives.
+            </p>
+          </div>
+          <div style={{ flexShrink:0, display:"flex", flexDirection:"column", gap:8, minWidth:200 }}>
+            {[
+              { op:"Compaction",       dir:"N agents → 1 conductor + skills",    arrow:"→ glue" },
+              { op:"Delegation Split", dir:"1 conductor → k parallel agents",     arrow:"→ committee" },
+              { op:"Critique Inject",  dir:"Insert validator after any node",      arrow:"→ hybrid" },
+            ].map(o => (
+              <div key={o.op} style={{ border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"8px 10px", background:"var(--bg)" }}>
+                <div className="mono" style={{ fontSize:10.5, fontWeight:600, color:"var(--text)" }}>{o.op}</div>
+                <div className="mono" style={{ fontSize:10, color:"var(--muted)", marginTop:3 }}>{o.dir}</div>
+                <div className="mono" style={{ fontSize:10, color:"var(--accent-ink)", marginTop:2 }}>{o.arrow}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ---- How it works ---- */
 const STEPS = [
   {
@@ -403,7 +627,7 @@ function HowItWorks() {
   return (
     <section className="page" style={{ paddingTop: 56, paddingBottom: 28 }}>
       <div style={{ marginBottom: 26 }}>
-        <div className="section-eyebrow">03 · how it works</div>
+        <div className="section-eyebrow">05 · how it works</div>
         <h2 className="section-title">Four steps. One Pareto frontier.</h2>
       </div>
       <div className="steps">
@@ -432,7 +656,7 @@ function BenchmarkNumbers() {
   return (
     <section className="page" style={{ paddingTop: 56, paddingBottom: 28 }}>
       <div style={{ marginBottom: 26 }}>
-        <div className="section-eyebrow">04 · results</div>
+        <div className="section-eyebrow">06 · results</div>
         <h2 className="section-title">What it found in our last run.</h2>
         <p className="section-lede">
           Task: customer-support copilot, 1,400-ticket eval. Objective = 0.7·quality + 0.25·cost⁻¹ + 0.05·speed.
@@ -471,7 +695,7 @@ function LeaderboardPreview() {
     <section className="page" style={{ paddingTop: 56, paddingBottom: 28 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22 }}>
         <div>
-          <div className="section-eyebrow">05 · leaderboard</div>
+          <div className="section-eyebrow">07 · leaderboard</div>
           <h2 className="section-title">Live: top results on GAIA.</h2>
           <p className="section-lede">
             Public benchmark — anyone can submit. AutoAW-optimized graphs above single-model baselines for both quality and cost.
@@ -576,7 +800,7 @@ function Pricing() {
   return (
     <section className="page" style={{ paddingTop: 56, paddingBottom: 28 }}>
       <div style={{ marginBottom: 30 }}>
-        <div className="section-eyebrow">06 · pricing</div>
+        <div className="section-eyebrow">08 · pricing</div>
         <h2 className="section-title">Plans that scale with search budget.</h2>
         <p className="section-lede">
           You pay for compute, not seats. Each tier adds parallelism, longer searches, and the controls larger orgs need.
@@ -663,6 +887,7 @@ export default function HomePage() {
     <div>
       <Hero/>
       <BeforeAfter/>
+      <ArchitectureComparison/>
       <HowItWorks/>
       <BenchmarkNumbers/>
       <LeaderboardPreview/>
