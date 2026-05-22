@@ -1,7 +1,8 @@
 from __future__ import annotations
+import json
 import os
 import random
-from backend.shared.gene import Gene, Agent, Edge, TopologyType
+from backend.shared.gene import Gene, Agent, Edge, Subtask, TopologyType
 from backend.engine.llm_client import ProviderConfig, make_client, provider_from_env
 
 _DEFAULT_ALLOWED_MODELS = ["gpt-4o-mini", "gpt-4o"]
@@ -110,6 +111,72 @@ def mutate_param(gene: Gene) -> Gene:
     delta = random.gauss(0, 0.1)
     agent.temperature = max(0.0, min(1.0, round(agent.temperature + delta, 3)))
     return g
+
+
+def detect_subtasks(
+    agent: Agent,
+    provider_config: ProviderConfig | None = None,
+) -> Agent:
+    """Detect and populate subtasks from an agent's system_prompt (idempotent).
+
+    Runs once per agent — skipped if agent.subtasks is already populated.
+    Single-task prompts produce a one-entry list wrapping the full prompt, so
+    callers can always assume agent.subtasks is non-empty after this runs.
+    On LLM error falls back to the same single-entry behaviour.
+    """
+    if agent.subtasks:
+        return agent
+
+    system = (
+        "You are a task analyser. Given an agent system prompt, detect whether it "
+        "contains multiple distinct subtasks.\n"
+        "Return a JSON object with key \"subtasks\": an array of objects, each with:\n"
+        "  id: string (\"s0\", \"s1\", \"s2\" ...)\n"
+        "  prompt: string (the isolated subtask instruction)\n"
+        "  depends_on: array of id strings (empty if independent)\n"
+        "If the prompt describes only one task, return exactly one entry with the "
+        "full prompt. Return ONLY valid JSON, no explanation."
+    )
+
+    try:
+        cfg = provider_config or provider_from_env()
+        client = make_client(cfg)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": agent.system_prompt},
+            ],
+            temperature=0.0,
+            response_format={"type": "json_object"},
+        )
+        raw = json.loads(response.choices[0].message.content)
+        agent.subtasks = [
+            Subtask(id=s["id"], prompt=s["prompt"], depends_on=s.get("depends_on", []))
+            for s in raw.get("subtasks", [])
+        ]
+    except Exception:
+        pass
+
+    # Fallback: always guarantee at least one subtask entry
+    if not agent.subtasks:
+        agent.subtasks = [Subtask(id="s0", prompt=agent.system_prompt)]
+
+    return agent
+
+
+def run_split_detection(
+    gene: Gene,
+    provider_config: ProviderConfig | None = None,
+) -> Gene:
+    """Run detect_subtasks on every agent in the gene.
+
+    Idempotent — agents with subtasks already populated are skipped.
+    Call this once when a gene enters the population for the first time.
+    """
+    for agent in gene.agents:
+        detect_subtasks(agent, provider_config)
+    return gene
 
 
 def mutate_inject_critique(

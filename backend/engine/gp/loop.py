@@ -17,6 +17,7 @@ from backend.engine.gp.operators import (
     mutate_prompt,
     mutate_param,
     crossover_subgraph,
+    run_split_detection,
 )
 from backend.engine.gp.population import seed_population
 from backend.engine.gp.diversity import topology_diversity_score
@@ -273,6 +274,9 @@ class GPLoop:
     def run(self) -> GPResult:
         """Run the GP loop and return a GPResult with the best gene and stop reason."""
         seed_genes = seed_population(self.config)
+        # Run split detection once on every seed gene before generation 0
+        for g in seed_genes:
+            run_split_detection(g, provider_config=self.config.provider)
         # Wrap: (gene, parent_ids, mutation_op)
         population: list[tuple[Gene, list[str], str]] = [
             (g, [], "seed") for g in seed_genes
@@ -331,12 +335,17 @@ class GPLoop:
                         provider_config=self.config.provider,
                         allowed_models=self.config.allowed_models,
                     )
+                    run_split_detection(child, provider_config=self.config.provider)
                     new_population.append((child, [parent1.id], "mutate_structure"))
                 elif op == "mutate_prompt":
                     try:
                         child = mutate_prompt(
                             parent1, provider_config=self.config.provider
                         )
+                        # Prompt changed — clear subtasks so detection re-runs
+                        for a in child.agents:
+                            a.subtasks = []
+                        run_split_detection(child, provider_config=self.config.provider)
                         new_population.append((child, [parent1.id], "mutate_prompt"))
                     except Exception:
                         child = mutate_param(parent1)
@@ -349,6 +358,7 @@ class GPLoop:
                         [s for s in survivors if s is not parent1] or survivors
                     )
                     child1, _ = crossover_subgraph(parent1, parent2)
+                    run_split_detection(child1, provider_config=self.config.provider)
                     new_population.append(
                         (child1, [parent1.id, parent2.id], "crossover_subgraph")
                     )

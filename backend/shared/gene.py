@@ -22,6 +22,25 @@ VALID_EDGE_TYPES = {"sequential", "broadcast", "reduce", "conditional"}
 
 
 @dataclass
+class Subtask:
+    """A single extracted subtask within an agent's prompt.
+
+    Populated once by split detection and persisted on the agent so mutations
+    can target individual subtasks without re-running detection each generation.
+    """
+    id: str
+    prompt: str
+    depends_on: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id, "prompt": self.prompt, "depends_on": list(self.depends_on)}
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> Subtask:
+        return cls(id=d["id"], prompt=d["prompt"], depends_on=list(d.get("depends_on", [])))
+
+
+@dataclass
 class Agent:
     id: str
     role: str
@@ -29,6 +48,9 @@ class Agent:
     system_prompt: str
     tools: list[str] = field(default_factory=list)
     temperature: float = 0.7
+    subtasks: list[Subtask] = field(default_factory=list)
+    """Subtasks detected in system_prompt by split detection. Empty means the
+    prompt was not yet analysed or contains only a single task."""
 
     def __post_init__(self) -> None:
         if not (0.0 <= self.temperature <= 1.0):
@@ -44,6 +66,7 @@ class Agent:
             "system_prompt": self.system_prompt,
             "tools": list(self.tools),
             "temperature": self.temperature,
+            "subtasks": [s.to_dict() for s in self.subtasks],
         }
 
     @classmethod
@@ -55,6 +78,7 @@ class Agent:
             system_prompt=d["system_prompt"],
             tools=list(d.get("tools", [])),
             temperature=d.get("temperature", 0.7),
+            subtasks=[Subtask.from_dict(s) for s in d.get("subtasks", [])],
         )
 
 
