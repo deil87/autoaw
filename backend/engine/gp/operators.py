@@ -8,6 +8,42 @@ from backend.engine.llm_client import ProviderConfig, make_client, provider_from
 _DEFAULT_ALLOWED_MODELS = ["gpt-4o-mini", "gpt-4o"]
 
 
+def _find_sinks(gene: Gene) -> list[Agent]:
+    """Return agents with no outgoing edges — nodes that produce the final output."""
+    from_ids = {e.from_agent for e in gene.edges}
+    return [a for a in gene.agents if a.id not in from_ids]
+
+
+def _ensure_single_sink(
+    gene: Gene,
+    allowed_models: list[str] | None = None,
+) -> Gene:
+    """If the gene has multiple sink nodes, add a synthesizer that collects them all.
+
+    Called after any structural mutation that could fan out without reconnecting,
+    guaranteeing the runner always has exactly one output node to read from.
+    """
+    models = allowed_models if allowed_models else _DEFAULT_ALLOWED_MODELS
+    sinks = _find_sinks(gene)
+    if len(sinks) <= 1:
+        return gene
+    sink_ids = [a.id for a in sinks]
+    reducer_id = f"reducer_{'_'.join(sink_ids[:3])}"  # cap id length
+    gene.agents.append(Agent(
+        id=reducer_id,
+        role="synthesizer",
+        model=random.choice(models),
+        system_prompt=(
+            "You are a synthesizer. Combine the outputs of the parallel agents "
+            "above into a single, coherent final response."
+        ),
+        temperature=0.3,
+    ))
+    for sink_id in sink_ids:
+        gene.edges.append(Edge(from_agent=sink_id, to_agent=reducer_id, type="reduce"))
+    return gene
+
+
 def _rewrite_prompt_with_llm(prompt: str, provider_config: ProviderConfig) -> str:
     """Call an LLM to rewrite a system prompt with diversity directive."""
     client = make_client(provider_config)
@@ -205,7 +241,7 @@ def mutate_inject_critique(
         if e.from_agent == target.id:
             e.from_agent = critic_id
     g.edges.append(Edge(from_agent=target.id, to_agent=critic_id, type="sequential"))
-    return g
+    return _ensure_single_sink(g, models)
 
 
 def mutate_expand(
@@ -236,7 +272,7 @@ def mutate_expand(
             e.to_agent = new_agents[0].id
     g.edges = [e for e in g.edges if e.from_agent != source.id]
     g.agents = [a for a in g.agents if a.id != source.id] + new_agents
-    return g
+    return _ensure_single_sink(g, models)
 
 
 def mutate_compact(gene: Gene) -> Gene:
@@ -269,7 +305,7 @@ def mutate_compact(gene: Gene) -> Gene:
             e.from_agent = merged_id
         if e.to_agent in remove_ids:
             e.to_agent = merged_id
-    return g
+    return _ensure_single_sink(g)
 
 
 def crossover_subgraph(gene1: Gene, gene2: Gene) -> tuple[Gene, Gene]:

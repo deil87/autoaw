@@ -16,6 +16,9 @@ from backend.engine.gp.operators import (
     mutate_structure,
     mutate_prompt,
     mutate_param,
+    mutate_expand,
+    mutate_inject_critique,
+    mutate_compact,
     crossover_subgraph,
     run_split_detection,
 )
@@ -326,9 +329,11 @@ class GPLoop:
             ]
             while len(new_population) < self.config.population_size:
                 parent1 = random.choice(survivors)
-                op = random.choice(
-                    ["mutate_structure", "mutate_prompt", "mutate_param", "crossover"]
-                )
+                op = random.choice([
+                    "mutate_structure", "mutate_prompt", "mutate_param",
+                    "mutate_expand", "mutate_inject_critique", "mutate_compact",
+                    "crossover",
+                ])
                 if op == "mutate_structure":
                     child = mutate_structure(
                         parent1,
@@ -353,6 +358,22 @@ class GPLoop:
                 elif op == "mutate_param":
                     child = mutate_param(parent1)
                     new_population.append((child, [parent1.id], "mutate_param"))
+                elif op == "mutate_expand":
+                    child = mutate_expand(
+                        parent1, allowed_models=self.config.allowed_models
+                    )
+                    run_split_detection(child, provider_config=self.config.provider)
+                    new_population.append((child, [parent1.id], "mutate_expand"))
+                elif op == "mutate_inject_critique":
+                    child = mutate_inject_critique(
+                        parent1, allowed_models=self.config.allowed_models
+                    )
+                    run_split_detection(child, provider_config=self.config.provider)
+                    new_population.append((child, [parent1.id], "mutate_inject_critique"))
+                elif op == "mutate_compact":
+                    child = mutate_compact(parent1)
+                    run_split_detection(child, provider_config=self.config.provider)
+                    new_population.append((child, [parent1.id], "mutate_compact"))
                 elif op == "crossover" and len(survivors) > 1:
                     parent2 = random.choice(
                         [s for s in survivors if s is not parent1] or survivors
