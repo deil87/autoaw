@@ -37,11 +37,23 @@ export class EngineStack extends cdk.Stack {
     props.storage.evalRowsTable.grantReadWriteData(taskRole);
     props.storage.datasetsBucket.grantRead(taskRole);
     props.storage.snapshotsBucket.grantReadWrite(taskRole);
+    // Nova models require cross-region inference profiles; grant both the
+    // inference-profile ARN (home region) and foundation-model across all
+    // routing regions so Bedrock can forward requests cross-region.
+    const inferencePrefix: { [r: string]: string } = {
+      'us-east-1': 'us', 'us-east-2': 'us', 'us-west-2': 'us',
+      'eu-central-1': 'eu', 'eu-west-1': 'eu', 'eu-west-2': 'eu',
+      'eu-west-3': 'eu', 'eu-north-1': 'eu',
+      'ap-northeast-1': 'ap', 'ap-northeast-2': 'ap',
+      'ap-southeast-1': 'ap', 'ap-southeast-2': 'ap', 'ap-south-1': 'ap',
+    };
+    const novaPrefix = inferencePrefix[this.region] ?? 'us';
+    const novaModels = ['amazon.nova-micro-v1:0', 'amazon.nova-lite-v1:0'];
     taskRole.addToPolicy(new iam.PolicyStatement({
       actions: ['bedrock:Converse', 'bedrock:InvokeModel'],
       resources: [
-        `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-micro-v1:0`,
-        `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-lite-v1:0`,
+        ...novaModels.map(m => `arn:aws:bedrock:${this.region}::inference-profile/${novaPrefix}.${m}`),
+        ...novaModels.map(m => `arn:aws:bedrock:*::foundation-model/${m}`),
         `arn:aws:bedrock:${this.region}::foundation-model/meta.llama3-2-1b-instruct-v1:0`,
         `arn:aws:bedrock:${this.region}::foundation-model/meta.llama3-2-3b-instruct-v1:0`,
         `arn:aws:bedrock:${this.region}::foundation-model/meta.llama3-1-8b-instruct-v1:0`,
