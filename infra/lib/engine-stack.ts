@@ -52,7 +52,7 @@ export class EngineStack extends cdk.Stack {
     taskRole.addToPolicy(new iam.PolicyStatement({
       actions: ['bedrock:Converse', 'bedrock:InvokeModel'],
       resources: [
-        ...novaModels.map(m => `arn:aws:bedrock:${this.region}::inference-profile/${novaPrefix}.${m}`),
+        ...novaModels.map(m => `arn:aws:bedrock:${this.region}:${this.account}:inference-profile/${novaPrefix}.${m}`),
         ...novaModels.map(m => `arn:aws:bedrock:*::foundation-model/${m}`),
         `arn:aws:bedrock:${this.region}::foundation-model/meta.llama3-2-1b-instruct-v1:0`,
         `arn:aws:bedrock:${this.region}::foundation-model/meta.llama3-2-3b-instruct-v1:0`,
