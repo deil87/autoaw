@@ -2,12 +2,17 @@ import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import { Construct } from 'constructs';
+
+interface FrontendStackProps extends cdk.StackProps {
+  certificate?: acm.ICertificate;
+}
 
 export class FrontendStack extends cdk.Stack {
   public readonly siteBucketName: string;
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: FrontendStackProps) {
     super(scope, id, props);
 
     const siteBucket = new s3.Bucket(this, 'SiteBucket', {
@@ -49,6 +54,10 @@ function handler(event) {
 
     // V2: fresh distribution (forces new CloudFront URL)
     const distribution = new cloudfront.Distribution(this, 'SiteDistributionV2', {
+      ...(props?.certificate ? {
+        certificate: props.certificate,
+        domainNames: ['autoaw.app', 'www.autoaw.app'],
+      } : {}),
       defaultBehavior: {
         origin: s3Origin,
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
