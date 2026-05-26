@@ -532,36 +532,6 @@ function ArchitectureComparison() {
         </table>
       </div>
 
-      {/* How AutoAW discovers the winner */}
-      <div style={{ border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"20px 24px", background:"var(--surface)" }}>
-        <div style={{ display:"flex", alignItems:"flex-start", gap:20 }}>
-          <div style={{ flex:1 }}>
-            <div className="mono" style={{ fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>
-              How AutoAW discovers which wins — without assuming either
-            </div>
-            <p style={{ margin:"0 0 10px", fontSize:13.5, color:"var(--text)", lineHeight:1.55 }}>
-              AutoAW seeds its initial population with candidates spanning both paradigms.
-              The multi-objective fitness function — penalizing cost and latency directly — creates natural selection pressure toward whichever architecture is actually cheaper and faster for your specific task and dataset.
-            </p>
-            <p style={{ margin:0, fontSize:13.5, color:"var(--text)", lineHeight:1.55 }}>
-              The genetic operators handle the transitions: <span className="mono" style={{ fontSize:12.5 }}>mutate_structure</span> and the <em>Compaction</em> operator collapse N agents into a single conductor when the fitness landscape rewards it; the <em>Delegation Split</em> operator spawns parallel agents when the task benefits from specialization. No topology is privileged — the search finds where your task lives.
-            </p>
-          </div>
-          <div style={{ flexShrink:0, display:"flex", flexDirection:"column", gap:8, minWidth:200 }}>
-            {[
-              { op:"Compaction",       dir:"N agents → 1 conductor + skills",    arrow:"→ glue" },
-              { op:"Delegation Split", dir:"1 conductor → k parallel agents",     arrow:"→ committee" },
-              { op:"Critique Inject",  dir:"Insert validator after any node",      arrow:"→ hybrid" },
-            ].map(o => (
-              <div key={o.op} style={{ border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"8px 10px", background:"var(--bg)" }}>
-                <div className="mono" style={{ fontSize:10.5, fontWeight:600, color:"var(--text)" }}>{o.op}</div>
-                <div className="mono" style={{ fontSize:10, color:"var(--muted)", marginTop:3 }}>{o.dir}</div>
-                <div className="mono" style={{ fontSize:10, color:"var(--accent-ink)", marginTop:2 }}>{o.arrow}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </section>
   );
 }
@@ -872,7 +842,6 @@ function Footer() {
         <div style={{ display: "flex", gap: 18, color: "var(--faint)", fontSize: 12.5 }}>
           <span style={{ cursor: "default" }}>Docs</span>
           <span style={{ cursor: "default" }}>API</span>
-          <span style={{ cursor: "default" }}>GitHub</span>
           <span style={{ cursor: "default" }}>Discord</span>
           <span style={{ cursor: "default" }}>Status</span>
         </div>

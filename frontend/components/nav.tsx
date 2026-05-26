@@ -73,8 +73,9 @@ export function Nav() {
         <div className="aw-nav-right">
           {mounted && (onLanding ? (
             <>
-              <span className="mono faint" style={{ fontSize: 12 }}>github · 1.2k ★</span>
-              <button className="btn btn-sm">Sign in</button>
+              <a href="mailto:spirtik87@gmail.com?subject=AutoAW%20demo%20%26%20quotation" className="btn btn-sm">
+                Request demo
+              </a>
               <Link href="/experiments" className="btn btn-primary btn-sm">
                 Open app →
               </Link>
