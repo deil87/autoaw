@@ -43,12 +43,14 @@ async function loadUser(): Promise<AuthUser | null> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Must run synchronously before any effects so Amplify is configured
+  // before it tries to process the ?code=&state= OAuth callback in the URL.
+  if (typeof window !== "undefined") configureAmplify();
+
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    configureAmplify();
-
     loadUser().then(u => {
       setUser(u);
       setLoading(false);
