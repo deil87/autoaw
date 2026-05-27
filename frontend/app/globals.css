@@ -852,11 +852,39 @@ input[type=range].aw-slider::-webkit-slider-thumb {
   .steps { display: none; }
   .steps-carousel { display: block; }
 
-  /* Leaderboard: hide Configuration and Latency columns */
+  /* Pricing: horizontal scroll-snap carousel — one card in view, next peeks */
+  .pricing-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 12px;
+    padding-bottom: 8px;
+    /* bleed slightly past page padding so peek is visible */
+    margin-right: -16px;
+    padding-right: 16px;
+  }
+  .pricing-grid::-webkit-scrollbar { display: none; }
+  .pricing-grid .plan {
+    flex: 0 0 88%;
+    scroll-snap-align: start;
+    min-width: 0;
+  }
+
+  /* Footer: stack vertically, let links wrap */
+  .footer-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .footer-inner > div:last-child { flex-wrap: wrap; gap: 10px 16px; }
+
+  /* Leaderboard: hide Configuration (3) and Latency (6) columns */
   .lb-table-card table.t th:nth-child(3),
   .lb-table-card table.t td:nth-child(3),
   .lb-table-card table.t th:nth-child(6),
   .lb-table-card table.t td:nth-child(6) { display: none; }
+  /* Compact remaining cells to fit viewport */
+  .lb-table-card table.t th,
+  .lb-table-card table.t td { padding: 8px 10px; font-size: 12px; }
+  .lb-table-card .bar { display: none; }
 
   /* Tradeoff table: allow horizontal scroll (text-heavy, can't drop columns) */
   .arch-table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
