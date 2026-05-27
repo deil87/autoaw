@@ -869,6 +869,8 @@ function Footer() {
           <span style={{ cursor: "default" }}>Docs</span>
           <span style={{ cursor: "default" }}>API</span>
           <span style={{ cursor: "default" }}>Status</span>
+          <span style={{ color: "var(--border)" }}>·</span>
+          <a href="mailto:admin@optimetrics.ai" style={{ color: "inherit", textDecoration: "none" }}>Investors welcome</a>
         </div>
       </div>
     </footer>
