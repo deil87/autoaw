@@ -14,8 +14,12 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  const pwdErrors = validatePassword(password);
+  const showPwdHints = password.length > 0;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (pwdErrors.length > 0) return;
     setError("");
     setLoading(true);
     try {
@@ -73,9 +77,24 @@ export default function SignupPage() {
           <div>
             <Field label="Password" name="password" type="password" placeholder="8+ characters"
               value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <p style={{ fontSize: 11.5, color: "var(--faint)", margin: "5px 0 0", fontFamily: "var(--mono)" }}>
-              Min 8 chars, at least one digit
-            </p>
+            {showPwdHints && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 8 }}>
+                {PASSWORD_RULES.map(({ key, label }) => {
+                  const passing = !pwdErrors.includes(key);
+                  return (
+                    <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontFamily: "var(--mono)", color: passing ? "var(--accent)" : "var(--muted)" }}>
+                      <span style={{ fontSize: 10 }}>{passing ? "✓" : "·"}</span>
+                      {label}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {!showPwdHints && (
+              <p style={{ fontSize: 11.5, color: "var(--faint)", margin: "5px 0 0", fontFamily: "var(--mono)" }}>
+                Min 8 chars, at least one digit
+              </p>
+            )}
           </div>
 
           {error && <p style={{ fontSize: 13, color: "var(--err)", margin: 0 }}>{error}</p>}
@@ -93,6 +112,20 @@ export default function SignupPage() {
       </p>
     </div>
   );
+}
+
+const PASSWORD_RULES = [
+  { key: "length",    label: "At least 8 characters" },
+  { key: "lowercase", label: "At least one lowercase letter" },
+  { key: "digit",     label: "At least one digit" },
+];
+
+function validatePassword(pwd: string): string[] {
+  const errors: string[] = [];
+  if (pwd.length < 8)        errors.push("length");
+  if (!/[a-z]/.test(pwd))    errors.push("lowercase");
+  if (!/[0-9]/.test(pwd))    errors.push("digit");
+  return errors;
 }
 
 function Divider() {
