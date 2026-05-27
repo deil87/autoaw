@@ -459,7 +459,7 @@ function ArchitectureComparison() {
       </div>
 
       {/* Two panels */}
-      <div className="arch-panels" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", border:"1px solid var(--border)", borderRadius:"var(--r-3)", overflow:"hidden", background:"var(--bg-alt)", marginBottom: 14 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", border:"1px solid var(--border)", borderRadius:"var(--r-3)", overflow:"hidden", background:"var(--bg-alt)", marginBottom: 14 }}>
         <div style={{ padding: 20, borderRight:"1px solid var(--border)", background:"var(--bg-alt)" }}>
           <div className="ba-label">
             <span style={{ width:6, height:6, background:"var(--muted)", borderRadius:99, display:"inline-block" }}/>
@@ -663,7 +663,7 @@ const PUBLIC_LB = [
 function LeaderboardPreview() {
   return (
     <section className="page" style={{ paddingTop: 56, paddingBottom: 28 }}>
-      <div className="lb-section-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22 }}>
         <div>
           <div className="section-eyebrow">07 · leaderboard</div>
           <h2 className="section-title">Live: top results on GAIA.</h2>
@@ -833,7 +833,7 @@ function Pricing() {
 function FinalCTA() {
   return (
     <section className="page" style={{ paddingTop: 70, paddingBottom: 50 }}>
-      <div className="final-cta-banner" style={{ border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "40px 36px", background: "var(--ink)", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
+      <div style={{ border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "40px 36px", background: "var(--ink)", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
         <div>
           <div className="mono" style={{ fontSize: 11, color: "#9aa5b8", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Request a demo &amp; quotation
