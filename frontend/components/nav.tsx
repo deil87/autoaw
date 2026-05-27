@@ -80,9 +80,9 @@ export function Nav() {
           </a>
           {mounted && (onLanding ? (
             <>
-              <a href="mailto:spirtik87@gmail.com?subject=AutoAW%20demo%20%26%20quotation" className="btn btn-sm">
+              <Link href="/demo" className="btn btn-sm">
                 Request demo
-              </a>
+              </Link>
               <Link href="/experiments" className="btn btn-primary btn-sm">
                 Open app →
               </Link>

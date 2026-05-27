@@ -804,7 +804,7 @@ function Pricing() {
           custom="Custom pricing"
           cta="Request demo & quote"
           ctaPrimary featured
-          href="mailto:spirtik87@gmail.com?subject=AutoAW%20demo%20%26%20quotation"
+          href="/demo"
           meta={[
             ["license","Commercial — contact us"],
             ["deployment","SaaS · VPC · on-prem"],
@@ -845,9 +845,9 @@ function FinalCTA() {
             We&apos;ll walk you through a live demo and put together a custom quote for your team.
           </div>
         </div>
-        <a href="mailto:spirtik87@gmail.com?subject=AutoAW%20demo%20%26%20quotation" className="btn btn-lg" style={{ background: "white", color: "#0b0d10", borderColor: "white", flexShrink: 0 }}>
+        <Link href="/demo" className="btn btn-lg" style={{ background: "white", color: "#0b0d10", borderColor: "white", flexShrink: 0 }}>
           Request a demo <Icon name="arrow-right" size={13}/>
-        </a>
+        </Link>
       </div>
     </section>
   );

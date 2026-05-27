@@ -50,6 +50,8 @@ app = FastAPI(title="AutoAW", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://autoaw.app",
+        "https://d2dnaqhqu223h4.cloudfront.net",
         "https://d32ilmniiyvkjt.cloudfront.net",
         "http://localhost:3000",
         "http://localhost:3001",
@@ -132,6 +134,54 @@ _BENCHMARKS = [
         "task_count": 300,
     },
 ]
+
+
+class DemoRequest(BaseModel):
+    name: str
+    email: str
+    company: str = ""
+    message: str
+
+
+@app.post("/demo", status_code=200)
+def request_demo(req: DemoRequest):
+    if not req.name or not req.email or not req.message:
+        raise HTTPException(status_code=400, detail="name, email, and message are required")
+
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Email service not configured")
+
+    import resend
+    resend.api_key = api_key
+
+    from_email = os.environ.get("DEMO_FROM_EMAIL", "onboarding@resend.dev")
+    to_email = os.environ.get("DEMO_TO_EMAIL", "spirtik87@gmail.com")
+
+    company_line = f"<p><strong>Company:</strong> {req.company}</p>" if req.company else ""
+    company_text = f"\nCompany: {req.company}" if req.company else ""
+
+    params: resend.Emails.SendParams = {
+        "from": from_email,
+        "to": [to_email],
+        "reply_to": req.email,
+        "subject": f"Demo request from {req.name}" + (f" ({req.company})" if req.company else ""),
+        "html": f"""
+            <p><strong>Name:</strong> {req.name}</p>
+            <p><strong>Email:</strong> <a href="mailto:{req.email}">{req.email}</a></p>
+            {company_line}
+            <hr />
+            <p>{req.message.replace(chr(10), "<br />")}</p>
+        """,
+        "text": f"Name: {req.name}\nEmail: {req.email}{company_text}\n\n{req.message}",
+    }
+
+    try:
+        resend.Emails.send(params)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to send email")
+
+    return {"ok": True}
 
 
 @app.get("/benchmarks")

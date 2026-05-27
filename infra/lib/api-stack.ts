@@ -49,6 +49,9 @@ export class ApiStack extends cdk.Stack {
         ECS_TASK_SG_ID: ssm.StringParameter.valueForStringParameter(this, '/autoaw/engine/task-sg-id'),
         // Subnet IDs from the default VPC in eu-central-1 (matches cdk.context.json).
         ECS_SUBNET_IDS: 'subnet-093e4d4acd65d78d6,subnet-05a4cb04f08c633a3,subnet-086f54fee1c6e523d',
+        RESEND_API_KEY: process.env.RESEND_API_KEY ?? '',
+        DEMO_FROM_EMAIL: 'AutoAW <noreply@autoaw.app>',
+        DEMO_TO_EMAIL: 'spirtik87@gmail.com',
       },
     });
 

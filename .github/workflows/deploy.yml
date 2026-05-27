@@ -63,6 +63,7 @@ jobs:
         env:
           CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
           CDK_DEFAULT_REGION: eu-central-1
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
 
       # ── Extract CDK outputs ──────────────────────────────────────────────────
       - name: Extract CDK outputs
