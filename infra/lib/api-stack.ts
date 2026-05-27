@@ -52,6 +52,9 @@ export class ApiStack extends cdk.Stack {
         RESEND_API_KEY: process.env.RESEND_API_KEY ?? '',
         DEMO_FROM_EMAIL: 'AutoAW <noreply@optimetrics.ai>',
         DEMO_TO_EMAIL: 'spirtik87@gmail.com',
+        DEMO_REQUESTS_TABLE: props.storage.demoRequestsTable.tableName,
+        COGNITO_USER_POOL_ID: ssm.StringParameter.valueForStringParameter(this, '/autoaw/CognitoUserPoolId'),
+        ADMIN_EMAIL: 'spirtik87@gmail.com',
       },
     });
 
@@ -77,6 +80,12 @@ export class ApiStack extends cdk.Stack {
     props.storage.trialsTable.grantReadWriteData(fn);
     props.storage.evalRowsTable.grantReadWriteData(fn);
     props.storage.datasetsBucket.grantReadWrite(fn);
+    props.storage.demoRequestsTable.grantReadWriteData(fn);
+
+    fn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['cognito-idp:AdminCreateUser'],
+      resources: [`arn:aws:cognito-idp:${this.region}:${this.account}:userpool/*`],
+    }));
 
     // HTTP API — pay-per-request, no idle cost
     const api = new apigwv2.HttpApi(this, 'HttpApi', {

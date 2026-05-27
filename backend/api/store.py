@@ -57,6 +57,18 @@ _ALTER_EXPERIMENTS_STOP_REASON = """
 ALTER TABLE experiments ADD COLUMN stop_reason TEXT
 """
 
+_CREATE_DEMO_REQUESTS = """
+CREATE TABLE IF NOT EXISTS demo_requests (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    email       TEXT NOT NULL,
+    company     TEXT NOT NULL DEFAULT '',
+    message     TEXT NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'pending',
+    created_at  TEXT NOT NULL
+)
+"""
+
 _CREATE_EVAL_ROWS = """
 CREATE TABLE IF NOT EXISTS eval_rows (
     id              TEXT PRIMARY KEY,
@@ -97,6 +109,7 @@ class LocalStore:
         conn.execute(_CREATE_EXPERIMENTS)
         conn.execute(_CREATE_TRIALS)
         conn.execute(_CREATE_EVAL_ROWS)
+        conn.execute(_CREATE_DEMO_REQUESTS)
         # Idempotent ALTER TABLE — ignore if columns already exist
         for stmt in (
             _ALTER_TRIALS_PARENT,
@@ -274,6 +287,35 @@ class LocalStore:
             .fetchall()
         )
         return [dict(r) for r in rows]
+
+    # ── Demo requests ────────────────────────────────────────────────────────
+
+    def create_demo_request(self, name: str, email: str, company: str, message: str) -> str:
+        req_id = str(uuid.uuid4())
+        self._conn().execute(
+            "INSERT INTO demo_requests (id, name, email, company, message, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (req_id, name, email, company, message, _now()),
+        )
+        self._conn().commit()
+        return req_id
+
+    def list_demo_requests(self) -> list[dict[str, Any]]:
+        rows = (
+            self._conn()
+            .execute("SELECT * FROM demo_requests ORDER BY created_at DESC")
+            .fetchall()
+        )
+        return [dict(r) for r in rows]
+
+    def update_demo_request_status(self, req_id: str, status: str) -> None:
+        self._conn().execute(
+            "UPDATE demo_requests SET status = ? WHERE id = ?",
+            (status, req_id),
+        )
+        self._conn().commit()
+
+    # ── Trials lineage ───────────────────────────────────────────────────────
 
     def list_trials_lineage(self, experiment_id: str) -> list[dict[str, Any]]:
         rows = (

@@ -17,7 +17,7 @@ export class AuthStack extends cdk.Stack {
     // ── User Pool ─────────────────────────────────────────────────────────────
     this.userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: 'autoaw-users',
-      selfSignUpEnabled: true,
+      selfSignUpEnabled: false,
       signInAliases: { email: true },
       autoVerify: { email: true },
       standardAttributes: {
@@ -101,6 +101,12 @@ export class AuthStack extends cdk.Stack {
       resources: ['*'],
     }));
     this.userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, preSignupFn);
+
+    // ── SSM export: User Pool ID for cross-stack use without Fn::ImportValue ──
+    new ssm.StringParameter(this, 'UserPoolIdParam', {
+      parameterName: '/autoaw/CognitoUserPoolId',
+      stringValue: this.userPool.userPoolId,
+    });
 
     // ── CloudFormation outputs ────────────────────────────────────────────────
     new cdk.CfnOutput(this, 'UserPoolId', {

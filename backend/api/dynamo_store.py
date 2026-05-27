@@ -55,6 +55,8 @@ class DynamoStore:
         )
         self._trials = self._dynamo.Table(os.environ["TRIALS_TABLE"])
         self._eval_rows = self._dynamo.Table(os.environ["EVAL_ROWS_TABLE"])
+        demo_table = os.environ.get("DEMO_REQUESTS_TABLE")
+        self._demo_requests = self._dynamo.Table(demo_table) if demo_table else None
 
     def init_db(self) -> None:
         """No-op — tables are pre-created by CDK."""
@@ -262,6 +264,37 @@ class DynamoStore:
         rows = [_from_dynamo(i) for i in items]
         rows.sort(key=lambda r: r.get("row_index", 0))
         return rows
+
+    # ── Demo requests ────────────────────────────────────────────────────────
+
+    def create_demo_request(self, name: str, email: str, company: str, message: str) -> str:
+        req_id = str(uuid.uuid4())
+        self._demo_requests.put_item(Item={
+            "id": req_id,
+            "name": name,
+            "email": email,
+            "company": company,
+            "message": message,
+            "status": "pending",
+            "created_at": _now(),
+        })
+        return req_id
+
+    def list_demo_requests(self) -> list[dict[str, Any]]:
+        resp = self._demo_requests.scan()
+        items = resp.get("Items", [])
+        items.sort(key=lambda r: r.get("created_at", ""), reverse=True)
+        return items
+
+    def update_demo_request_status(self, req_id: str, status: str) -> None:
+        self._demo_requests.update_item(
+            Key={"id": req_id},
+            UpdateExpression="SET #s = :s",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={":s": status},
+        )
+
+    # ── Trials lineage ───────────────────────────────────────────────────────
 
     def list_trials_lineage(self, experiment_id: str) -> list[dict[str, Any]]:
         kwargs: dict[str, Any] = dict(

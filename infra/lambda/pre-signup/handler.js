@@ -35,39 +35,43 @@ exports.handler = async (event) => {
   const email = event.request.userAttributes.email;
 
   // ── Direction 1: Google (external provider) signs up ─────────────────────
+  // Invite-only: only allow Google sign-in if a native account was pre-created
+  // by an admin. This enforces the invite flow even for OAuth users.
   if (triggerSource === 'PreSignUp_ExternalProvider') {
+    if (!email) throw new Error('Email is required for sign-in.');
+
+    const users = await listByEmail(userPoolId, email);
+    const nativeUser = users.find(u => !isFederated(u.Username));
+
+    if (!nativeUser) {
+      throw new Error('Access denied. Please request an invite at autoaw.app/demo');
+    }
+
     event.response.autoConfirmUser = true;
     event.response.autoVerifyEmail = true;
 
-    if (email) {
-      try {
-        const users = await listByEmail(userPoolId, email);
-        const nativeUser = users.find(u => !isFederated(u.Username));
+    try {
+      const underscoreIdx = event.userName.indexOf('_');
+      const rawPrefix    = event.userName.slice(0, underscoreIdx);
+      const providerName = rawPrefix.charAt(0).toUpperCase() + rawPrefix.slice(1);
+      const providerSub  = event.userName.slice(underscoreIdx + 1);
 
-        if (nativeUser) {
-          const underscoreIdx = event.userName.indexOf('_');
-          const rawPrefix    = event.userName.slice(0, underscoreIdx);
-          const providerName = rawPrefix.charAt(0).toUpperCase() + rawPrefix.slice(1);
-          const providerSub  = event.userName.slice(underscoreIdx + 1);
-
-          await cognito.send(new AdminLinkProviderForUserCommand({
-            UserPoolId: userPoolId,
-            DestinationUser: {
-              ProviderName:           'Cognito',
-              ProviderAttributeValue: nativeUser.Username,
-            },
-            SourceUser: {
-              ProviderName:           providerName,
-              ProviderAttributeName:  'Cognito_Subject',
-              ProviderAttributeValue: providerSub,
-            },
-          }));
-          console.log(`[pre-signup] linked ${providerName} → native user "${nativeUser.Username}" (${email})`);
-        }
-      } catch (err) {
-        // Don't fail the sign-in — worst case they get a second account
-        console.error('[pre-signup] account linking failed:', err);
-      }
+      await cognito.send(new AdminLinkProviderForUserCommand({
+        UserPoolId: userPoolId,
+        DestinationUser: {
+          ProviderName:           'Cognito',
+          ProviderAttributeValue: nativeUser.Username,
+        },
+        SourceUser: {
+          ProviderName:           providerName,
+          ProviderAttributeName:  'Cognito_Subject',
+          ProviderAttributeValue: providerSub,
+        },
+      }));
+      console.log(`[pre-signup] linked ${providerName} → native user "${nativeUser.Username}" (${email})`);
+    } catch (err) {
+      console.error('[pre-signup] account linking failed:', err);
+      throw err;
     }
 
     return event;

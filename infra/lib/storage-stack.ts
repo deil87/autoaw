@@ -7,6 +7,7 @@ export class StorageStack extends cdk.Stack {
   readonly experimentsTable: dynamodb.Table;
   readonly trialsTable: dynamodb.Table;
   readonly evalRowsTable: dynamodb.Table;
+  readonly demoRequestsTable: dynamodb.Table;
   readonly datasetsBucket: s3.Bucket;
   readonly snapshotsBucket: s3.Bucket;
 
@@ -47,6 +48,14 @@ export class StorageStack extends cdk.Stack {
       indexName: 'trial-id-index',
       partitionKey: { name: 'trial_id', type: dynamodb.AttributeType.STRING },
       projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    // demo_requests — invite management
+    this.demoRequestsTable = new dynamodb.Table(this, 'DemoRequests', {
+      tableName: 'autoaw-demo-requests',
+      partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     // Datasets bucket — CORS for presigned PUT uploads from the browser

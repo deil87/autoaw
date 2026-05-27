@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 
-const PUBLIC_PATHS = ["/", "/demo", "/login", "/signup", "/confirm"];
+const PUBLIC_PATHS = ["/", "/demo", "/login"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "?"));

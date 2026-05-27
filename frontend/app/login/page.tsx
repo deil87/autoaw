@@ -18,7 +18,6 @@ function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const from = params.get("from") ?? "/experiments";
-  const confirmed = params.get("confirmed") === "1";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,9 +45,7 @@ function LoginForm() {
     setLoading(true);
     try {
       const { needsConfirmation } = await signIn(email, password);
-      if (needsConfirmation) {
-        router.push(`/confirm?email=${encodeURIComponent(email)}`);
-      } else {
+      if (!needsConfirmation) {
         router.replace(from);
       }
     } catch (err: any) {
@@ -78,12 +75,6 @@ function LoginForm() {
           Sign in to AutoAW
         </h1>
       </div>
-
-      {confirmed && (
-        <div style={{ marginBottom: 20, padding: "10px 14px", borderRadius: 6, background: "var(--accent-soft)", border: "1px solid rgba(17,151,96,0.2)", fontSize: 13, color: "var(--accent-ink)" }}>
-          Account verified — you can now sign in.
-        </div>
-      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {/* Google OAuth */}
@@ -116,8 +107,8 @@ function LoginForm() {
       </div>
 
       <p style={{ marginTop: 24, fontSize: 13, color: "var(--muted)", textAlign: "center" }}>
-        No account?{" "}
-        <Link href="/signup" style={{ color: "var(--accent)" }}>Create one</Link>
+        Need access?{" "}
+        <Link href="/demo" style={{ color: "var(--accent)" }}>Request an invite</Link>
       </p>
     </div>
   );

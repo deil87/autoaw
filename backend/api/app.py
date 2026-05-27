@@ -6,7 +6,9 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, UploadFile, File, Query
+import base64
+from fastapi import FastAPI, HTTPException, UploadFile, File, Query, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -143,6 +145,26 @@ class DemoRequest(BaseModel):
     message: str
 
 
+_bearer = HTTPBearer()
+_ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "spirtik87@gmail.com")
+
+
+def _require_admin(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> str:
+    """Decode JWT payload (no signature verification — API Gateway handles that)
+    and check that the caller is the admin."""
+    token = creds.credentials
+    try:
+        parts = token.split(".")
+        payload_b64 = parts[1] + "=" * (-len(parts[1]) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+        email = payload.get("email", "")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    if email != _ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return email
+
+
 @app.post("/demo", status_code=200)
 def request_demo(req: DemoRequest):
     if not req.name or not req.email or not req.message:
@@ -181,7 +203,57 @@ def request_demo(req: DemoRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to send email")
 
+    if hasattr(_store, "create_demo_request"):
+        try:
+            _store.create_demo_request(req.name, req.email, req.company, req.message)
+        except Exception:
+            pass  # Don't fail the request if persistence fails
+
     return {"ok": True}
+
+
+class InviteRequest(BaseModel):
+    email: str
+    name: str
+    request_id: str | None = None
+
+
+@app.get("/admin/requests")
+def admin_list_requests(_admin: str = Depends(_require_admin)):
+    return _store.list_demo_requests()
+
+
+@app.post("/admin/invite", status_code=200)
+def admin_send_invite(req: InviteRequest, _admin: str = Depends(_require_admin)):
+    import boto3
+    user_pool_id = os.environ.get("COGNITO_USER_POOL_ID", "")
+    if not user_pool_id:
+        raise HTTPException(status_code=500, detail="Cognito not configured")
+
+    client = boto3.client("cognito-idp", region_name="eu-central-1")
+    try:
+        client.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=req.email,
+            UserAttributes=[
+                {"Name": "email", "Value": req.email},
+                {"Name": "email_verified", "Value": "true"},
+                {"Name": "name", "Value": req.name},
+            ],
+            DesiredDeliveryMediums=["EMAIL"],
+        )
+    except client.exceptions.UsernameExistsException:
+        raise HTTPException(status_code=409, detail="User already exists")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    if req.request_id and hasattr(_store, "update_demo_request_status"):
+        try:
+            _store.update_demo_request_status(req.request_id, "invited")
+        except Exception:
+            pass
+
+    return {"ok": True, "email": req.email}
 
 
 @app.get("/benchmarks")
