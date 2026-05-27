@@ -768,37 +768,62 @@ function PlanCard({ name, desc, price, period, custom, cta, ctaPrimary, badge, f
 
 function Pricing() {
   return (
-    <section className="page" style={{ paddingTop: 56, paddingBottom: 28 }}>
+    <section id="pricing" className="page" style={{ paddingTop: 56, paddingBottom: 28 }}>
       <div style={{ marginBottom: 30 }}>
         <div className="section-eyebrow">08 · pricing</div>
-        <h2 className="section-title">Plans that scale with search budget.</h2>
+        <h2 className="section-title">Free for research. Licensed for commercial use.</h2>
         <p className="section-lede">
-          You pay for compute, not seats. Each tier adds parallelism, longer searches, and the controls larger orgs need.
+          AutoAW is open source under the PolyForm Noncommercial license — free forever for researchers and personal projects.
+          Commercial use requires a license; pricing is custom and based on your use case.
         </p>
       </div>
-      <div className="pricing-grid">
+      <div className="pricing-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
         <PlanCard
-          name="Starter" desc="Solo devs and weekend hackers kicking the tires."
-          price="$0" period="/ month · free during beta" cta="Start free"
-          meta={[["concurrent experiments","1"],["candidates / month","200"],["max graph nodes","8"],["history retention","14 days"]]}
-          feats={["Bring-your-own API keys","All search algorithms (MIPRO, OPRO, evo)","Public-leaderboard submissions",{text:"Private experiments",muted:true},{text:"Slack / email support",muted:true}]}
+          name="Research & Personal"
+          desc="For academics, individual researchers, and non-commercial side projects."
+          price="$0" period="/ forever"
+          cta="Start free"
+          meta={[
+            ["license","PolyForm Noncommercial 1.0.0"],
+            ["concurrent experiments","2"],
+            ["candidates / month","500"],
+            ["support","GitHub Discussions"],
+          ]}
+          feats={[
+            "Full access to all search algorithms (MIPRO, OPRO, evo)",
+            "Bring-your-own API keys",
+            "Public leaderboard submissions",
+            "All export formats (JSON, Python)",
+            { text: "Commercial use", muted: true },
+            { text: "SLA / dedicated support", muted: true },
+          ]}
         />
         <PlanCard
-          name="Team" desc="Growing AI teams shipping agents to production."
-          price="$499" period="/ month · billed annually" cta="Start 14-day trial"
-          ctaPrimary badge="Recommended" featured
-          meta={[["concurrent experiments","8"],["candidates / month","25,000"],["overage","$0.015 / candidate"],["max graph nodes","unlimited"],["seats","10 included"],["history retention","12 months"]]}
-          feats={["Private workspaces + RBAC","GitHub Actions / CI integration","Webhooks + REST + Python SDK","Inspect, LangGraph, DSPy adapters","Slack support · 1 business day"]}
-        />
-        <PlanCard
-          name="Enterprise" desc="Regulated industries, large teams, custom deploys."
-          custom="Let's talk" cta="Talk to sales"
-          meta={[["concurrent experiments","unlimited"],["candidates / month","committed spend"],["seats","unlimited"],["deployment","SaaS · VPC · on-prem"],["uptime SLA","99.9%"]]}
-          feats={["SSO (SAML / OIDC) + SCIM","SOC 2 Type II, HIPAA, audit logs","Dedicated solutions engineer","Custom search algorithms + private benchmarks","Priority support · 1 hour response"]}
+          name="Enterprise"
+          desc="Commercial license for teams shipping agentic products to production."
+          custom="Custom pricing"
+          cta="Request demo & quote"
+          ctaPrimary featured
+          href="mailto:spirtik87@gmail.com?subject=AutoAW%20demo%20%26%20quotation"
+          meta={[
+            ["license","Commercial — contact us"],
+            ["deployment","SaaS · VPC · on-prem"],
+            ["seats","unlimited"],
+            ["uptime SLA","99.9%"],
+          ]}
+          feats={[
+            "Everything in Research",
+            "Commercial use rights",
+            "Unlimited experiments & candidates",
+            "SSO (SAML / OIDC) + SCIM",
+            "SOC 2 Type II, HIPAA, audit logs",
+            "Dedicated solutions engineer",
+            "Priority support · 1-hour response",
+          ]}
         />
       </div>
       <div className="pricing-foot mono">
-        All plans include the public leaderboard, BYO keys, and read-only API access · prices in USD, exclusive of tax
+        Not sure if your use case is commercial? See <a href="/COMMERCIAL.md" style={{ color: "inherit", textDecoration: "underline" }}>COMMERCIAL.md</a> or email us.
       </div>
     </section>
   );
@@ -840,9 +865,9 @@ function Footer() {
           <span>v0.4.1</span>
         </div>
         <div style={{ display: "flex", gap: 18, color: "var(--faint)", fontSize: 12.5 }}>
+          <a href="https://github.com/deil87/autoaw" target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "none" }}>GitHub</a>
           <span style={{ cursor: "default" }}>Docs</span>
           <span style={{ cursor: "default" }}>API</span>
-          <span style={{ cursor: "default" }}>Discord</span>
           <span style={{ cursor: "default" }}>Status</span>
         </div>
       </div>
@@ -860,6 +885,7 @@ export default function HomePage() {
       <HowItWorks/>
       <BenchmarkNumbers/>
       <LeaderboardPreview/>
+      <Pricing/>
       <FinalCTA/>
       <Footer/>
     </div>
