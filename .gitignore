@@ -40,6 +40,10 @@ infra/dist/
 # ── Git worktrees ────────────────────────────────────────────────────────────
 .worktrees/
 
+# ── Dev tool state (opencode, superpowers) ────────────────────────────────────
+.opencode/
+.superpowers/
+
 # ── Local runtime / dev data ─────────────────────────────────────────────────
 autoaw.db
 autoaw.db-shm
