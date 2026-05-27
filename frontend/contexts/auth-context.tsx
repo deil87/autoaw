@@ -1,13 +1,18 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import {
-  CognitoUserPool,
-  CognitoUser,
-  AuthenticationDetails,
-  CognitoUserSession,
-} from "amazon-cognito-identity-js";
+  signIn as amplifySignIn,
+  signUp as amplifySignUp,
+  signOut as amplifySignOut,
+  confirmSignUp as amplifyConfirmSignUp,
+  resendSignUpCode,
+  signInWithRedirect,
+  fetchAuthSession,
+} from "aws-amplify/auth";
+import { Hub } from "aws-amplify/utils";
+import { configureAmplify } from "@/lib/amplify-config";
 
-interface AuthUser {
+export interface AuthUser {
   email: string;
   idToken: string;
 }
@@ -15,20 +20,26 @@ interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   signUp: (email: string, password: string) => Promise<void>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
   resendCode: (email: string) => Promise<void>;
-  signOut: () => void;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function makePool(): CognitoUserPool {
-  return new CognitoUserPool({
-    UserPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID!,
-    ClientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID!,
-  });
+async function loadUser(): Promise<AuthUser | null> {
+  try {
+    const session = await fetchAuthSession();
+    if (!session.tokens?.idToken) return null;
+    const payload = session.tokens.idToken.payload;
+    const email = (payload["email"] as string | undefined) ?? "";
+    return { email, idToken: session.tokens.idToken.toString() };
+  } catch {
+    return null;
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -36,74 +47,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const pool = makePool();
-    const cognitoUser = pool.getCurrentUser();
-    if (!cognitoUser) {
+    configureAmplify();
+
+    loadUser().then(u => {
+      setUser(u);
       setLoading(false);
-      return;
-    }
-    cognitoUser.getSession((err: Error | null, session: CognitoUserSession | null) => {
-      if (!err && session?.isValid()) {
-        setUser({ email: cognitoUser.getUsername(), idToken: session.getIdToken().getJwtToken() });
+    });
+
+    // Update state after OAuth redirect or sign-out from any tab
+    const unsub = Hub.listen("auth", ({ payload }) => {
+      if (payload.event === "signInWithRedirect") {
+        loadUser().then(setUser);
       }
-      setLoading(false);
+      if (payload.event === "signedOut") {
+        setUser(null);
+      }
+    });
+
+    return unsub;
+  }, []);
+
+  const signIn = useCallback(
+    async (email: string, password: string): Promise<{ needsConfirmation: boolean }> => {
+      const result = await amplifySignIn({ username: email, password });
+      if (result.nextStep?.signInStep === "CONFIRM_SIGN_UP") {
+        return { needsConfirmation: true };
+      }
+      if (result.isSignedIn) {
+        const u = await loadUser();
+        setUser(u);
+      }
+      return { needsConfirmation: false };
+    },
+    []
+  );
+
+  const signUp = useCallback(async (email: string, password: string): Promise<void> => {
+    await amplifySignUp({
+      username: email,
+      password,
+      options: { userAttributes: { email } },
     });
   }, []);
 
-  const signIn = useCallback((email: string, password: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const pool = makePool();
-      const cognitoUser = new CognitoUser({ Username: email, Pool: pool });
-      const authDetails = new AuthenticationDetails({ Username: email, Password: password });
-      cognitoUser.authenticateUser(authDetails, {
-        onSuccess: (session: CognitoUserSession) => {
-          setUser({ email, idToken: session.getIdToken().getJwtToken() });
-          resolve();
-        },
-        onFailure: reject,
-      });
-    });
+  const confirmSignUp = useCallback(
+    async (email: string, code: string): Promise<void> => {
+      await amplifyConfirmSignUp({ username: email, confirmationCode: code });
+    },
+    []
+  );
+
+  const resendCode = useCallback(async (email: string): Promise<void> => {
+    await resendSignUpCode({ username: email });
   }, []);
 
-  const signUp = useCallback((email: string, password: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const pool = makePool();
-      pool.signUp(email, password, [], [], (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
+  const doSignInWithGoogle = useCallback(async (): Promise<void> => {
+    try { await amplifySignOut(); } catch { /* no session to clear */ }
+    await signInWithRedirect({ provider: "Google" });
   }, []);
 
-  const confirmSignUp = useCallback((email: string, code: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const pool = makePool();
-      const cognitoUser = new CognitoUser({ Username: email, Pool: pool });
-      cognitoUser.confirmRegistration(code, true, (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
-  }, []);
-
-  const resendCode = useCallback((email: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const pool = makePool();
-      const cognitoUser = new CognitoUser({ Username: email, Pool: pool });
-      cognitoUser.resendConfirmationCode((err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
-  }, []);
-
-  const signOut = useCallback(() => {
-    makePool().getCurrentUser()?.signOut();
+  const doSignOut = useCallback(async (): Promise<void> => {
+    await amplifySignOut();
     setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, confirmSignUp, resendCode, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signIn,
+        signUp,
+        confirmSignUp,
+        resendCode,
+        signInWithGoogle: doSignInWithGoogle,
+        signOut: doSignOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
