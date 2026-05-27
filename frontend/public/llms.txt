@@ -1,0 +1,44 @@
+# AutoAW
+
+> AutoAW automatically discovers optimal multi-agent workflow configurations — co-evolving topology, prompts, models, and tools to hit the Pareto frontier of quality, cost, and latency.
+
+AutoAW is an automated optimization platform for agentic AI workflows. Given a task description or an existing workflow, it uses evolutionary search to find the cheapest configuration that still meets your quality and latency requirements.
+
+## What it does
+
+- Accepts a natural-language task description or an existing workflow (LangGraph, DSPy, custom Python)
+- Searches over multi-agent architectures: multi-agent committees and agentic glue + skills
+- Co-evolves topology, prompts, model assignments, and tool selections simultaneously
+- Evaluates every candidate against a user-supplied eval dataset with user-defined utility weights (quality, cost, latency)
+- Returns the Pareto frontier: every non-dominated configuration across all objectives
+
+## Key benchmark results (GAIA, customer-support copilot, 1 400-ticket eval)
+
+- Quality: 74.1% vs 69.2% Claude Sonnet 4.5 baseline (+5.3 pp)
+- Cost: $4.20/run vs $26.80 GPT-5 single-agent (6.7× cheaper)
+- Latency p50: 2.4 s vs 8.7 s (3.6× faster)
+- Time to SOTA: 38 minutes wall-clock, 94 candidates explored
+
+## How it works (four steps)
+
+1. Describe the task or import an existing graph
+2. Choose an eval dataset and set utility weights (quality, cost, speed)
+3. AutoAW runs a search loop — swapping models, splitting/merging agents, editing prompts, pruning tools
+4. Pick any point on the Pareto frontier; export as JSON, Python, or a hosted endpoint
+
+## Supported workflow architectures
+
+- Multi-agent committee: multiple LLM agents with hand-offs and cross-talk; preferred when isolation or domain-breadth is required
+- Agentic glue + skills: one conductor LLM calling deterministic tools; preferred when cost/latency are in the objective
+
+## Licensing
+
+- Free for research and personal use: PolyForm Noncommercial 1.0.0
+- Commercial use: custom license — contact AutoAW Labs
+
+## Links
+
+- Homepage: https://autoaw.app
+- Source: https://github.com/deil87/autoaw
+- Demo & quote: https://autoaw.app/demo
+- License FAQ: https://autoaw.app/COMMERCIAL.md
