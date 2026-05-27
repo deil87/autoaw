@@ -21,7 +21,7 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<React.ReactNode>("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -32,7 +32,7 @@ function LoginForm() {
         router.replace(from);
       }
       if (payload.event === "signInWithRedirect_failure") {
-        setError("Google sign-in failed. Please try again.");
+        setError(<>No AutoAW account for that Google address. <Link href="/demo" style={{ color: "var(--accent)" }}>Request an invite →</Link></>);
         setGoogleLoading(false);
       }
     });
@@ -74,6 +74,10 @@ function LoginForm() {
         <h1 style={{ fontSize: 28, fontWeight: 500, letterSpacing: "-0.025em", margin: "10px 0 0", color: "var(--ink)" }}>
           Sign in to AutoAW
         </h1>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 10, lineHeight: 1.55 }}>
+          Access is by invite only.{" "}
+          <Link href="/demo" style={{ color: "var(--accent)" }}>Request an invite →</Link>
+        </p>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -106,10 +110,6 @@ function LoginForm() {
         </form>
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "var(--muted)", textAlign: "center" }}>
-        Need access?{" "}
-        <Link href="/demo" style={{ color: "var(--accent)" }}>Request an invite</Link>
-      </p>
     </div>
   );
 }
