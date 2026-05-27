@@ -30,8 +30,12 @@ _ECS_SUBNETS  = [s for s in os.environ.get("ECS_SUBNET_IDS", "").split(",") if s
 _experiments = _dynamo.Table(os.environ["EXPERIMENTS_TABLE"])
 _trials      = _dynamo.Table(os.environ["TRIALS_TABLE"])
 _eval_rows   = _dynamo.Table(os.environ["EVAL_ROWS_TABLE"])
+_demo_table  = os.environ.get("DEMO_REQUESTS_TABLE", "")
+_demo_requests = _dynamo.Table(_demo_table) if _demo_table else None
 
-_DATASETS_BUCKET = os.environ["DATASETS_BUCKET"]
+_DATASETS_BUCKET   = os.environ["DATASETS_BUCKET"]
+_ADMIN_EMAIL       = os.environ.get("ADMIN_EMAIL", "spirtik87@gmail.com")
+_COGNITO_POOL_ID   = os.environ.get("COGNITO_USER_POOL_ID", "")
 
 # ── DynamoDB helpers ──────────────────────────────────────────────────────────
 
@@ -424,7 +428,97 @@ def _request_demo(body: dict) -> tuple[Any, int]:
     except Exception as exc:
         return {"detail": f"Failed to send email: {exc}"}, 500
 
+    if _demo_requests:
+        try:
+            _demo_requests.put_item(Item={
+                "id": str(uuid.uuid4()),
+                "name": name,
+                "email": email,
+                "company": company,
+                "message": message,
+                "status": "pending",
+                "created_at": _now(),
+            })
+        except Exception:
+            pass
+
     return {"ok": True}, 200
+
+
+# ── Admin ops ─────────────────────────────────────────────────────────────────
+
+def _admin_email_from_token(headers: dict) -> str | None:
+    """Extract email from Cognito JWT without signature verification."""
+    auth = headers.get("authorization") or headers.get("Authorization") or ""
+    if not auth.startswith("Bearer "):
+        return None
+    token = auth[len("Bearer "):]
+    try:
+        parts = token.split(".")
+        payload_b64 = parts[1] + "=" * (-len(parts[1]) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+        return payload.get("email", "")
+    except Exception:
+        return None
+
+
+def _admin_list_requests(headers: dict) -> tuple[Any, int]:
+    email = _admin_email_from_token(headers)
+    if not email:
+        return {"detail": "Unauthorized"}, 401
+    if email != _ADMIN_EMAIL:
+        return {"detail": "Forbidden"}, 403
+    if not _demo_requests:
+        return {"detail": "Demo requests table not configured"}, 500
+    items = _demo_requests.scan().get("Items", [])
+    items.sort(key=lambda r: r.get("created_at", ""), reverse=True)
+    return items, 200
+
+
+def _admin_send_invite(body: dict, headers: dict) -> tuple[Any, int]:
+    email = _admin_email_from_token(headers)
+    if not email:
+        return {"detail": "Unauthorized"}, 401
+    if email != _ADMIN_EMAIL:
+        return {"detail": "Forbidden"}, 403
+    if not _COGNITO_POOL_ID:
+        return {"detail": "Cognito not configured"}, 500
+
+    invite_email = (body.get("email") or "").strip()
+    invite_name  = (body.get("name") or "").strip()
+    request_id   = body.get("request_id")
+    if not invite_email:
+        return {"detail": "email is required"}, 400
+
+    cognito = boto3.client("cognito-idp", region_name="eu-central-1")
+    try:
+        cognito.admin_create_user(
+            UserPoolId=_COGNITO_POOL_ID,
+            Username=invite_email,
+            UserAttributes=[
+                {"Name": "email", "Value": invite_email},
+                {"Name": "email_verified", "Value": "true"},
+                {"Name": "name", "Value": invite_name},
+            ],
+            DesiredDeliveryMediums=["EMAIL"],
+        )
+    except cognito.exceptions.UsernameExistsException:
+        return {"detail": "User already exists"}, 409
+    except Exception as exc:
+        return {"detail": str(exc)}, 500
+
+    if request_id and _demo_requests:
+        try:
+            _demo_requests.update_item(
+                Key={"id": request_id},
+                UpdateExpression="SET #s = :s",
+                ExpressionAttributeNames={"#s": "status"},
+                ExpressionAttributeValues={":s": "invited"},
+            )
+        except Exception:
+            pass
+
+    return {"ok": True, "email": invite_email}, 200
 
 
 # ── Static data ───────────────────────────────────────────────────────────────
@@ -592,6 +686,10 @@ def _route(method: str, path: str, qs: dict, body: dict, event: dict) -> tuple[A
         return {"status": "ok"}, 200
     if p == "/demo" and method == "POST":
         return _request_demo(body)
+    if p == "/admin/requests" and method == "GET":
+        return _admin_list_requests(event.get("headers") or {})
+    if p == "/admin/invite" and method == "POST":
+        return _admin_send_invite(body, event.get("headers") or {})
     if p == "/infra/ecs" and method == "GET":
         return _get_ecs_status(qs.get("experiment_id") or None)
     if p == "/benchmarks" and method == "GET":
