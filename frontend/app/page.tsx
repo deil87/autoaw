@@ -219,8 +219,8 @@ function Hero() {
             of your utility function so you ship the cheapest version that still hits your bar.
           </p>
           <div className="hero-ctas">
-            <Link href="/experiments/new" className="btn btn-primary btn-lg">
-              Start an experiment <Icon name="arrow-right" size={13}/>
+            <Link href="/demo" className="btn btn-primary btn-lg">
+              Request a demo <Icon name="arrow-right" size={13}/>
             </Link>
             <Link href="/experiments" className="btn btn-lg">
               See experiments
