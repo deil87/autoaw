@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
 import { Nav } from "@/components/nav";
+import { AuthProvider } from "@/contexts/auth-context";
+import { AuthGuard } from "@/components/auth-guard";
 import "./globals.css";
 
 const geist = localFont({
@@ -34,8 +36,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       `}</Script>
       <body className={`${geist.variable} ${geistMono.variable}`}
             style={{ fontFamily: "var(--font-geist, var(--sans))" }}>
-        <Nav />
-        <main className="aw-page">{children}</main>
+        <AuthProvider>
+          <Nav />
+          <main className="aw-page">
+            <AuthGuard>{children}</AuthGuard>
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );

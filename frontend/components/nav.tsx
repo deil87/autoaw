@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
 
 const links = [
   { href: "/experiments", label: "Experiments" },
@@ -36,9 +37,16 @@ function Logo({ size = 22 }: { size?: number }) {
 
 export function Nav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const onLanding = pathname === "/";
+
+  function handleSignOut() {
+    signOut();
+    router.push("/");
+  }
 
   return (
     <nav className="aw-nav">
@@ -83,12 +91,21 @@ export function Nav() {
               <Link href="/demo" className="btn btn-sm">
                 Request demo
               </Link>
-              <Link href="/experiments" className="btn btn-primary btn-sm">
-                Open app →
+              <Link href={user ? "/experiments" : "/login"} className="btn btn-primary btn-sm">
+                {user ? "Open app →" : "Sign in →"}
               </Link>
             </>
+          ) : user ? (
+            <>
+              <span className="mono faint" style={{ fontSize: 11, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {user.email}
+              </span>
+              <button onClick={handleSignOut} className="btn btn-ghost btn-sm">
+                Sign out
+              </button>
+            </>
           ) : (
-            <span className="mono faint" style={{ fontSize: 11.5 }}>workspace · autoaw</span>
+            <Link href="/login" className="btn btn-primary btn-sm">Sign in →</Link>
           ))}
         </div>
       </div>

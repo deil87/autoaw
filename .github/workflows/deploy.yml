@@ -73,10 +73,14 @@ jobs:
           BUCKET=$(python3 -c "import json; d=json.load(open('cdk-outputs.json')); print(d['AutoAwFrontend']['SiteBucketName'])")
           DIST_ID=$(python3 -c "import json; d=json.load(open('cdk-outputs.json')); print(d['AutoAwFrontend']['DistributionId'])")
           ECR_URI=$(python3 -c "import json; d=json.load(open('cdk-outputs.json')); print(d['AutoAwEngine']['EngineRepoUri'])")
+          COGNITO_POOL_ID=$(python3 -c "import json; d=json.load(open('cdk-outputs.json')); print(d['AutoAwAuth']['UserPoolId'])")
+          COGNITO_CLIENT_ID=$(python3 -c "import json; d=json.load(open('cdk-outputs.json')); print(d['AutoAwAuth']['UserPoolClientId'])")
           echo "api_url=$API_URL" >> $GITHUB_OUTPUT
           echo "bucket=$BUCKET" >> $GITHUB_OUTPUT
           echo "dist_id=$DIST_ID" >> $GITHUB_OUTPUT
           echo "ecr_uri=$ECR_URI" >> $GITHUB_OUTPUT
+          echo "cognito_pool_id=$COGNITO_POOL_ID" >> $GITHUB_OUTPUT
+          echo "cognito_client_id=$COGNITO_CLIENT_ID" >> $GITHUB_OUTPUT
         working-directory: infra
 
       # ── Engine Docker image ──────────────────────────────────────────────────
@@ -111,6 +115,8 @@ jobs:
         working-directory: frontend
         env:
           NEXT_PUBLIC_API_URL: ${{ steps.cdk.outputs.api_url }}
+          NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ steps.cdk.outputs.cognito_pool_id }}
+          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ steps.cdk.outputs.cognito_client_id }}
 
       # ── Deploy frontend ──────────────────────────────────────────────────────
       # Hashed assets (_next/static/**) are immutable — cache forever.

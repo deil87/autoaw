@@ -6,6 +6,7 @@ import { ApiStack } from '../lib/api-stack';
 import { FrontendStack } from '../lib/frontend-stack';
 import { CertificateStack } from '../lib/certificate-stack';
 import { GitHubActionsStack } from '../lib/github-actions-stack';
+import { AuthStack } from '../lib/auth-stack';
 
 const app = new cdk.App();
 
@@ -13,6 +14,8 @@ const env: cdk.Environment = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
   region: process.env.CDK_DEFAULT_REGION ?? 'eu-central-1',
 };
+
+new AuthStack(app, 'AutoAwAuth', { env });
 
 const storage = new StorageStack(app, 'AutoAwStorage', { env });
 const engine = new EngineStack(app, 'AutoAwEngine', { env, storage });
