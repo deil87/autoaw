@@ -386,6 +386,47 @@ def _upload_dataset(event: dict) -> tuple[Any, int]:
     return {"dataset_id": dataset_id, "records": len(parsed)}, 201
 
 
+# ── Demo request ─────────────────────────────────────────────────────────────
+
+def _request_demo(body: dict) -> tuple[Any, int]:
+    name    = (body.get("name") or "").strip()
+    email   = (body.get("email") or "").strip()
+    company = (body.get("company") or "").strip()
+    message = (body.get("message") or "").strip()
+
+    if not name or not email or not message:
+        return {"detail": "name, email, and message are required"}, 400
+
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    if not api_key:
+        return {"detail": "Email service not configured"}, 500
+
+    import resend
+    resend.api_key = api_key
+
+    from_email = os.environ.get("DEMO_FROM_EMAIL", "onboarding@resend.dev")
+    to_email   = os.environ.get("DEMO_TO_EMAIL", "spirtik87@gmail.com")
+    subject    = f"Demo request from {name}" + (f" ({company})" if company else "")
+    company_html = f"<p><strong>Company:</strong> {company}</p>" if company else ""
+    company_text = f"\nCompany: {company}" if company else ""
+
+    params: resend.Emails.SendParams = {
+        "from": from_email,
+        "to": [to_email],
+        "reply_to": email,
+        "subject": subject,
+        "html": f"<p><strong>Name:</strong> {name}</p><p><strong>Email:</strong> <a href='mailto:{email}'>{email}</a></p>{company_html}<hr/><p>{message.replace(chr(10), '<br/>')}</p>",
+        "text": f"Name: {name}\nEmail: {email}{company_text}\n\n{message}",
+    }
+
+    try:
+        resend.Emails.send(params)
+    except Exception as exc:
+        return {"detail": f"Failed to send email: {exc}"}, 500
+
+    return {"ok": True}, 200
+
+
 # ── Static data ───────────────────────────────────────────────────────────────
 
 _BENCHMARKS = [
@@ -549,6 +590,8 @@ def _route(method: str, path: str, qs: dict, body: dict, event: dict) -> tuple[A
 
     if p == "/health":
         return {"status": "ok"}, 200
+    if p == "/demo" and method == "POST":
+        return _request_demo(body)
     if p == "/infra/ecs" and method == "GET":
         return _get_ecs_status(qs.get("experiment_id") or None)
     if p == "/benchmarks" and method == "GET":
