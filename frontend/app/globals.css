@@ -745,6 +745,52 @@ input[type=range].aw-slider::-webkit-slider-thumb {
 /* ---- Nav right ---- */
 .aw-nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 
+/* ---- Hamburger button (mobile only) ---- */
+.aw-nav-hamburger {
+  display: none;
+  margin-left: auto;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-2);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+.aw-nav-hamburger:hover { background: var(--surface); }
+
+/* ---- Mobile menu sheet ---- */
+.aw-mobile-menu {
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: saturate(180%) blur(12px);
+  padding: 6px 16px 20px;
+}
+.aw-mobile-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 4px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  transition: color 0.12s;
+}
+.aw-mobile-link:hover { color: var(--text); }
+.aw-mobile-link.active { color: var(--text); }
+.aw-mobile-link-disabled { cursor: default; color: var(--faint); }
+.aw-mobile-menu-footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
 /* ---- Section titles ---- */
 .section-title { font-size: 28px; font-weight: 500; letter-spacing: -0.025em; line-height: 1.1; margin: 8px 0 0; color: var(--text); }
 .section-lede { font-size: 16px; color: var(--muted); margin: 10px 0 0; max-width: 60ch; line-height: 1.55; }
@@ -763,6 +809,13 @@ input[type=range].aw-slider::-webkit-slider-thumb {
   .exp-row { grid-template-columns: 1fr auto; }
 }
 @media (max-width: 768px) {
-  .aw-nav-inner { padding: 12px 16px; }
+  .aw-nav-inner { padding: 12px 16px; gap: 16px; }
+  .aw-nav-links { display: none; }
+  .aw-nav-right { display: none; }
+  .aw-nav-hamburger { display: flex; }
   .aw-page { padding: 16px; }
+}
+@media (min-width: 769px) {
+  .aw-mobile-menu { display: none !important; }
+  .aw-nav-hamburger { display: none !important; }
 }

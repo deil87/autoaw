@@ -40,7 +40,18 @@ export function Nav() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   const onLanding = pathname === "/";
 
   function handleSignOut() {
@@ -56,6 +67,8 @@ export function Nav() {
           <span className="aw-brand-name">AutoAW</span>
           <span className="aw-brand-version mono">v0.4</span>
         </Link>
+
+        {/* Desktop nav links */}
         <div className="aw-nav-links">
           {links.map((link) => (
             link.disabled ? (
@@ -78,6 +91,8 @@ export function Nav() {
             )
           ))}
         </div>
+
+        {/* Desktop right side */}
         <div className="aw-nav-right">
           <a href="https://github.com/deil87/autoaw" target="_blank" rel="noopener noreferrer"
             style={{ display: "flex", alignItems: "center", color: "var(--muted)", lineHeight: 0 }}
@@ -108,7 +123,73 @@ export function Nav() {
             <Link href="/login" className="btn btn-primary btn-sm">Sign in →</Link>
           ))}
         </div>
+
+        {/* Hamburger button (mobile only) */}
+        <button
+          className="aw-nav-hamburger"
+          onClick={() => setMobileOpen(o => !o)}
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileOpen}
+        >
+          {mobileOpen ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M3 12h18M3 6h18M3 18h18"/>
+            </svg>
+          )}
+        </button>
       </div>
+
+      {/* Mobile menu sheet */}
+      {mobileOpen && (
+        <div className="aw-mobile-menu">
+          {links.map((link) => (
+            link.disabled ? (
+              <span key={link.href} className="aw-mobile-link aw-mobile-link-disabled">
+                {link.label}
+                <span className="mono" style={{ fontSize: 11, opacity: 0.6 }}>soon</span>
+              </span>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`aw-mobile-link${pathname.startsWith(link.href) ? " active" : ""}`}
+                onClick={() => setMobileOpen(false)}
+              >
+                {link.label}
+              </Link>
+            )
+          ))}
+          {mounted && (
+            <div className="aw-mobile-menu-footer">
+              {onLanding ? (
+                <>
+                  <Link href="/demo" className="btn btn-lg" style={{ flex: 1, justifyContent: "center" }} onClick={() => setMobileOpen(false)}>
+                    Request demo
+                  </Link>
+                  <Link href={user ? "/experiments" : "/login"} className="btn btn-primary btn-lg" style={{ flex: 1, justifyContent: "center" }} onClick={() => setMobileOpen(false)}>
+                    {user ? "Open app →" : "Sign in →"}
+                  </Link>
+                </>
+              ) : user ? (
+                <>
+                  <span className="mono faint" style={{ fontSize: 12 }}>{user.email}</span>
+                  <button onClick={handleSignOut} className="btn btn-ghost btn-lg" style={{ marginLeft: "auto" }}>
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <Link href="/login" className="btn btn-primary btn-lg" style={{ width: "100%", justifyContent: "center" }} onClick={() => setMobileOpen(false)}>
+                  Sign in →
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </nav>
   );
 }
