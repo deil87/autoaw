@@ -459,7 +459,7 @@ function ArchitectureComparison() {
       </div>
 
       {/* Two panels */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", border:"1px solid var(--border)", borderRadius:"var(--r-3)", overflow:"hidden", background:"var(--bg-alt)", marginBottom: 14 }}>
+      <div className="arch-panels" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", border:"1px solid var(--border)", borderRadius:"var(--r-3)", overflow:"hidden", background:"var(--bg-alt)", marginBottom: 14 }}>
         <div style={{ padding: 20, borderRight:"1px solid var(--border)", background:"var(--bg-alt)" }}>
           <div className="ba-label">
             <span style={{ width:6, height:6, background:"var(--muted)", borderRadius:99, display:"inline-block" }}/>
@@ -511,7 +511,7 @@ function ArchitectureComparison() {
       </div>
 
       {/* Tradeoff table */}
-      <div className="card" style={{ marginBottom: 14 }}>
+      <div className="card arch-table-card" style={{ marginBottom: 14 }}>
         <table className="t">
           <thead>
             <tr>
@@ -594,12 +594,15 @@ const STEPS = [
 ];
 
 function HowItWorks() {
+  const [active, setActive] = useState(0);
   return (
     <section className="page" style={{ paddingTop: 56, paddingBottom: 28 }}>
       <div style={{ marginBottom: 26 }}>
         <div className="section-eyebrow">05 · how it works</div>
         <h2 className="section-title">Four steps. One Pareto frontier.</h2>
       </div>
+
+      {/* Desktop: 4-column grid */}
       <div className="steps">
         {STEPS.map(s => (
           <div key={s.num} className="step">
@@ -609,6 +612,33 @@ function HowItWorks() {
             <div className="step-art">{s.art}</div>
           </div>
         ))}
+      </div>
+
+      {/* Mobile: single-step carousel */}
+      <div className="steps-carousel">
+        <div className="step">
+          <div className="step-num">STEP {STEPS[active].num}</div>
+          <h3>{STEPS[active].title}</h3>
+          <p>{STEPS[active].body}</p>
+          <div className="step-art">{STEPS[active].art}</div>
+        </div>
+        <div className="steps-carousel-nav">
+          <button
+            className="btn btn-sm"
+            onClick={() => setActive(a => a - 1)}
+            disabled={active === 0}
+          >← Prev</button>
+          <div className="steps-carousel-dots">
+            {STEPS.map((_, i) => (
+              <button key={i} onClick={() => setActive(i)} className={`steps-dot${i === active ? " active" : ""}`}/>
+            ))}
+          </div>
+          <button
+            className="btn btn-sm"
+            onClick={() => setActive(a => a + 1)}
+            disabled={active === STEPS.length - 1}
+          >Next →</button>
+        </div>
       </div>
     </section>
   );
@@ -675,7 +705,7 @@ function LeaderboardPreview() {
           See experiments <Icon name="arrow-right" size={12}/>
         </Link>
       </div>
-      <div className="card">
+      <div className="card lb-table-card">
         <table className="t">
           <thead>
             <tr>

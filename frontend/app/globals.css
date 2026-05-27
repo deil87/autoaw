@@ -745,6 +745,29 @@ input[type=range].aw-slider::-webkit-slider-thumb {
 /* ---- Nav right ---- */
 .aw-nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 
+/* ---- Steps carousel (mobile only, hidden by default) ---- */
+.steps-carousel { display: none; }
+.steps-carousel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  gap: 12px;
+}
+.steps-carousel-dots { display: flex; gap: 8px; align-items: center; }
+.steps-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--border-strong);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, width 0.15s;
+  flex-shrink: 0;
+}
+.steps-dot.active { background: var(--ink); width: 20px; }
+
 /* ---- Hamburger button (mobile only) ---- */
 .aw-nav-hamburger {
   display: none;
@@ -809,11 +832,35 @@ input[type=range].aw-slider::-webkit-slider-thumb {
   .exp-row { grid-template-columns: 1fr auto; }
 }
 @media (max-width: 768px) {
+  /* Prevent any element from causing horizontal scroll */
+  html, body { overflow-x: hidden; max-width: 100vw; }
+
+  /* Nav */
   .aw-nav-inner { padding: 12px 16px; gap: 16px; }
   .aw-nav-links { display: none; }
   .aw-nav-right { display: none; }
   .aw-nav-hamburger { display: flex; }
+
+  /* Page */
   .aw-page { padding: 16px; }
+
+  /* Architecture panels: stack to single column */
+  .arch-panels { grid-template-columns: 1fr !important; }
+  .arch-panels > div:first-child { border-right: none !important; border-bottom: 1px solid var(--border) !important; }
+
+  /* Steps: swap grid for carousel */
+  .steps { display: none; }
+  .steps-carousel { display: block; }
+
+  /* Leaderboard: hide Configuration and Latency columns */
+  .lb-table-card table.t th:nth-child(3),
+  .lb-table-card table.t td:nth-child(3),
+  .lb-table-card table.t th:nth-child(6),
+  .lb-table-card table.t td:nth-child(6) { display: none; }
+
+  /* Tradeoff table: allow horizontal scroll (text-heavy, can't drop columns) */
+  .arch-table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .arch-table-card table.t { min-width: 460px; }
 }
 @media (min-width: 769px) {
   .aw-mobile-menu { display: none !important; }
