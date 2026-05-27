@@ -26,9 +26,9 @@ export class AuthStack extends cdk.Stack {
       passwordPolicy: {
         minLength: 8,
         requireLowercase: true,
-        requireUppercase: false,
+        requireUppercase: true,
         requireDigits: true,
-        requireSymbols: false,
+        requireSymbols: true,
       },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       removalPolicy: cdk.RemovalPolicy.RETAIN,

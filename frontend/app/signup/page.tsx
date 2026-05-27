@@ -92,7 +92,7 @@ export default function SignupPage() {
             )}
             {!showPwdHints && (
               <p style={{ fontSize: 11.5, color: "var(--faint)", margin: "5px 0 0", fontFamily: "var(--mono)" }}>
-                Min 8 chars, at least one digit
+                Min 8 chars · uppercase · digit · special char
               </p>
             )}
           </div>
@@ -117,14 +117,18 @@ export default function SignupPage() {
 const PASSWORD_RULES = [
   { key: "length",    label: "At least 8 characters" },
   { key: "lowercase", label: "At least one lowercase letter" },
+  { key: "uppercase", label: "At least one uppercase letter" },
   { key: "digit",     label: "At least one digit" },
+  { key: "special",   label: "At least one special character" },
 ];
 
 function validatePassword(pwd: string): string[] {
   const errors: string[] = [];
-  if (pwd.length < 8)        errors.push("length");
-  if (!/[a-z]/.test(pwd))    errors.push("lowercase");
-  if (!/[0-9]/.test(pwd))    errors.push("digit");
+  if (pwd.length < 8)                    errors.push("length");
+  if (!/[a-z]/.test(pwd))               errors.push("lowercase");
+  if (!/[A-Z]/.test(pwd))               errors.push("uppercase");
+  if (!/[0-9]/.test(pwd))               errors.push("digit");
+  if (!/[^a-zA-Z0-9]/.test(pwd))        errors.push("special");
   return errors;
 }
 
