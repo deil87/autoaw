@@ -4,9 +4,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 
 const PUBLIC_PATHS = ["/", "/demo", "/login"];
+const AUTH_DISABLED = process.env.NEXT_PUBLIC_AUTH_DISABLED === "true";
 
 function isPublic(pathname: string): boolean {
-  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "?"));
+  return AUTH_DISABLED || PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "?"));
 }
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {

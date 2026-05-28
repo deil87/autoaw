@@ -12,6 +12,8 @@ import {
 import { Hub } from "aws-amplify/utils";
 import { configureAmplify } from "@/lib/amplify-config";
 
+const AUTH_DISABLED = process.env.NEXT_PUBLIC_AUTH_DISABLED === "true";
+
 export interface AuthUser {
   email: string;
   idToken: string;
@@ -42,7 +44,26 @@ async function loadUser(): Promise<AuthUser | null> {
   }
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+const LOCAL_USER: AuthUser = { email: "local", idToken: "" };
+
+function LocalAuthProvider({ children }: { children: ReactNode }) {
+  return (
+    <AuthContext.Provider value={{
+      user: LOCAL_USER,
+      loading: false,
+      signIn: async () => ({ needsConfirmation: false }),
+      signUp: async () => {},
+      confirmSignUp: async () => {},
+      resendCode: async () => {},
+      signInWithGoogle: async () => {},
+      signOut: async () => {},
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+function AmplifyAuthProvider({ children }: { children: ReactNode }) {
   // Must run synchronously before any effects so Amplify is configured
   // before it tries to process the ?code=&state= OAuth callback in the URL.
   if (typeof window !== "undefined") configureAmplify();
@@ -129,6 +150,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  if (AUTH_DISABLED) return <LocalAuthProvider>{children}</LocalAuthProvider>;
+  return <AmplifyAuthProvider>{children}</AmplifyAuthProvider>;
 }
 
 export function useAuth() {

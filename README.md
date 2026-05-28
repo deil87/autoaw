@@ -15,14 +15,16 @@ AutoML for multi-agent workflows. Automatically discovers optimal workflow topol
 ```bash
 git clone https://github.com/your-org/autoaw.git
 cd autoaw
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-local.txt
 ```
 
 ### 2. Configure
 
 ```bash
-cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
+cp .env.example .env.local
+# Edit .env.local and add your OPENAI_API_KEY
 ```
 
 ### 3. Install frontend dependencies
@@ -38,8 +40,8 @@ npm install --prefix frontend
 npm run dev
 ```
 
-This starts the FastAPI backend (port 8000) and Next.js frontend (port 3000) together.
-Open [http://localhost:3000](http://localhost:3000).
+This starts the FastAPI backend (port 8000) and Next.js frontend (port 3032) together.
+Open [http://localhost:3032](http://localhost:3032).
 
 ## Running experiments via API
 
@@ -92,6 +94,7 @@ A dataset is a JSON file containing a list of objects:
 | `MAX_CONCURRENT_EXPERIMENTS` | `4` | Max experiments running in parallel |
 | `DATABASE_PATH` | `autoaw.db` | SQLite database file path |
 | `DATASETS_DIR` | `datasets` | Directory for dataset JSON files |
+| `NEXT_PUBLIC_AUTH_DISABLED` | `false` | Set to `true` in `frontend/.env.local` to bypass Cognito auth — all routes open, no sign-in required. Intended for local/self-hosted use. |
 
 ## Running tests
 
