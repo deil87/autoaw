@@ -43,6 +43,22 @@ def test_seed_population_all_valid_genes(monkeypatch):
         validate_gene(gene.to_dict())
 
 
+def test_seed_population_respects_allowed_models(monkeypatch):
+    monkeypatch.setattr(
+        "backend.engine.gp.population._generate_gene_with_llm",
+        lambda task, topology: None,
+    )
+    custom_models = ["llama3.2:1b"]
+    config = make_config(population_size=6)
+    config.allowed_models = custom_models
+    pop = seed_population(config)
+    for gene in pop:
+        for agent in gene.agents:
+            assert agent.model in custom_models, (
+                f"Agent {agent.id} has model {agent.model!r}, expected one of {custom_models}"
+            )
+
+
 def test_seed_population_has_topology_diversity(monkeypatch):
     monkeypatch.setattr(
         "backend.engine.gp.population._generate_gene_with_llm",

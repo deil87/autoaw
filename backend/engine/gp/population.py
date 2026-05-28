@@ -1,7 +1,7 @@
 from __future__ import annotations
 import random
 from backend.shared.gene import Gene, TopologyType
-from backend.shared.experiment import ExperimentConfig
+from backend.shared.experiment import ExperimentConfig, DEFAULT_CLOUD_MODELS
 from backend.shared.fixtures import load_fixture, TOPOLOGY_FIXTURES
 
 
@@ -43,8 +43,10 @@ def seed_population(config: ExperimentConfig) -> list[Gene]:
         else:
             gene = Gene.from_dict(load_fixture(topology.value))
             gene.id = f"seed_{i:04d}"
+            models = config.allowed_models if config.allowed_models else DEFAULT_CLOUD_MODELS
             for agent in gene.agents:
                 agent.temperature = round(random.uniform(0.2, 0.9), 2)
+                agent.model = random.choice(models)
 
         population.append(gene)
 

@@ -55,6 +55,20 @@ export function ExperimentDetails({ config, experiment }: ExperimentDetailsProps
         </CardContent>
       </Card>
 
+      {/* Model Pool */}
+      {config.allowed_models && config.allowed_models.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Model Pool</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-1.5">
+            {config.allowed_models.map((m) => (
+              <Badge key={m} variant="secondary" className="font-mono text-xs">{m}</Badge>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Dataset */}
       <Card>
         <CardHeader className="pb-2">
