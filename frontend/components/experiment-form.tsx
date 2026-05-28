@@ -25,7 +25,7 @@ import type { ExperimentConfig, ObjectiveWeights, EvaluatorConfig, EvaluatorType
 
 const DEFAULT_WEIGHTS: ObjectiveWeights = { quality: 0.6, cost: 0.2, speed: 0.2 };
 const DEFAULT_EVALUATORS: EvaluatorConfig[] = [
-  { type: "llm_judge", params: { model: "gpt-4o-mini", rubric: "Rate the output 0 to 1 on accuracy, completeness, and clarity." } }
+  { type: "llm_judge", params: { model: "mistral:latest", rubric: "Rate the output 0 to 1 on accuracy, completeness, and clarity." } }
 ];
 
 const TASK_TYPES = [
