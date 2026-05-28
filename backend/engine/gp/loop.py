@@ -297,10 +297,21 @@ class GPLoop:
 
     def run(self) -> GPResult:
         """Run the GP loop and return a GPResult with the best gene and stop reason."""
+        pop_size = self.config.population_size
+
+        if self.on_progress:
+            self.on_progress({"phase": "init", "message": f"Seeding {pop_size} gene(s)…", "log_lines": [f"Seeding {pop_size} gene(s)…"]})
         seed_genes = seed_population(self.config)
+
         # Run split detection once on every seed gene before generation 0
-        for g in seed_genes:
+        for i, g in enumerate(seed_genes):
+            if self.on_progress:
+                self.on_progress({"phase": "init", "message": f"Analysing gene {i + 1}/{len(seed_genes)} (split detection)…", "log_lines": [f"Seeding {pop_size} gene(s)…", f"Analysing gene {i + 1}/{len(seed_genes)} (split detection)…"]})
             run_split_detection(g, provider_config=self.config.provider)
+
+        if self.on_progress:
+            self.on_progress({"phase": "init", "message": f"✓ Population ready — evaluating generation 0 ({len(seed_genes)} gene(s))…", "log_lines": [f"Seeding {pop_size} gene(s)…", f"✓ Population ready — evaluating generation 0 ({len(seed_genes)} gene(s))…"]})
+
         # Wrap: (gene, parent_ids, mutation_op)
         population: list[tuple[Gene, list[str], str]] = [
             (g, [], "seed") for g in seed_genes
@@ -318,6 +329,17 @@ class GPLoop:
             if self._budget_exceeded():
                 stop_reason = self._budget_stop_reason()
                 break
+
+            if generation > 0 and self.on_progress:
+                self.on_progress({
+                    "rows_done": 0,
+                    "rows_total": len(self.dataset),
+                    "generation": generation,
+                    "phase": self._current_phase,
+                    "avg_row_ms": 0,
+                    "eta_s": 0,
+                    "status_msg": f"Evaluating generation {generation} ({len(population)} gene(s))…",
+                })
 
             scored = self._evaluate_generation(population, generation)
 

@@ -551,17 +551,26 @@ export default function MonitorPage() {
                 <span className="chip mono">{phaseLabel}</span>
               </div>
               <div className="card-body">
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--muted)", marginBottom: 8, fontFamily: "var(--mono)" }}>
-                  <span>Row {progress.rows_done} / {progress.rows_total}</span>
-                  <span>
-                    {progress.eta_s > 0
-                      ? `~${Math.ceil(progress.eta_s / 60)} min remaining`
-                      : "finishing…"}
-                  </span>
-                </div>
-                <div className="bar">
-                  <div className="bar-fill running" style={{ width: `${pct}%` }} />
-                </div>
+                {(progress as any).status_msg ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--muted)", fontFamily: "var(--mono)" }}>
+                    <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "rgba(168,85,247,0.7)", animation: "pulse 1.5s ease-in-out infinite", flexShrink: 0 }} />
+                    {(progress as any).status_msg}
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--muted)", marginBottom: 8, fontFamily: "var(--mono)" }}>
+                      <span>Row {progress.rows_done} / {progress.rows_total}</span>
+                      <span>
+                        {progress.eta_s > 0
+                          ? `~${Math.ceil(progress.eta_s / 60)} min remaining`
+                          : "finishing…"}
+                      </span>
+                    </div>
+                    <div className="bar">
+                      <div className="bar-fill running" style={{ width: `${pct}%` }} />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
