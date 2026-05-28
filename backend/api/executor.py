@@ -18,8 +18,9 @@ def _ensure_ollama_models(
 ) -> None:
     """Pull any Ollama models in allowed_models that aren't yet available locally.
 
-    Writes ``{"phase": "init", "message": "..."}`` progress to the store so the
-    frontend can display pull status.  Skips gracefully if Ollama is not running.
+    Writes ``{"phase": "init", "message": "...", "log_lines": [...]}`` progress to
+    the store so the frontend can display a live log stream.  Skips gracefully if
+    Ollama is not running.
     """
     from backend.engine.llm_client import (
         is_ollama_model,
@@ -31,12 +32,25 @@ def _ensure_ollama_models(
     if not ollama_models:
         return
 
-    store.update_progress(experiment_id, {"phase": "init", "message": "Checking local Ollama models…"})
+    log_lines: list[str] = []
+
+    def _emit(msg: str) -> None:
+        log_lines.append(msg)
+        store.update_progress(experiment_id, {
+            "phase": "init",
+            "message": msg,
+            "log_lines": list(log_lines),
+        })
+
+    _emit("Checking local Ollama models…")
 
     local_models = ollama_list_local_models()
     if local_models is None:
         log.warning("exp=%s: Ollama not reachable — skipping model pull", experiment_id)
+        _emit("⚠ Ollama not reachable — skipping model pull")
         return
+
+    _emit(f"Found {len(local_models)} model(s) locally")
 
     # Normalise: Ollama sometimes lists names as "llama3.1:8b" or "llama3.1:latest"
     local_names = {m.split(":")[0] for m in local_models} | set(local_models)
@@ -44,13 +58,15 @@ def _ensure_ollama_models(
     to_pull = [m for m in ollama_models if m not in local_names and m.split(":")[0] not in local_names]
     if not to_pull:
         log.info("exp=%s: all Ollama models already available locally", experiment_id)
+        _emit("✓ All models already available")
         return
 
     for model in to_pull:
         log.info("exp=%s: pulling Ollama model %s", experiment_id, model)
+        _emit(f"Pulling {model}…")
 
-        def _progress(msg: str, _model: str = model) -> None:
-            store.update_progress(experiment_id, {"phase": "init", "message": msg})
+        def _progress(msg: str) -> None:
+            _emit(msg)
 
         try:
             ollama_pull_model(model, on_progress=_progress)
@@ -61,7 +77,7 @@ def _ensure_ollama_models(
                 "Is Ollama running? Try: ollama serve"
             ) from exc
 
-    store.update_progress(experiment_id, {"phase": "init", "message": "Models ready — starting experiment…"})
+    _emit("✓ Models ready — starting experiment…")
 
 
 def _build_runner(config: ExperimentConfig) -> WorkflowRunner:

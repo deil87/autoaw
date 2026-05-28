@@ -505,9 +505,31 @@ export default function MonitorPage() {
                 <span className="chip mono" style={{ fontSize: 11 }}>init</span>
               </div>
               <div className="card-body">
-                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--muted)", fontFamily: "var(--mono)" }}>
-                  <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "rgba(168,85,247,0.7)", animation: "pulse 1.5s ease-in-out infinite" }} />
-                  {progress.message ?? "Preparing…"}
+                <div style={{
+                  background: "rgba(0,0,0,0.35)",
+                  borderRadius: 6,
+                  padding: "10px 14px",
+                  fontFamily: "var(--mono)",
+                  fontSize: 12,
+                  lineHeight: 1.7,
+                  maxHeight: 220,
+                  overflowY: "auto",
+                  color: "var(--muted)",
+                }}>
+                  {((progress as any).log_lines as string[] | undefined)?.map((line, i) => (
+                    <div key={i} style={{ color: i === ((progress as any).log_lines.length - 1) ? "var(--fg)" : "var(--muted)" }}>
+                      <span style={{ opacity: 0.4, marginRight: 8 }}>$</span>{line}
+                    </div>
+                  )) ?? (
+                    <div>
+                      <span style={{ opacity: 0.4, marginRight: 8 }}>$</span>
+                      {progress.message ?? "Preparing…"}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                    <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "rgba(168,85,247,0.7)", animation: "pulse 1.5s ease-in-out infinite" }} />
+                    <span style={{ opacity: 0.4 }}>waiting…</span>
+                  </div>
                 </div>
               </div>
             </div>
