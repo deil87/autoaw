@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "kill-ports": "lsof -ti :8000 | xargs kill -9 2>/dev/null; lsof -ti :3032 | xargs kill -9 2>/dev/null; true",
-    "dev": "npm run kill-ports && concurrently --names \"api,web\" --prefix-colors \"cyan,magenta\" \".venv/bin/uvicorn backend.api.app:app --reload --port 8000\" \"npm run dev --prefix frontend\""
+    "link-worktree-deps": "MAIN=$(git worktree list --porcelain | awk '/^worktree/{print $2; exit}'); [ -e node_modules ] || ln -s \"$MAIN/node_modules\" node_modules; [ -e frontend/node_modules ] || ln -s \"$MAIN/frontend/node_modules\" frontend/node_modules",
+    "dev": "npm run link-worktree-deps && npm run kill-ports && concurrently --names \"api,web\" --prefix-colors \"cyan,magenta\" \".venv/bin/uvicorn backend.api.app:app --reload --port 8000\" \"npm run dev --prefix frontend\""
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
