@@ -299,6 +299,7 @@ export default function MonitorPage() {
         fitness: event.fitness,
         quality: event.quality,
         cost_usd: event.cost_usd,
+        eval_cost_usd: 0,
         latency_ms: event.latency_ms,
         created_at: new Date().toISOString(),
         parent_gene_ids: [],
