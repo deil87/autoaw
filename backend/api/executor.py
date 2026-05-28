@@ -50,7 +50,7 @@ def _ensure_ollama_models(
         _emit("⚠ Ollama not reachable — skipping model pull")
         return
 
-    _emit(f"Found {len(local_models)} model(s) locally")
+    _emit(f"Checking {len(ollama_models)} selected model(s): {', '.join(ollama_models)}")
 
     # Normalise: Ollama sometimes lists names as "llama3.1:8b" or "llama3.1:latest"
     local_names = {m.split(":")[0] for m in local_models} | set(local_models)

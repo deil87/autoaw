@@ -506,7 +506,6 @@ export default function MonitorPage() {
               </div>
               <div className="card-body">
                 <div style={{
-                  background: "rgba(0,0,0,0.35)",
                   borderRadius: 6,
                   padding: "10px 14px",
                   fontFamily: "var(--mono)",
