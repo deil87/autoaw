@@ -50,20 +50,9 @@ type TaskType = (typeof TASK_TYPES)[number]["value"];
 
 const NEEDS_DATASET: TaskType[] = ["objective", "hybrid"];
 
-// Model pools — must stay in sync with backend/shared/experiment.py
-const CLOUD_MODELS = [
-  "gpt-4o-mini",
-  "gpt-4o",
-  "claude-3-5-haiku-20241022",
-  "claude-3-5-sonnet-20241022",
-  "amazon.nova-micro-v1:0",
-  "amazon.nova-lite-v1:0",
-  "meta.llama3-2-1b-instruct-v1:0",
-  "meta.llama3-2-3b-instruct-v1:0",
-  "meta.llama3-1-8b-instruct-v1:0",
-];
-const LOCAL_MODELS = ["llama3.2:1b"];
-const ALL_MODELS = Array.from(new Set([...CLOUD_MODELS, ...LOCAL_MODELS]));
+// Default pool: one lightweight local model so users don't have to pull the
+// entire cloud set before running their first local experiment.
+const DEFAULT_ALLOWED_MODELS = ["llama3.2:1b"];
 
 export interface ExperimentFormInitialValues {
   name?: string;
@@ -111,7 +100,7 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   );
   const [seedGene, setSeedGene] = useState<Gene | null>(null);
   const [allowedModels, setAllowedModels] = useState<string[]>(
-    initialValues?.allowed_models ?? CLOUD_MODELS
+    initialValues?.allowed_models ?? DEFAULT_ALLOWED_MODELS
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,16 +115,6 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
     }).catch(() => {});
     api.evaluatorTypes.list().then(setCatalog).catch(() => {});
   }, []);
-
-  const toggleModel = (model: string) => {
-    setAllowedModels((prev) =>
-      prev.includes(model) ? prev.filter((m) => m !== model) : [...prev, model]
-    );
-  };
-
-  const applyPreset = (preset: "cloud" | "local") => {
-    setAllowedModels(preset === "cloud" ? CLOUD_MODELS : LOCAL_MODELS);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,61 +282,8 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
       </div>
 
       <div className="space-y-3">
-        <div className="flex items-center gap-1.5">
-          <Label>Model Pool</Label>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs text-xs p-3">
-                Models the GP operator can assign to agents during evolution. Use the <strong>Local</strong> preset if running a local inference server (e.g. Ollama) to avoid downloading multiple large model files.
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => applyPreset("cloud")}
-            className={cn(
-              "rounded-md border px-3 py-1 text-xs font-medium transition-colors",
-              JSON.stringify(allowedModels.slice().sort()) === JSON.stringify(CLOUD_MODELS.slice().sort())
-                ? "border-primary bg-primary/5 text-primary"
-                : "border-border hover:bg-accent"
-            )}
-          >
-            Cloud
-          </button>
-          <button
-            type="button"
-            onClick={() => applyPreset("local")}
-            className={cn(
-              "rounded-md border px-3 py-1 text-xs font-medium transition-colors",
-              JSON.stringify(allowedModels.slice().sort()) === JSON.stringify(LOCAL_MODELS.slice().sort())
-                ? "border-primary bg-primary/5 text-primary"
-                : "border-border hover:bg-accent"
-            )}
-          >
-            Local
-          </button>
-        </div>
-        <div className="grid grid-cols-1 gap-1.5">
-          {ALL_MODELS.map((model) => (
-            <label key={model} className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={allowedModels.includes(model)}
-                onChange={() => toggleModel(model)}
-                className="h-3.5 w-3.5 rounded border-border accent-primary"
-              />
-              <span className="font-mono text-xs">{model}</span>
-            </label>
-          ))}
-        </div>
-        {allowedModels.length === 0 && (
-          <p className="text-xs text-destructive">Select at least one model.</p>
-        )}
+        <Label>Model Pool</Label>
+        <ModelPicker value={allowedModels} onChange={setAllowedModels} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
