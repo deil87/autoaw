@@ -14,8 +14,29 @@ from backend.engine.llm_client import (
 )
 
 
+def _parse_rubric_dimensions(rubric: str) -> dict[str, str] | None:
+    """Return dict of {dimension: description} if rubric is a JSON object, else None."""
+    try:
+        parsed = json.loads(rubric)
+        if isinstance(parsed, dict) and all(isinstance(v, str) for v in parsed.values()):
+            return parsed
+    except (json.JSONDecodeError, ValueError):
+        pass
+    return None
+
+
 class LLMJudgeEvaluator(Evaluator):
-    """Scores workflow output using an LLM judge with a user-defined rubric."""
+    """Scores workflow output using an LLM judge with a user-defined rubric.
+
+    Rubric can be a plain string (single score) or a JSON object whose keys are
+    dimension names and values are per-dimension descriptions (multi-dimensional
+    mode).  In multi-dimensional mode the returned Score carries each dimension
+    score in ``sub_scores`` and ``quality`` is their mean.
+    """
+
+    @property
+    def name(self) -> str:
+        return "LLM Judge"
 
     def __init__(
         self,
@@ -26,6 +47,7 @@ class LLMJudgeEvaluator(Evaluator):
         self.model = model
         self.rubric = rubric
         self._provider_config = provider_config  # None = lazy env lookup
+        self._dimensions = _parse_rubric_dimensions(rubric)
 
     def _call_llm(self, model: str, messages: list[dict], temperature: float) -> Any:
         from backend.engine.llm_client import is_ollama_model
@@ -40,6 +62,11 @@ class LLMJudgeEvaluator(Evaluator):
         )
 
     def score(self, input: str, output: str, expected: str | None) -> Score:
+        if self._dimensions:
+            return self._score_multidim(input, output, expected)
+        return self._score_single(input, output, expected)
+
+    def _score_single(self, input: str, output: str, expected: str | None) -> Score:
         expected_section = f"\n\nExpected answer: {expected}" if expected else ""
         prompt = (
             f"You are an evaluator. Score the following AI output using this rubric:\n{self.rubric}\n\n"
@@ -59,6 +86,39 @@ class LLMJudgeEvaluator(Evaluator):
         cost = llm_cost_usd(self.model, usage.prompt_tokens, usage.completion_tokens)
         return Score(quality=quality, cost_usd=cost, metadata=metadata)
 
+    def _score_multidim(self, input: str, output: str, expected: str | None) -> Score:
+        assert self._dimensions is not None
+        expected_section = f"\n\nExpected answer: {expected}" if expected else ""
+        dim_lines = "\n".join(
+            f"- {dim}: {desc}" for dim, desc in self._dimensions.items()
+        )
+        dim_keys_json = json.dumps({dim: "<float 0-1>" for dim in self._dimensions})
+        prompt = (
+            "You are an evaluator. Score the following AI output on each dimension:\n"
+            f"{dim_lines}\n\n"
+            f"Input: {input}\n\nAI Output: {output}{expected_section}\n\n"
+            "Respond ONLY with valid JSON in this format: "
+            f'{{"scores": {dim_keys_json}, "reason": "<brief overall explanation>"}}'
+        )
+        response = self._call_llm(
+            self.model,
+            [{"role": "user", "content": prompt}],
+            temperature=0.1,
+        )
+        content = response.choices[0].message.content
+        sub_scores, reason = self._parse_multidim_score(content)
+
+        quality = sum(sub_scores.values()) / len(sub_scores) if sub_scores else 0.5
+        quality = max(0.0, min(1.0, quality))
+        usage = response.usage
+        cost = llm_cost_usd(self.model, usage.prompt_tokens, usage.completion_tokens)
+        return Score(
+            quality=quality,
+            cost_usd=cost,
+            metadata={"reason": reason},
+            sub_scores=sub_scores,
+        )
+
     def _parse_score(self, content: str) -> tuple[float, dict]:
         try:
             data = json.loads(content)
@@ -71,3 +131,19 @@ class LLMJudgeEvaluator(Evaluator):
             quality = float(match.group()) if match else 0.5
             quality = max(0.0, min(1.0, quality))
             return quality, {"raw": content, "parse_error": True}
+
+    def _parse_multidim_score(self, content: str) -> tuple[dict[str, float], str]:
+        """Parse multi-dimensional score response. Returns (sub_scores, reason)."""
+        assert self._dimensions is not None
+        try:
+            data = json.loads(content)
+            raw_scores = data.get("scores", {})
+            sub_scores: dict[str, float] = {}
+            for dim in self._dimensions:
+                val = raw_scores.get(dim, 0.5)
+                sub_scores[dim] = max(0.0, min(1.0, float(val)))
+            return sub_scores, data.get("reason", "")
+        except (json.JSONDecodeError, KeyError, ValueError):
+            # Fallback: assign equal scores with parse error flag
+            sub_scores = {dim: 0.5 for dim in self._dimensions}
+            return sub_scores, ""

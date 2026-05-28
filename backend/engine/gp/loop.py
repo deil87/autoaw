@@ -29,6 +29,30 @@ from backend.engine.gp.diversity import topology_diversity_score
 _PROGRESS_HEARTBEAT_ROWS = 10
 
 
+def _build_sub_scores(
+    evaluators: list[Evaluator], scores: list[Score]
+) -> dict[str, float]:
+    """Build a flat sub_scores dict from per-evaluator Score objects.
+
+    - Single evaluator with sub_scores: use dimension names directly.
+    - Single evaluator without sub_scores: return empty dict.
+    - Multiple evaluators: add {ev.name: score.quality} for each, plus
+      any per-dimension sub_scores prefixed with the evaluator name.
+    """
+    if not evaluators or not scores:
+        return {}
+
+    if len(evaluators) == 1:
+        return dict(scores[0].sub_scores)
+
+    result: dict[str, float] = {}
+    for ev, score in zip(evaluators, scores):
+        result[ev.name] = score.quality
+        for dim, val in score.sub_scores.items():
+            result[f"{ev.name}.{dim}"] = val
+    return result
+
+
 @dataclass
 class TrialResult:
     gene: Gene
@@ -113,6 +137,7 @@ class GPLoop:
                 sum(s.quality for s in scores) / len(scores) if scores else 0.0
             )
             reasoning = scores[0].metadata.get("reason", "") if scores else ""
+            sub_scores = _build_sub_scores(self.evaluators, scores)
 
             eval_rows.append(
                 EvalRowResult(
@@ -124,6 +149,7 @@ class GPLoop:
                     latency_ms=run_result.latency_ms,
                     cost_usd=run_result.cost_usd,
                     eval_cost_usd=row_eval_cost,
+                    sub_scores=sub_scores,
                 )
             )
             total_quality += avg_quality

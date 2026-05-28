@@ -65,6 +65,10 @@ _ALTER_EVAL_ROWS_EVAL_COST = """
 ALTER TABLE eval_rows ADD COLUMN eval_cost_usd REAL NOT NULL DEFAULT 0.0
 """
 
+_ALTER_EVAL_ROWS_SUB_SCORES = """
+ALTER TABLE eval_rows ADD COLUMN sub_scores TEXT NOT NULL DEFAULT '{}'
+"""
+
 _CREATE_DEMO_REQUESTS = """
 CREATE TABLE IF NOT EXISTS demo_requests (
     id          TEXT PRIMARY KEY,
@@ -126,6 +130,7 @@ class LocalStore:
             _ALTER_EXPERIMENTS_STOP_REASON,
             _ALTER_TRIALS_EVAL_COST,
             _ALTER_EVAL_ROWS_EVAL_COST,
+            _ALTER_EVAL_ROWS_SUB_SCORES,
         ):
             try:
                 conn.execute(stmt)
@@ -246,8 +251,8 @@ class LocalStore:
             self._conn().execute(
                 "INSERT INTO eval_rows "
                 "(id, trial_id, row_index, input_json, output_text, score, "
-                " score_reasoning, latency_ms, cost_usd, eval_cost_usd) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                " score_reasoning, latency_ms, cost_usd, eval_cost_usd, sub_scores) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     str(uuid.uuid4()),
                     trial_id,
@@ -259,6 +264,7 @@ class LocalStore:
                     row.latency_ms,
                     row.cost_usd,
                     row.eval_cost_usd,
+                    json.dumps(row.sub_scores),
                 ),
             )
         self._conn().commit()
@@ -298,7 +304,16 @@ class LocalStore:
             )
             .fetchall()
         )
-        return [dict(r) for r in rows]
+        result = []
+        for r in rows:
+            row_dict = dict(r)
+            raw = row_dict.get("sub_scores", "{}")
+            try:
+                row_dict["sub_scores"] = json.loads(raw) if raw else {}
+            except (json.JSONDecodeError, TypeError):
+                row_dict["sub_scores"] = {}
+            result.append(row_dict)
+        return result
 
     # ── Demo requests ────────────────────────────────────────────────────────
 

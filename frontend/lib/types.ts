@@ -165,6 +165,7 @@ export interface EvalRow {
   latency_ms: number;
   cost_usd: number;       // workflow execution cost for this row
   eval_cost_usd: number;  // evaluator cost for this row
+  sub_scores?: Record<string, number>;  // per-metric/dimension scores (empty when single evaluator without dimensions)
 }
 
 export interface EcsTaskContainer {
