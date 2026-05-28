@@ -215,21 +215,31 @@ class GPLoop:
         """
         concurrency = max(1, self.config.concurrency)
 
-        # Pass 1: run all genes in parallel
+        # Pass 1: run all genes in parallel.
+        # Snapshot the remaining trial budget *before* submitting so that the
+        # worker threads completing concurrently cannot race the submission/
+        # collection checks and cause an off-by-one in the reported trial count.
+        with self._lock:
+            if self.config.budget_max_trials:
+                remaining = max(0, self.config.budget_max_trials - self._trial_count)
+                population_to_run = population[:remaining]
+            else:
+                population_to_run = list(population)
+
         RawEntry = tuple[Gene, list[str], str, ParetoPoint, list[EvalRowResult], list[Score]]
         raw: list[RawEntry] = []
+
+        if not population_to_run or self._stop_event.is_set():
+            return []
 
         with ThreadPoolExecutor(max_workers=concurrency) as executor:
             future_to_meta: dict = {
                 executor.submit(
                     self._run_gene, gene, generation, parent_ids, mut_op
                 ): (gene, parent_ids, mut_op)
-                for gene, parent_ids, mut_op in population
-                if not self._budget_exceeded()
+                for gene, parent_ids, mut_op in population_to_run
             }
             for future in as_completed(future_to_meta):
-                if self._budget_exceeded():
-                    break
                 gene, parent_ids, mut_op = future_to_meta[future]
                 pareto, eval_rows, last_scores = future.result()
                 raw.append((gene, parent_ids, mut_op, pareto, eval_rows, last_scores))

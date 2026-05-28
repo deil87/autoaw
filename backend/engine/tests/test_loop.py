@@ -69,7 +69,8 @@ def test_gp_loop_respects_budget():
         on_trial_complete=count_trial,
     )
     loop.run()
-    assert len(trial_count) <= 8
+    # Must report exactly budget_max_trials — not one less (off-by-one bug)
+    assert len(trial_count) == 8
 
 
 def test_trial_result_records_pareto_point():
