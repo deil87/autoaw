@@ -20,29 +20,43 @@ def _generate_base_gene(
     provider_config: ProviderConfig | None,
     allowed_models: list[str],
 ) -> Gene:
-    """Call an LLM to generate a task-specific base gene as a fixed_pipeline.
+    """Decompose the task into subtasks and build one agent per subtask.
 
-    Prompts the LLM to produce 2–3 agents whose roles and system prompts are
-    directly relevant to the given task. Falls back to a minimal single-agent
-    gene on any LLM error.
+    The LLM is asked to:
+    1. Break the task into 2–4 concrete, ordered subtasks.
+    2. Assign each subtask its own agent whose role IS the subtask (e.g.
+       "input_validator", "evidence_retriever", "answer_synthesizer") — NOT
+       a generic archetype like "writer" or "researcher".
+    3. Optionally annotate each agent with a working style
+       (e.g. "Be analytical and precise") as part of the system_prompt.
+
+    Falls back to a single-agent gene on any LLM error.
     """
     cfg = provider_config or provider_from_env()
     model = allowed_models[0] if allowed_models else "gpt-4o-mini"
     system = (
         "You are a multi-agent workflow architect.\n"
-        "Given a task description, design a minimal fixed_pipeline gene: "
-        "2–3 sequential agents whose roles and system prompts are tailored "
-        "specifically to solve that task.\n\n"
-        "Return ONLY a JSON object with this exact shape:\n"
+        "Your job is to decompose a task into concrete subtasks and assign one "
+        "dedicated agent per subtask.\n\n"
+        "IMPORTANT RULES for agent design:\n"
+        "- Each agent's role and id must reflect WHAT THE AGENT DOES for THIS SPECIFIC TASK "
+        "(e.g. 'claim_extractor', 'evidence_retriever', 'verdict_writer'), "
+        "NOT a generic archetype like 'researcher', 'writer', or 'analyst'.\n"
+        "- Each agent's system_prompt must be a concrete instruction for its subtask only, "
+        "scoped to the domain of the task. Optionally prefix with a working style "
+        "(e.g. 'Be precise and cite sources. ') but the core must be task-specific.\n"
+        "- Agents form a sequential pipeline; the last agent produces the final output.\n"
+        "- 2 to 4 agents total.\n\n"
+        "Return ONLY a JSON object with this exact shape (no markdown fences):\n"
         "{\n"
         '  "id": "seed_base",\n'
         '  "topology": "fixed_pipeline",\n'
         '  "agents": [\n'
         "    {\n"
-        '      "id": "<snake_case_role>",\n'
-        '      "role": "<role_name>",\n'
+        '      "id": "<snake_case_subtask_name>",\n'
+        '      "role": "<snake_case_subtask_name>",\n'
         f'      "model": "{model}",\n'
-        '      "system_prompt": "<specific instruction for this task>",\n'
+        '      "system_prompt": "<[optional style prefix.] Concrete subtask instruction>",\n'
         '      "tools": [],\n'
         '      "temperature": 0.7,\n'
         '      "subtasks": []\n'
@@ -52,13 +66,7 @@ def _generate_base_gene(
         '    {"from": "<agent1_id>", "to": "<agent2_id>", "type": "sequential"}\n'
         "  ],\n"
         '  "topology_params": {}\n'
-        "}\n\n"
-        "Rules:\n"
-        "- Exactly 2 or 3 agents.\n"
-        "- Each agent id must be a unique snake_case string.\n"
-        "- Each system_prompt must be tailored to the task — not generic.\n"
-        "- Agents form a sequential pipeline; the last agent writes the final answer.\n"
-        "- Return ONLY the JSON object, no markdown fences, no explanation."
+        "}"
     )
     try:
         client = make_client(cfg)
@@ -83,11 +91,11 @@ def _generate_base_gene(
             topology=TopologyType.FIXED_PIPELINE,
             agents=[
                 Agent(
-                    id="main_agent",
-                    role="agent",
+                    id="task_executor",
+                    role="task_executor",
                     model=random.choice(allowed_models),
                     system_prompt=(
-                        f"You are an expert agent. Complete the following task accurately: "
+                        f"Complete the following task accurately and thoroughly: "
                         f"{task_description[:400]}"
                     ),
                     temperature=0.7,
