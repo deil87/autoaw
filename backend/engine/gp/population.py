@@ -20,53 +20,26 @@ def _generate_base_gene(
     provider_config: ProviderConfig | None,
     allowed_models: list[str],
 ) -> Gene:
-    """Decompose the task into subtasks and build one agent per subtask.
+    """Generate a single-agent base gene whose system_prompt is tailored to the task.
 
-    The LLM is asked to:
-    1. Break the task into 2–4 concrete, ordered subtasks.
-    2. Assign each subtask its own agent whose role IS the subtask (e.g.
-       "input_validator", "evidence_retriever", "answer_synthesizer") — NOT
-       a generic archetype like "writer" or "researcher".
-    3. Optionally annotate each agent with a working style
-       (e.g. "Be analytical and precise") as part of the system_prompt.
+    The base gene intentionally has ONE agent handling the full task.
+    Decomposition into multiple agents is the job of mutations (mutate_expand,
+    mutate_inject_critique, etc.) — not seeding. run_split_detection will
+    populate the agent's subtask graph so those mutations have material to
+    work with when they fire during population creation.
 
-    Falls back to a single-agent gene on any LLM error.
+    Falls back to a minimal generic agent on any LLM error.
     """
     cfg = provider_config or provider_from_env()
-    model = allowed_models[0] if allowed_models else "gpt-4o-mini"
     system = (
-        "You are a multi-agent workflow architect.\n"
-        "Your job is to decompose a task into concrete subtasks and assign one "
-        "dedicated agent per subtask.\n\n"
-        "IMPORTANT RULES for agent design:\n"
-        "- Each agent's role and id must reflect WHAT THE AGENT DOES for THIS SPECIFIC TASK "
-        "(e.g. 'claim_extractor', 'evidence_retriever', 'verdict_writer'), "
-        "NOT a generic archetype like 'researcher', 'writer', or 'analyst'.\n"
-        "- Each agent's system_prompt must be a concrete instruction for its subtask only, "
-        "scoped to the domain of the task. Optionally prefix with a working style "
-        "(e.g. 'Be precise and cite sources. ') but the core must be task-specific.\n"
-        "- Agents form a sequential pipeline; the last agent produces the final output.\n"
-        "- 2 to 4 agents total.\n\n"
-        "Return ONLY a JSON object with this exact shape (no markdown fences):\n"
-        "{\n"
-        '  "id": "seed_base",\n'
-        '  "topology": "fixed_pipeline",\n'
-        '  "agents": [\n'
-        "    {\n"
-        '      "id": "<snake_case_subtask_name>",\n'
-        '      "role": "<snake_case_subtask_name>",\n'
-        f'      "model": "{model}",\n'
-        '      "system_prompt": "<[optional style prefix.] Concrete subtask instruction>",\n'
-        '      "tools": [],\n'
-        '      "temperature": 0.7,\n'
-        '      "subtasks": []\n'
-        "    }\n"
-        "  ],\n"
-        '  "edges": [\n'
-        '    {"from": "<agent1_id>", "to": "<agent2_id>", "type": "sequential"}\n'
-        "  ],\n"
-        '  "topology_params": {}\n'
-        "}"
+        "You are a prompt engineer.\n"
+        "Write a single-agent system prompt that instructs one LLM agent to "
+        "solve the given task end-to-end. The prompt must:\n"
+        "- Be specific to the task domain — no generic 'researcher' or 'writer' framing.\n"
+        "- Describe WHAT the agent must do step-by-step to complete the task.\n"
+        "- Be written in second person ('You are...') and be self-contained.\n"
+        "Return ONLY a JSON object (no markdown fences):\n"
+        '{"id": "task_solver", "role": "task_solver", "system_prompt": "<prompt>"}'
     )
     try:
         client = make_client(cfg)
@@ -80,19 +53,29 @@ def _generate_base_gene(
             response_format={"type": "json_object"},
         )
         raw = json.loads(response.choices[0].message.content)
-        gene = Gene.from_dict(raw)
-        gene.id = "seed_base"
-        for agent in gene.agents:
-            agent.model = random.choice(allowed_models)
-        return gene
+        agent_id = raw.get("id", "task_solver")
+        return Gene(
+            id="seed_base",
+            topology=TopologyType.FIXED_PIPELINE,
+            agents=[
+                Agent(
+                    id=agent_id,
+                    role=raw.get("role", agent_id),
+                    model=random.choice(allowed_models),
+                    system_prompt=raw["system_prompt"],
+                    temperature=0.7,
+                )
+            ],
+            edges=[],
+        )
     except Exception:
         return Gene(
             id="seed_base",
             topology=TopologyType.FIXED_PIPELINE,
             agents=[
                 Agent(
-                    id="task_executor",
-                    role="task_executor",
+                    id="task_solver",
+                    role="task_solver",
                     model=random.choice(allowed_models),
                     system_prompt=(
                         f"Complete the following task accurately and thoroughly: "
