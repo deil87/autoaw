@@ -28,6 +28,11 @@ class LLMJudgeEvaluator(Evaluator):
         self._provider_config = provider_config  # None = lazy env lookup
 
     def _call_llm(self, model: str, messages: list[dict], temperature: float) -> Any:
+        from backend.engine.llm_client import is_ollama_model
+        if is_ollama_model(model):
+            # Ollama models are routed directly by chat_with_retry; no provider client needed
+            from backend.engine.llm_client import ollama_chat_with_retry
+            return ollama_chat_with_retry(model, messages, temperature)
         cfg = self._provider_config or provider_from_env()
         client = make_client(cfg)
         return chat_with_retry(

@@ -28,6 +28,7 @@ _MODEL_OPTIONS = [
     "gemma3:4b",
     "gemma3:1b",
     "mistral:7b",
+    "mistral:latest",
     "smollm2:1.7b",
 ]
 
@@ -114,7 +115,7 @@ def _model_param() -> EvaluatorParamSpec:
         type="select",
         label="Model",
         description="LLM used for evaluation.",
-        default="gpt-4o-mini",
+        default="mistral:latest",
         options=_MODEL_OPTIONS,
     )
 
