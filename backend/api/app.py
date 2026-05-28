@@ -399,7 +399,8 @@ def list_experiments():
 def list_ollama_models():
     """Return models currently available on the local Ollama instance."""
     from backend.engine.llm_client import ollama_list_local_models
-    return {"models": ollama_list_local_models()}
+    models = ollama_list_local_models()
+    return {"models": models if models is not None else []}
 
 
 @app.get("/infra/ecs")

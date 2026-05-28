@@ -114,10 +114,11 @@ def _ollama_base() -> str:
     return url.rstrip("/").removesuffix("/v1")
 
 
-def ollama_list_local_models() -> list[str]:
+def ollama_list_local_models() -> list[str] | None:
     """Return model names currently pulled on the local Ollama instance.
 
-    Returns an empty list if Ollama is not running.
+    Returns ``None`` if Ollama is not reachable, or a (possibly empty) list
+    of model name strings when the connection succeeds.
     """
     import urllib.request
     import json as _json
@@ -128,7 +129,7 @@ def ollama_list_local_models() -> list[str]:
             data = _json.loads(resp.read())
         return [m["name"] for m in data.get("models", [])]
     except Exception:
-        return []
+        return None
 
 
 def ollama_pull_model(
