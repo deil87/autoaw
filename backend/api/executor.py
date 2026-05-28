@@ -15,6 +15,7 @@ def _ensure_ollama_models(
     config: ExperimentConfig,
     store,
     experiment_id: str,
+    emit,  # callable(msg: str) — shared log emitter from _run_experiment
 ) -> None:
     """Pull any Ollama models in allowed_models that aren't yet available locally.
 
@@ -32,25 +33,15 @@ def _ensure_ollama_models(
     if not ollama_models:
         return
 
-    log_lines: list[str] = []
-
-    def _emit(msg: str) -> None:
-        log_lines.append(msg)
-        store.update_progress(experiment_id, {
-            "phase": "init",
-            "message": msg,
-            "log_lines": list(log_lines),
-        })
-
-    _emit("Checking local Ollama models…")
+    emit("Checking local Ollama models…")
 
     local_models = ollama_list_local_models()
     if local_models is None:
         log.warning("exp=%s: Ollama not reachable — skipping model pull", experiment_id)
-        _emit("⚠ Ollama not reachable — skipping model pull")
+        emit("⚠ Ollama not reachable — skipping model pull")
         return
 
-    _emit(f"Checking {len(ollama_models)} selected model(s): {', '.join(ollama_models)}")
+    emit(f"Checking {len(ollama_models)} selected model(s): {', '.join(ollama_models)}")
 
     # Normalise: Ollama sometimes lists names as "llama3.1:8b" or "llama3.1:latest"
     local_names = {m.split(":")[0] for m in local_models} | set(local_models)
@@ -58,18 +49,15 @@ def _ensure_ollama_models(
     to_pull = [m for m in ollama_models if m not in local_names and m.split(":")[0] not in local_names]
     if not to_pull:
         log.info("exp=%s: all Ollama models already available locally", experiment_id)
-        _emit("✓ All models already available")
+        emit("✓ All models already available")
         return
 
     for model in to_pull:
         log.info("exp=%s: pulling Ollama model %s", experiment_id, model)
-        _emit(f"Pulling {model}…")
-
-        def _progress(msg: str) -> None:
-            _emit(msg)
+        emit(f"Pulling {model}…")
 
         try:
-            ollama_pull_model(model, on_progress=_progress)
+            ollama_pull_model(model, on_progress=emit)
         except Exception as exc:
             log.error("exp=%s: failed to pull Ollama model %s: %s", experiment_id, model, exc)
             raise RuntimeError(
@@ -77,7 +65,7 @@ def _ensure_ollama_models(
                 "Is Ollama running? Try: ollama serve"
             ) from exc
 
-    _emit("✓ Models ready — starting experiment…")
+    emit("✓ Models ready")
 
 
 def _build_runner(config: ExperimentConfig) -> WorkflowRunner:
@@ -207,21 +195,36 @@ def _run_experiment(
     stop_event: threading.Event,
 ) -> None:
     """Full experiment lifecycle: GP loop + SMBO polish. Runs in a worker thread."""
+
+    _init_log: list[str] = []
+
+    def _init_emit(msg: str) -> None:
+        _init_log.append(msg)
+        store.update_progress(experiment_id, {
+            "phase": "init",
+            "message": msg,
+            "log_lines": list(_init_log),
+        })
+
     try:
         store.update_experiment_status(experiment_id, "running")
         config = store.get_experiment_config(experiment_id)
 
-        _ensure_ollama_models(config, store, experiment_id)
+        _ensure_ollama_models(config, store, experiment_id, _init_emit)
 
+        _init_emit("Loading dataset…")
         if config.task_type == "generative":
             dataset = [{"index": i} for i in range(config.n_generations)]
         else:
             dataset = load_dataset(config.dataset_id)
             if config.dataset_sample_size is not None:
                 dataset = dataset[: config.dataset_sample_size]
+        _init_emit(f"✓ Dataset ready — {len(dataset)} row(s)")
 
+        _init_emit("Building runner and evaluators…")
         runner = _build_runner(config)
         evaluators = _build_evaluators(config)
+        _init_emit("✓ Starting GP loop…")
 
         def on_trial(result):
             store.put_trial_result(experiment_id, result)

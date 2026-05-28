@@ -200,7 +200,8 @@ def test_progress_written_to_store(tmp_path, monkeypatch):
 
         _run_experiment("exp_wire_001", store, threading.Event())
 
-    # With 12 rows and heartbeat every 10, at least one progress call expected
-    assert len(progress_snapshots) >= 1
-    assert progress_snapshots[0]["rows_done"] == 10
-    assert progress_snapshots[0]["rows_total"] == 12
+    # Filter out init-phase snapshots (model checks, dataset loading) — only GP/SMBO progress matters
+    gp_snapshots = [s for s in progress_snapshots if s.get("phase") != "init"]
+    assert len(gp_snapshots) >= 1, f"No GP progress snapshots found. All snapshots: {progress_snapshots}"
+    assert gp_snapshots[0]["rows_done"] == 10
+    assert gp_snapshots[0]["rows_total"] == 12
