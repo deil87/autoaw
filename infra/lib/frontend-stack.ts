@@ -29,6 +29,15 @@ export class FrontendStack extends cdk.Stack {
       code: cloudfront.FunctionCode.fromInline(`
 function handler(event) {
   var request = event.request;
+  var host = request.headers.host && request.headers.host.value;
+  if (host === 'www.autoaw.app') {
+    var qs = request.querystring ? '?' + request.querystring : '';
+    return {
+      statusCode: 301,
+      statusDescription: 'Moved Permanently',
+      headers: { location: { value: 'https://autoaw.app' + request.uri + qs } }
+    };
+  }
   var uri = request.uri;
   if (uri.length > 1 && uri.charAt(uri.length - 1) === '/') {
     uri = uri.slice(0, -1);
