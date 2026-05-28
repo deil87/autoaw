@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FitnessChart } from "@/components/fitness-chart";
+import { GeneAnimationPanel } from "@/components/gene-animation-panel";
 import { ExperimentDetails } from "@/components/experiment-details";
 import { api } from "@/lib/api";
 import { useExperimentSocket } from "@/lib/websocket";
@@ -575,7 +576,7 @@ export default function MonitorPage() {
             </div>
           )}
 
-          {/* Fitness chart + run stats */}
+          {/* Fitness chart + animated gene panel */}
           <div className="workspace" style={{ marginBottom: 18 }}>
             <div className="card">
               <div className="card-header">
@@ -586,6 +587,11 @@ export default function MonitorPage() {
                 <FitnessChart data={chartData} />
               </div>
             </div>
+            <GeneAnimationPanel trials={trials} />
+          </div>
+
+          {/* Run stats */}
+          <div style={{ marginBottom: 18 }}>
             <RunStats trials={trials} experiment={experiment} />
           </div>
 
