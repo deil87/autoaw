@@ -65,6 +65,7 @@ class ExperimentConfig:
     evaluator_type: str = "llm_judge"
     dataset_sample_size: int | None = None  # None = use all rows; N = use first N rows
     n_generations: int = 1  # generative only: synthetic tasks generated per trial evaluation
+    seed_gene: dict | None = None  # user-supplied gene injected at slot 0 of the initial population
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -86,6 +87,7 @@ class ExperimentConfig:
             "evaluator_type": self.evaluator_type,
             "dataset_sample_size": self.dataset_sample_size,
             "n_generations": self.n_generations,
+            "seed_gene": self.seed_gene,
         }
 
     @classmethod
@@ -116,4 +118,5 @@ class ExperimentConfig:
             evaluator_type=d.get("evaluator_type", "llm_judge"),
             dataset_sample_size=d.get("dataset_sample_size"),
             n_generations=d.get("n_generations", 1),
+            seed_gene=d.get("seed_gene"),
         )

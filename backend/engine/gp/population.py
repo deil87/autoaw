@@ -19,7 +19,8 @@ def seed_population(config: ExperimentConfig) -> list[Gene]:
     """Generate an initial diverse population for a GP run.
 
     Strategy:
-    - Cycle through all 6 topology types to ensure structural diversity.
+    - If config.seed_gene is set, inject it at slot 0 with id "seed_user".
+    - Cycle through all 6 topology types to fill remaining slots.
     - Load canonical fixture for each topology as the seed genome.
     - Apply random param jitter (temperature) to introduce variation.
     - LLM-assisted generation is called as a hook (no-op in test/dev).
@@ -27,7 +28,13 @@ def seed_population(config: ExperimentConfig) -> list[Gene]:
     population: list[Gene] = []
     topology_cycle = [TopologyType(t) for t in TOPOLOGY_FIXTURES]
 
-    for i in range(config.population_size):
+    if config.seed_gene:
+        user_gene = Gene.from_dict(config.seed_gene)
+        user_gene.id = "seed_user"
+        population.append(user_gene)
+
+    start_i = len(population)
+    for i in range(start_i, config.population_size):
         topology = topology_cycle[i % len(topology_cycle)]
         llm_result = _generate_gene_with_llm(config.task_description, topology)
 
@@ -36,7 +43,6 @@ def seed_population(config: ExperimentConfig) -> list[Gene]:
         else:
             gene = Gene.from_dict(load_fixture(topology.value))
             gene.id = f"seed_{i:04d}"
-            # Jitter temperatures for diversity
             for agent in gene.agents:
                 agent.temperature = round(random.uniform(0.2, 0.9), 2)
 

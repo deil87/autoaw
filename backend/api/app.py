@@ -94,6 +94,11 @@ class CreateExperimentRequest(BaseModel):
     runner_type: str = "raw_llm"
     dataset_sample_size: int | None = None
     n_generations: int = 1
+    seed_gene: dict | None = None
+
+
+class GeneFromDescriptionRequest(BaseModel):
+    text: str
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -271,6 +276,87 @@ def health():
     return {"status": "ok"}
 
 
+_GENE_CONVERSION_SYSTEM = """You convert agent pipeline descriptions into AutoAW Gene JSON.
+
+Gene schema — output exactly this shape:
+{
+  "id": "imported_001",
+  "topology": "<one of: fixed_pipeline | ai_orchestrated | debate | parallel_reduce | human_in_loop | hybrid>",
+  "agents": [
+    {"id": "a0", "role": "<role>", "model": "gpt-4o-mini", "system_prompt": "<1-2 sentence prompt>", "tools": [], "temperature": 0.7}
+  ],
+  "edges": [{"from": "a0", "to": "a1", "type": "<sequential|broadcast|reduce|conditional>"}],
+  "topology_params": {}
+}
+
+Topology rules:
+- linear A→B→C chain → fixed_pipeline
+- one agent routes tasks to specialists → ai_orchestrated
+- pro/con/judge pattern → debate
+- fan-out to parallel workers then merge → parallel_reduce
+- requires a human approval step → human_in_loop
+- mix of the above → hybrid
+
+Edge types:
+- sequential: one output feeds the next
+- broadcast: one output fans out to multiple agents simultaneously
+- reduce: multiple outputs merge into one agent
+- conditional: routing based on content
+
+Infer system_prompt from the role description. Keep system prompts to 1-2 sentences.
+Default model to "gpt-4o-mini" unless the input specifies otherwise.
+Agent IDs must be short alphanumeric strings (a0, a1, researcher, writer, etc.).
+
+Output ONLY valid JSON — no markdown, no commentary — with this exact shape:
+{"gene": <gene object>, "notes": ["<any assumption or clarification>"]}"""
+
+
+@app.post("/genes/from_description")
+def gene_from_description(req: GeneFromDescriptionRequest):
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+
+    client = anthropic.Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2048,
+        system=_GENE_CONVERSION_SYSTEM,
+        messages=[{"role": "user", "content": req.text}],
+    )
+
+    raw = message.content[0].text.strip()
+    if raw.startswith("```"):
+        parts = raw.split("```")
+        raw = parts[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=422, detail=f"LLM returned invalid JSON: {exc}")
+
+    gene_dict = result.get("gene")
+    if not gene_dict:
+        raise HTTPException(status_code=422, detail="LLM response missing 'gene' field")
+
+    from backend.shared.gene import Gene
+    try:
+        validated = Gene.from_dict(gene_dict)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid gene structure: {exc}")
+
+    return {
+        "gene": validated.to_dict(),
+        "topology": validated.topology.value,
+        "notes": result.get("notes", []),
+    }
+
+
 @app.post("/experiments", status_code=201)
 def create_experiment(req: CreateExperimentRequest):
     exp_id = f"exp_{uuid.uuid4().hex[:12]}"
@@ -295,6 +381,7 @@ def create_experiment(req: CreateExperimentRequest):
         runner_type=req.runner_type,
         dataset_sample_size=req.dataset_sample_size,
         n_generations=req.n_generations,
+        seed_gene=req.seed_gene,
     )
     _store.create_experiment(exp_id, config)
     return _store.get_experiment(exp_id)

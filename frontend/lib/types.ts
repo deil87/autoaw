@@ -92,6 +92,13 @@ export interface ExperimentConfig {
   runner_type?: string;
   dataset_sample_size?: number | null;
   n_generations?: number;
+  seed_gene?: Gene | null;
+}
+
+export interface GeneConversionResult {
+  gene: Gene;
+  topology: string;
+  notes: string[];
 }
 
 export interface ExperimentProgress {

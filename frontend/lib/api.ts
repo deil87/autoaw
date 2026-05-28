@@ -1,4 +1,4 @@
-import type { Experiment, ExperimentConfig, Trial, EvalRow, LineageNode, BenchmarkDescriptor, EvaluatorTypeDescriptor, EcsStatus } from "@/lib/types";
+import type { Experiment, ExperimentConfig, Trial, EvalRow, LineageNode, BenchmarkDescriptor, EvaluatorTypeDescriptor, EcsStatus, GeneConversionResult } from "@/lib/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -90,5 +90,13 @@ export const api = {
   infra: {
     ecsStatus: (experimentId?: string) =>
       request<EcsStatus>(experimentId ? `/infra/ecs?experiment_id=${experimentId}` : "/infra/ecs"),
+  },
+
+  genes: {
+    fromDescription: (text: string) =>
+      request<GeneConversionResult>("/genes/from_description", {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      }),
   },
 };

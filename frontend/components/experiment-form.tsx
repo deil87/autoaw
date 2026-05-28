@@ -17,9 +17,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ObjectiveSliders } from "@/components/objective-sliders";
 import { EvaluatorList } from "@/components/evaluator-list";
 import { EvaluatorPicker } from "@/components/evaluator-picker";
+import { PipelineImporter } from "@/components/pipeline-importer";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { ExperimentConfig, ObjectiveWeights, EvaluatorConfig, EvaluatorTypeDescriptor } from "@/lib/types";
+import type { ExperimentConfig, ObjectiveWeights, EvaluatorConfig, EvaluatorTypeDescriptor, Gene } from "@/lib/types";
 
 const DEFAULT_WEIGHTS: ObjectiveWeights = { quality: 0.6, cost: 0.2, speed: 0.2 };
 const DEFAULT_EVALUATORS: EvaluatorConfig[] = [
@@ -91,6 +92,7 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   const [nGenerations, setNGenerations] = useState<number>(
     initialValues?.n_generations ?? 1
   );
+  const [seedGene, setSeedGene] = useState<Gene | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -123,6 +125,7 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
       runner_type: runnerType,
       dataset_sample_size: needsDataset ? (datasetSampleSize === "" ? null : datasetSampleSize) : null,
       n_generations: taskType === "generative" ? nGenerations : undefined,
+      seed_gene: seedGene ?? undefined,
     };
     try {
       const exp = await api.experiments.create(config);
@@ -136,6 +139,13 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-xl">
+
+      <PipelineImporter
+        seeded={seedGene}
+        onSeed={setSeedGene}
+        onClear={() => setSeedGene(null)}
+      />
+
       <div className="space-y-2">
         <Label>Experiment Type</Label>
         <div className="grid grid-cols-3 gap-2">
