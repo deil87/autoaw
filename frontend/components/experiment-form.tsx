@@ -67,6 +67,7 @@ export interface ExperimentFormInitialValues {
   dataset_sample_size?: number | null;
   n_generations?: number;
   allowed_models?: string[];
+  seed_gene?: Gene | null;
 }
 
 interface ExperimentFormProps {
@@ -98,12 +99,14 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   const [nGenerations, setNGenerations] = useState<number>(
     initialValues?.n_generations ?? 1
   );
-  const [seedGene, setSeedGene] = useState<Gene | null>(null);
+  const [seedGene, setSeedGene] = useState<Gene | null>(initialValues?.seed_gene ?? null);
   const [allowedModels, setAllowedModels] = useState<string[]>(
     initialValues?.allowed_models ?? DEFAULT_ALLOWED_MODELS
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [taskSuggestions, setTaskSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const needsDataset = NEEDS_DATASET.includes(taskType);
 
@@ -114,6 +117,21 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
       if (ids.length > 0 && !datasetId) setDatasetId(ids[0]);
     }).catch(() => {});
     api.evaluatorTypes.list().then(setCatalog).catch(() => {});
+    api.experiments.list().then((exps) => {
+      const seen = new Set<string>();
+      const descriptions: string[] = [];
+      for (const exp of exps) {
+        try {
+          const cfg = JSON.parse(exp.config_json ?? "{}");
+          const desc: string = cfg.task_description;
+          if (desc && !seen.has(desc)) {
+            seen.add(desc);
+            descriptions.push(desc);
+          }
+        } catch { /* ignore */ }
+      }
+      setTaskSuggestions(descriptions);
+    }).catch(() => {});
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -187,9 +205,38 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
         <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. summarize-research-v1" />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 relative">
         <Label htmlFor="task">Task Description</Label>
-        <Textarea id="task" value={taskDescription} onChange={(e) => setTaskDescription(e.target.value)} required placeholder="Describe the task the workflow should solve..." rows={3} />
+        <Textarea
+          id="task"
+          value={taskDescription}
+          onChange={(e) => { setTaskDescription(e.target.value); setShowSuggestions(true); }}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+          required
+          placeholder="Describe the task the workflow should solve..."
+          rows={3}
+        />
+        {showSuggestions && taskSuggestions.filter((s) =>
+          s.toLowerCase().includes(taskDescription.toLowerCase())
+        ).length > 0 && (
+          <div className="absolute z-10 w-full rounded-md border bg-popover text-popover-foreground shadow-md max-h-48 overflow-y-auto">
+            {taskSuggestions
+              .filter((s) => s.toLowerCase().includes(taskDescription.toLowerCase()))
+              .slice(0, 6)
+              .map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-accent truncate"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { setTaskDescription(s); setShowSuggestions(false); }}
+                >
+                  {s}
+                </button>
+              ))}
+          </div>
+        )}
       </div>
 
       {taskType === "generative" && (

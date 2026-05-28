@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ExperimentForm } from "@/components/experiment-form";
 import type { ExperimentFormInitialValues } from "@/components/experiment-form";
 import { BenchmarkCard } from "@/components/benchmark-card";
 import { api } from "@/lib/api";
-import type { BenchmarkDescriptor } from "@/lib/types";
+import type { BenchmarkDescriptor, ExperimentConfig } from "@/lib/types";
 
 const COMING_SOON_BENCHMARKS: BenchmarkDescriptor[] = [
   {
@@ -43,14 +44,41 @@ const COMING_SOON_BENCHMARKS: BenchmarkDescriptor[] = [
 ];
 
 export default function NewExperimentPage() {
+  const searchParams = useSearchParams();
   const [benchmarks, setBenchmarks] = useState<BenchmarkDescriptor[]>([]);
   const [initialValues, setInitialValues] = useState<ExperimentFormInitialValues | undefined>(
     undefined
   );
+  const [forkedFromName, setForkedFromName] = useState<string | null>(null);
 
   useEffect(() => {
     api.benchmarks.list().then(setBenchmarks).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const fromId = searchParams.get("from");
+    if (!fromId) return;
+    api.experiments.get(fromId).then((exp) => {
+      let cfg: ExperimentConfig = {} as ExperimentConfig;
+      try { cfg = JSON.parse(exp.config_json ?? "{}"); } catch { /* ignore */ }
+      setForkedFromName(exp.name);
+      setInitialValues({
+        name: `${exp.name} (Fork)`,
+        task_description: cfg.task_description,
+        dataset_id: cfg.dataset_id,
+        task_type: cfg.task_type,
+        objective_weights: cfg.objective_weights,
+        population_size: cfg.population_size,
+        budget_max_trials: cfg.budget_max_trials,
+        runner_type: cfg.runner_type,
+        evaluators: cfg.evaluators,
+        dataset_sample_size: cfg.dataset_sample_size,
+        n_generations: cfg.n_generations,
+        allowed_models: cfg.allowed_models,
+        seed_gene: cfg.seed_gene,
+      });
+    }).catch(() => {});
+  }, [searchParams]);
 
   const handleSelectBenchmark = (b: BenchmarkDescriptor) => {
     setInitialValues({
@@ -74,6 +102,12 @@ export default function NewExperimentPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">New Experiment</h1>
+
+      {forkedFromName && (
+        <div className="mb-6 rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
+          Forking from <span className="font-medium">{forkedFromName}</span> — all settings pre-filled below.
+        </div>
+      )}
 
       <div className="mb-8 space-y-3">
         <h2 className="text-lg font-semibold">Predefined Benchmarks</h2>
