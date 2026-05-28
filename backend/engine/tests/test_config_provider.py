@@ -85,8 +85,9 @@ def test_experiment_config_default_allowed_models(monkeypatch):
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.delenv("GITHUB_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-env")
+    from backend.shared.experiment import DEFAULT_CLOUD_MODELS
     cfg = ExperimentConfig.from_dict(_base_dict())
-    assert cfg.allowed_models == ["gpt-4o-mini", "gpt-4o"]
+    assert cfg.allowed_models == DEFAULT_CLOUD_MODELS
 
 
 def test_experiment_config_roundtrip_with_provider(monkeypatch):

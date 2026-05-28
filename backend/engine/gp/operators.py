@@ -4,8 +4,9 @@ import os
 import random
 from backend.shared.gene import Gene, Agent, Edge, Subtask, TopologyType
 from backend.engine.llm_client import ProviderConfig, make_client, provider_from_env
+from backend.shared.experiment import DEFAULT_CLOUD_MODELS
 
-_DEFAULT_ALLOWED_MODELS = ["gpt-4o-mini", "gpt-4o"]
+_DEFAULT_ALLOWED_MODELS = DEFAULT_CLOUD_MODELS
 
 
 def _find_sinks(gene: Gene) -> list[Agent]:

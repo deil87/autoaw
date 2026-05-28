@@ -3,6 +3,27 @@ import os
 from dataclasses import dataclass, field
 from typing import Any
 
+# Default model pools used when the user does not specify allowed_models.
+# Cloud pool: full set of remote models available for GP mutation.
+# Local pool: single lightweight model so users running a local inference
+#   engine (e.g. Ollama via OPENAI_BASE_URL) don't download multiple
+#   multi-GB weight files by default.
+DEFAULT_CLOUD_MODELS: list[str] = [
+    "gpt-4o-mini",
+    "gpt-4o",
+    "claude-3-5-haiku-20241022",
+    "claude-3-5-sonnet-20241022",
+    "amazon.nova-micro-v1:0",
+    "amazon.nova-lite-v1:0",
+    "meta.llama3-2-1b-instruct-v1:0",
+    "meta.llama3-2-3b-instruct-v1:0",
+    "meta.llama3-1-8b-instruct-v1:0",
+]
+
+DEFAULT_LOCAL_MODELS: list[str] = [
+    "llama3.2:1b",  # small Ollama model; point OPENAI_BASE_URL at your local server
+]
+
 
 def _provider_from_env():
     """Thin wrapper; import deferred to avoid circular imports at module load."""
@@ -59,7 +80,7 @@ class ExperimentConfig:
     provider: Any = field(
         default=None
     )  # ProviderConfig (typed as Any to avoid import at module level)
-    allowed_models: list[str] = field(default_factory=lambda: ["gpt-4o-mini", "gpt-4o"])
+    allowed_models: list[str] = field(default_factory=lambda: list(DEFAULT_CLOUD_MODELS))
     smbo_model: str | None = None  # if set, all agent models are upgraded to this before SMBO polish
     runner_type: str = "raw_llm"
     evaluator_type: str = "llm_judge"
@@ -112,7 +133,7 @@ class ExperimentConfig:
             convergence_patience=d.get("convergence_patience", 10),
             concurrency=d.get("concurrency", 5),
             provider=provider,
-            allowed_models=d.get("allowed_models", ["gpt-4o-mini", "gpt-4o"]),
+            allowed_models=d.get("allowed_models", list(DEFAULT_CLOUD_MODELS)),
             smbo_model=d.get("smbo_model"),
             runner_type=d.get("runner_type", "raw_llm"),
             evaluator_type=d.get("evaluator_type", "llm_judge"),

@@ -19,6 +19,7 @@ from backend.shared.experiment import (
     ExperimentConfig,
     ObjectiveWeights,
     EvaluatorConfig,
+    DEFAULT_CLOUD_MODELS,
 )
 from backend.shared.evaluator_catalog import CATALOG
 from backend.api.executor import ExperimentExecutor
@@ -95,7 +96,7 @@ class CreateExperimentRequest(BaseModel):
     dataset_sample_size: int | None = None
     n_generations: int = 1
     seed_gene: dict | None = None
-    allowed_models: list[str] | None = None
+    allowed_models: list[str] | None = None  # None → use DEFAULT_CLOUD_MODELS
 
 
 class GeneFromDescriptionRequest(BaseModel):
@@ -383,7 +384,7 @@ def create_experiment(req: CreateExperimentRequest):
         dataset_sample_size=req.dataset_sample_size,
         n_generations=req.n_generations,
         seed_gene=req.seed_gene,
-        allowed_models=req.allowed_models if req.allowed_models else ["gpt-4o-mini", "gpt-4o"],
+        allowed_models=req.allowed_models if req.allowed_models is not None else list(DEFAULT_CLOUD_MODELS),
     )
     _store.create_experiment(exp_id, config)
     return _store.get_experiment(exp_id)
