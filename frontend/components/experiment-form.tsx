@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ObjectiveSliders } from "@/components/objective-sliders";
 import { EvaluatorList } from "@/components/evaluator-list";
 import { EvaluatorPicker } from "@/components/evaluator-picker";
+import { ModelPicker } from "@/components/model-picker";
 import { PipelineImporter } from "@/components/pipeline-importer";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -61,6 +62,7 @@ export interface ExperimentFormInitialValues {
   evaluators?: EvaluatorConfig[];
   dataset_sample_size?: number | null;
   n_generations?: number;
+  allowed_models?: string[];
 }
 
 interface ExperimentFormProps {
@@ -91,6 +93,9 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
   );
   const [nGenerations, setNGenerations] = useState<number>(
     initialValues?.n_generations ?? 1
+  );
+  const [allowedModels, setAllowedModels] = useState<string[]>(
+    initialValues?.allowed_models ?? ["gpt-4o-mini", "gpt-4o"]
   );
   const [seedGene, setSeedGene] = useState<Gene | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -126,6 +131,7 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
       dataset_sample_size: needsDataset ? (datasetSampleSize === "" ? null : datasetSampleSize) : null,
       n_generations: taskType === "generative" ? nGenerations : undefined,
       seed_gene: seedGene ?? undefined,
+      allowed_models: allowedModels,
     };
     try {
       const exp = await api.experiments.create(config);
@@ -244,6 +250,11 @@ export function ExperimentForm({ initialValues }: ExperimentFormProps = {}) {
           <EvaluatorPicker catalog={catalog} onAdd={(ev) => setEvaluators([...evaluators, ev])} />
         </div>
         <EvaluatorList evaluators={evaluators} catalog={catalog} onChange={setEvaluators} />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Evolution Models</Label>
+        <ModelPicker value={allowedModels} onChange={setAllowedModels} />
       </div>
 
       <div className="space-y-2">

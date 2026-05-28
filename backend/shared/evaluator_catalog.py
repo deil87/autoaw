@@ -6,8 +6,11 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 _MODEL_OPTIONS = [
+    # Cloud / paid models
     "gpt-4o-mini",
     "gpt-4o",
+    "gpt-4.1-nano",
+    "gpt-4.1-mini",
     "claude-3-5-haiku-20241022",
     "claude-3-5-sonnet-20241022",
     "amazon.nova-micro-v1:0",
@@ -15,6 +18,17 @@ _MODEL_OPTIONS = [
     "meta.llama3-2-1b-instruct-v1:0",
     "meta.llama3-2-3b-instruct-v1:0",
     "meta.llama3-1-8b-instruct-v1:0",
+    # Local open-source models via Ollama
+    "llama3.1:8b",
+    "llama3.2:3b",
+    "llama3.2:1b",
+    "qwen2.5:7b",
+    "qwen2.5:3b",
+    "phi4-mini",
+    "gemma3:4b",
+    "gemma3:1b",
+    "mistral:7b",
+    "smollm2:1.7b",
 ]
 
 

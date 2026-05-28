@@ -366,6 +366,8 @@ export default function MonitorPage() {
     : 0;
   const phaseLabel = progress?.phase === "smbo"
     ? "SMBO polish"
+    : progress?.phase === "init"
+    ? "init"
     : progress ? `GP · gen ${progress.generation}` : "";
 
   return (
@@ -494,8 +496,24 @@ export default function MonitorPage() {
             </div>
           )}
 
-          {/* Progress bar (when running) */}
-          {experiment.status === "running" && progress && (
+          {/* Init / model-pull banner (while Ollama models are being pulled) */}
+          {experiment.status === "running" && progress?.phase === "init" && (
+            <div className="card" style={{ marginBottom: 18, borderColor: "rgba(168,85,247,0.35)" }}>
+              <div className="card-header">
+                <div className="card-title">Initialising</div>
+                <span className="chip mono" style={{ fontSize: 11 }}>init</span>
+              </div>
+              <div className="card-body">
+                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--muted)", fontFamily: "var(--mono)" }}>
+                  <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "rgba(168,85,247,0.7)", animation: "pulse 1.5s ease-in-out infinite" }} />
+                  {progress.message ?? "Preparing…"}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Progress bar (when running GP/SMBO) */}
+          {experiment.status === "running" && progress && progress.phase !== "init" && (
             <div className="card" style={{ marginBottom: 18 }}>
               <div className="card-header">
                 <div className="card-title">Current trial progress</div>

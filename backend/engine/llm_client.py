@@ -22,6 +22,20 @@ _RETRY_MAX_DELAY = 300.0
 # Model ID prefixes that should be routed to AWS Bedrock
 _BEDROCK_PREFIXES = ("amazon.", "eu.amazon.", "us.amazon.", "ap.amazon.", "meta.llama")
 
+# Ollama model IDs (served locally via http://localhost:11434/v1 by default)
+_OLLAMA_MODELS: frozenset[str] = frozenset({
+    "llama3.1:8b",
+    "llama3.2:3b",
+    "llama3.2:1b",
+    "qwen2.5:7b",
+    "qwen2.5:3b",
+    "phi4-mini",
+    "gemma3:4b",
+    "gemma3:1b",
+    "mistral:7b",
+    "smollm2:1.7b",
+})
+
 # Nova models cannot be called with on-demand throughput; they require a
 # cross-region inference profile ID (e.g. eu.amazon.nova-micro-v1:0).
 _NOVA_PROFILE_MODELS = frozenset({
@@ -49,6 +63,102 @@ def _resolve_bedrock_model_id(model: str, region: str) -> str:
 
 def is_bedrock_model(model: str) -> bool:
     return any(model.startswith(p) for p in _BEDROCK_PREFIXES)
+
+
+def is_ollama_model(model: str) -> bool:
+    return model in _OLLAMA_MODELS
+
+
+def _ollama_base() -> str:
+    """Return the Ollama base URL (without /v1 suffix) from env or default."""
+    url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+    # Strip the OpenAI-compat /v1 suffix to get the native Ollama API root
+    return url.rstrip("/").removesuffix("/v1")
+
+
+def ollama_list_local_models() -> list[str]:
+    """Return model names currently pulled on the local Ollama instance.
+
+    Returns an empty list if Ollama is not running.
+    """
+    import urllib.request
+    import json as _json
+
+    try:
+        url = f"{_ollama_base()}/api/tags"
+        with urllib.request.urlopen(url, timeout=5) as resp:
+            data = _json.loads(resp.read())
+        return [m["name"] for m in data.get("models", [])]
+    except Exception:
+        return []
+
+
+def ollama_pull_model(
+    model: str,
+    on_progress: Any = None,  # callable(message: str) | None
+) -> None:
+    """Pull a model from the Ollama registry.
+
+    Streams progress events and calls ``on_progress(message)`` with a
+    human-readable status string.  Raises on failure.
+    """
+    import json as _json
+    import urllib.request
+
+    url = f"{_ollama_base()}/api/pull"
+    payload = _json.dumps({"name": model, "stream": True}).encode()
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=600) as resp:
+        for raw_line in resp:
+            line = raw_line.strip()
+            if not line:
+                continue
+            try:
+                event = _json.loads(line)
+            except Exception:
+                continue
+            status = event.get("status", "")
+            completed = event.get("completed", 0)
+            total = event.get("total", 0)
+            if total and completed:
+                pct = int(completed / total * 100)
+                msg = f"Pulling {model} — {pct}% ({completed / 1e9:.1f} GB / {total / 1e9:.1f} GB)"
+            else:
+                msg = f"Pulling {model} — {status}"
+            logger.info(msg)
+            if on_progress:
+                on_progress(msg)
+            if event.get("error"):
+                raise RuntimeError(f"Ollama pull error for {model!r}: {event['error']}")
+
+
+def ollama_chat_with_retry(model: str, messages: list[dict], temperature: float) -> Any:
+    """Call a local Ollama instance via its OpenAI-compatible endpoint."""
+    base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+    client = openai.OpenAI(api_key="ollama", base_url=base_url)
+    delay = _RETRY_BASE_DELAY
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            return client.chat.completions.create(
+                model=model, messages=messages, temperature=temperature
+            )
+        except Exception as exc:
+            if attempt == _MAX_RETRIES:
+                raise
+            logger.warning(
+                "Ollama call failed on attempt %d/%d (%s); retrying in %.0fs.",
+                attempt + 1,
+                _MAX_RETRIES,
+                exc,
+                delay,
+            )
+            time.sleep(delay)
+            delay = min(delay * 2, _RETRY_MAX_DELAY)
 
 
 @dataclass
@@ -177,7 +287,9 @@ def provider_from_env() -> "ProviderConfig":
     raise ValueError(
         "No LLM provider configured. "
         "Set GITHUB_TOKEN (or GITHUB_API_KEY) for GitHub Models, "
-        "or OPENAI_API_KEY for OpenAI / compatible endpoints."
+        "or OPENAI_API_KEY for OpenAI / compatible endpoints. "
+        "For local Ollama models only, set OLLAMA_BASE_URL and leave other keys unset — "
+        "note: Ollama models bypass this provider config and are routed automatically."
     )
 
 
@@ -211,9 +323,11 @@ def chat_with_retry(
     messages: list[dict],
     temperature: float,
 ) -> Any:
-    """Call LLM with exponential-backoff retry. Routes Bedrock model IDs to boto3."""
+    """Call LLM with exponential-backoff retry. Routes Bedrock and Ollama model IDs automatically."""
     if is_bedrock_model(model):
         return bedrock_chat_with_retry(model, messages, temperature)
+    if is_ollama_model(model):
+        return ollama_chat_with_retry(model, messages, temperature)
     delay = _RETRY_BASE_DELAY
     for attempt in range(_MAX_RETRIES + 1):
         try:

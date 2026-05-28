@@ -95,6 +95,7 @@ class CreateExperimentRequest(BaseModel):
     dataset_sample_size: int | None = None
     n_generations: int = 1
     seed_gene: dict | None = None
+    allowed_models: list[str] | None = None
 
 
 class GeneFromDescriptionRequest(BaseModel):
@@ -382,6 +383,7 @@ def create_experiment(req: CreateExperimentRequest):
         dataset_sample_size=req.dataset_sample_size,
         n_generations=req.n_generations,
         seed_gene=req.seed_gene,
+        allowed_models=req.allowed_models if req.allowed_models else ["gpt-4o-mini", "gpt-4o"],
     )
     _store.create_experiment(exp_id, config)
     return _store.get_experiment(exp_id)
@@ -390,6 +392,13 @@ def create_experiment(req: CreateExperimentRequest):
 @app.get("/experiments")
 def list_experiments():
     return _store.list_experiments()
+
+
+@app.get("/ollama/models")
+def list_ollama_models():
+    """Return models currently available on the local Ollama instance."""
+    from backend.engine.llm_client import ollama_list_local_models
+    return {"models": ollama_list_local_models()}
 
 
 @app.get("/experiments/{experiment_id}")

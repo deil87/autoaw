@@ -11,6 +11,59 @@ from backend.api.dataset_store import load_dataset
 log = logging.getLogger(__name__)
 
 
+def _ensure_ollama_models(
+    config: ExperimentConfig,
+    store,
+    experiment_id: str,
+) -> None:
+    """Pull any Ollama models in allowed_models that aren't yet available locally.
+
+    Writes ``{"phase": "init", "message": "..."}`` progress to the store so the
+    frontend can display pull status.  Skips gracefully if Ollama is not running.
+    """
+    from backend.engine.llm_client import (
+        is_ollama_model,
+        ollama_list_local_models,
+        ollama_pull_model,
+    )
+
+    ollama_models = [m for m in config.allowed_models if is_ollama_model(m)]
+    if not ollama_models:
+        return
+
+    store.update_progress(experiment_id, {"phase": "init", "message": "Checking local Ollama models…"})
+
+    local_models = ollama_list_local_models()
+    if local_models is None:
+        log.warning("exp=%s: Ollama not reachable — skipping model pull", experiment_id)
+        return
+
+    # Normalise: Ollama sometimes lists names as "llama3.1:8b" or "llama3.1:latest"
+    local_names = {m.split(":")[0] for m in local_models} | set(local_models)
+
+    to_pull = [m for m in ollama_models if m not in local_names and m.split(":")[0] not in local_names]
+    if not to_pull:
+        log.info("exp=%s: all Ollama models already available locally", experiment_id)
+        return
+
+    for model in to_pull:
+        log.info("exp=%s: pulling Ollama model %s", experiment_id, model)
+
+        def _progress(msg: str, _model: str = model) -> None:
+            store.update_progress(experiment_id, {"phase": "init", "message": msg})
+
+        try:
+            ollama_pull_model(model, on_progress=_progress)
+        except Exception as exc:
+            log.error("exp=%s: failed to pull Ollama model %s: %s", experiment_id, model, exc)
+            raise RuntimeError(
+                f"Failed to pull Ollama model {model!r}. "
+                "Is Ollama running? Try: ollama serve"
+            ) from exc
+
+    store.update_progress(experiment_id, {"phase": "init", "message": "Models ready — starting experiment…"})
+
+
 def _build_runner(config: ExperimentConfig) -> WorkflowRunner:
     if config.runner_type == "workbench":
         from backend.engine.workbench.runner import WorkBenchRunner
@@ -141,6 +194,8 @@ def _run_experiment(
     try:
         store.update_experiment_status(experiment_id, "running")
         config = store.get_experiment_config(experiment_id)
+
+        _ensure_ollama_models(config, store, experiment_id)
 
         if config.task_type == "generative":
             dataset = [{"index": i} for i in range(config.n_generations)]

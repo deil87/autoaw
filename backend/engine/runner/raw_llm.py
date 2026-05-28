@@ -10,7 +10,9 @@ from backend.engine.llm_client import (
     make_client,
     provider_from_env,
     is_bedrock_model,
+    is_ollama_model,
     bedrock_chat_with_retry,
+    ollama_chat_with_retry,
     _parse_retry_after,
     _MAX_RETRIES,
     _RETRY_BASE_DELAY,
@@ -35,6 +37,14 @@ _COST_TABLE: dict[str, tuple[float, float]] = {
     "meta.llama3-2-1b": (0.0001, 0.0001),
     "meta.llama3-2-3b": (0.00015, 0.00015),
     "meta.llama3-1-8b": (0.0002, 0.0002),
+    # Local Ollama models — no API cost
+    "llama3.1": (0.0, 0.0),
+    "llama3.2": (0.0, 0.0),
+    "qwen2.5": (0.0, 0.0),
+    "phi4-mini": (0.0, 0.0),
+    "gemma3": (0.0, 0.0),
+    "mistral": (0.0, 0.0),
+    "smollm2": (0.0, 0.0),
 }
 
 
@@ -61,6 +71,8 @@ class RawLLMRunner(WorkflowRunner):
         """Single LLM call with no retry. Separated from _call_llm for testability."""
         if is_bedrock_model(model):
             return bedrock_chat_with_retry(model, messages, temperature)
+        if is_ollama_model(model):
+            return ollama_chat_with_retry(model, messages, temperature)
         cfg = self._provider_config or provider_from_env()
         client = make_client(cfg)
         return client.chat.completions.create(

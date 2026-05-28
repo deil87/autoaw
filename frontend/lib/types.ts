@@ -93,6 +93,7 @@ export interface ExperimentConfig {
   dataset_sample_size?: number | null;
   n_generations?: number;
   seed_gene?: Gene | null;
+  allowed_models?: string[];
 }
 
 export interface GeneConversionResult {
@@ -105,9 +106,10 @@ export interface ExperimentProgress {
   rows_done: number;
   rows_total: number;
   generation: number;
-  phase: "gp" | "smbo";
+  phase: "gp" | "smbo" | "init";
   avg_row_ms: number;
   eta_s: number;
+  message?: string; // human-readable status during "init" phase
 }
 
 export type ExperimentStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
