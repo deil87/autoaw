@@ -402,6 +402,89 @@ def list_ollama_models():
     return {"models": ollama_list_local_models()}
 
 
+@app.get("/infra/ecs")
+def get_ecs_status(experiment_id: str | None = None):
+    """ECS cluster status. In local dev (no ECS_CLUSTER_NAME set) returns a
+    zeroed-out stub so the monitor page doesn't error."""
+    import boto3
+
+    cluster = os.environ.get("ECS_CLUSTER_NAME", "")
+    if not cluster:
+        return {
+            "desired": 0,
+            "pending": 0,
+            "running": 0,
+            "status": "LOCAL",
+            "pending_tasks": [],
+            "stopped_tasks": [],
+        }
+
+    ecs = boto3.client("ecs")
+
+    def _exp_id(task: dict) -> str:
+        for ov in task.get("overrides", {}).get("containerOverrides", []):
+            for e in ov.get("environment", []):
+                if e.get("name") == "EXPERIMENT_ID":
+                    return e["value"]
+        return ""
+
+    pending_tasks: list = []
+    running_count = 0
+    try:
+        arns = ecs.list_tasks(cluster=cluster, desiredStatus="RUNNING").get("taskArns", [])
+        if arns:
+            for t in ecs.describe_tasks(cluster=cluster, tasks=arns[:100]).get("tasks", []):
+                exp_id = _exp_id(t)
+                if experiment_id and exp_id != experiment_id:
+                    continue
+                if t.get("lastStatus") == "PENDING":
+                    pending_tasks.append({
+                        "task_id": t.get("taskArn", "").split("/")[-1],
+                        "experiment_id": exp_id,
+                        "containers": [
+                            {"name": c.get("name"), "status": c.get("lastStatus"), "reason": c.get("reason", "")}
+                            for c in t.get("containers", [])
+                        ],
+                    })
+                elif t.get("lastStatus") == "RUNNING":
+                    running_count += 1
+    except Exception:
+        pass
+
+    stopped_tasks: list = []
+    try:
+        sarns = ecs.list_tasks(cluster=cluster, desiredStatus="STOPPED").get("taskArns", [])[:20]
+        if sarns:
+            for t in ecs.describe_tasks(cluster=cluster, tasks=sarns).get("tasks", []):
+                exp_id = _exp_id(t)
+                if experiment_id and exp_id != experiment_id:
+                    continue
+                stopped_at = t.get("stoppedAt")
+                stopped_tasks.append({
+                    "task_id": t.get("taskArn", "").split("/")[-1],
+                    "experiment_id": exp_id,
+                    "stopped_reason": t.get("stoppedReason", ""),
+                    "stopped_at": stopped_at.isoformat() if hasattr(stopped_at, "isoformat") else None,
+                    "containers": [
+                        {"name": c.get("name"), "exit_code": c.get("exitCode"), "reason": c.get("reason", "")}
+                        for c in t.get("containers", [])
+                    ],
+                })
+        stopped_tasks = stopped_tasks[:5]
+    except Exception:
+        pass
+
+    total = len(pending_tasks) + running_count
+    return {
+        "desired": total,
+        "pending": len(pending_tasks),
+        "running": running_count,
+        "status": "ACTIVE",
+        "pending_tasks": pending_tasks,
+        "stopped_tasks": stopped_tasks,
+    }
+
+
 @app.get("/experiments/{experiment_id}")
 def get_experiment(experiment_id: str):
     try:
