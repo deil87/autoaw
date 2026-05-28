@@ -22,7 +22,20 @@
           "model":         { "type": "string", "minLength": 1 },
           "system_prompt": { "type": "string", "minLength": 1 },
           "tools":         { "type": "array", "items": { "type": "string" } },
-          "temperature":   { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+          "temperature":   { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+          "subtasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "prompt"],
+              "additionalProperties": false,
+              "properties": {
+                "id":         { "type": "string", "minLength": 1 },
+                "prompt":     { "type": "string", "minLength": 1 },
+                "depends_on": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
         }
       }
     },
