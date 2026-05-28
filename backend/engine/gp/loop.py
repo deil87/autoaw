@@ -41,6 +41,7 @@ class TrialResult:
     parent_gene_ids: list[str] = field(default_factory=list)
     mutation_op: str = "seed"
     eval_rows: list[EvalRowResult] = field(default_factory=list)
+    eval_cost_usd: float = 0.0  # average evaluator cost per row (e.g. LLM judge calls)
 
 
 @dataclass
@@ -91,20 +92,23 @@ class GPLoop:
         eval_rows: list[EvalRowResult] = []
         total_quality = 0.0
         total_cost = 0.0
+        total_eval_cost = 0.0
         total_latency = 0
         last_scores: list[Score] = []
 
         for idx, sample in enumerate(self.dataset):
             run_result = self.runner.run(gene, sample.get("input", ""))
 
-            with self._lock:
-                self._total_cost += run_result.cost_usd
-
             scores = [
                 ev.score(sample.get("input", ""), run_result.output, sample.get("expected"))
                 for ev in self.evaluators
             ]
             last_scores = scores
+            row_eval_cost = sum(s.cost_usd for s in scores)
+
+            with self._lock:
+                self._total_cost += run_result.cost_usd + row_eval_cost
+
             avg_quality = (
                 sum(s.quality for s in scores) / len(scores) if scores else 0.0
             )
@@ -119,10 +123,12 @@ class GPLoop:
                     score_reasoning=reasoning,
                     latency_ms=run_result.latency_ms,
                     cost_usd=run_result.cost_usd,
+                    eval_cost_usd=row_eval_cost,
                 )
             )
             total_quality += avg_quality
             total_cost += run_result.cost_usd
+            total_eval_cost += row_eval_cost
             total_latency += run_result.latency_ms
 
             # Heartbeat every _PROGRESS_HEARTBEAT_ROWS rows
@@ -257,6 +263,9 @@ class GPLoop:
             )
 
             if self.on_trial_complete:
+                avg_eval_cost = (
+                    sum(r.eval_cost_usd for r in eval_rows) / max(len(eval_rows), 1)
+                )
                 self.on_trial_complete(
                     TrialResult(
                         gene=gene,
@@ -269,6 +278,7 @@ class GPLoop:
                         parent_gene_ids=parent_ids or [],
                         mutation_op=mut_op,
                         eval_rows=eval_rows,
+                        eval_cost_usd=avg_eval_cost,
                     )
                 )
             scored.append((gene, fitness))

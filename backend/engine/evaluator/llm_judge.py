@@ -10,6 +10,7 @@ from backend.engine.llm_client import (
     make_client,
     provider_from_env,
     chat_with_retry,
+    llm_cost_usd,
 )
 
 
@@ -48,7 +49,10 @@ class LLMJudgeEvaluator(Evaluator):
         )
         content = response.choices[0].message.content
         quality, metadata = self._parse_score(content)
-        return Score(quality=quality, metadata=metadata)
+
+        usage = response.usage
+        cost = llm_cost_usd(self.model, usage.prompt_tokens, usage.completion_tokens)
+        return Score(quality=quality, cost_usd=cost, metadata=metadata)
 
     def _parse_score(self, content: str) -> tuple[float, dict]:
         try:

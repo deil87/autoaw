@@ -146,7 +146,8 @@ export interface Trial {
   gene_json: string;
   fitness: number;
   quality: number;
-  cost_usd: number;
+  cost_usd: number;       // average workflow (training) cost per row
+  eval_cost_usd: number;  // average evaluator cost per row
   latency_ms: number;
   created_at: string;
   parent_gene_ids: string[];
@@ -162,7 +163,8 @@ export interface EvalRow {
   score: number;
   score_reasoning: string;
   latency_ms: number;
-  cost_usd: number;
+  cost_usd: number;       // workflow execution cost for this row
+  eval_cost_usd: number;  // evaluator cost for this row
 }
 
 export interface EcsTaskContainer {

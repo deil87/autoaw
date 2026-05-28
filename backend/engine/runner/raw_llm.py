@@ -13,6 +13,7 @@ from backend.engine.llm_client import (
     is_ollama_model,
     bedrock_chat_with_retry,
     ollama_chat_with_retry,
+    llm_cost_usd,
     _parse_retry_after,
     _MAX_RETRIES,
     _RETRY_BASE_DELAY,
@@ -21,38 +22,6 @@ from backend.engine.llm_client import (
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-# Cost per 1k tokens (prompt/completion) by model prefix
-_COST_TABLE: dict[str, tuple[float, float]] = {
-    "gpt-4o": (0.005, 0.015),
-    "gpt-4o-mini": (0.000150, 0.000600),
-    "gpt-4.1-nano": (0.000100, 0.000400),
-    "gpt-4.1-mini": (0.000400, 0.001600),
-    "claude-3-5-sonnet": (0.003, 0.015),
-    "claude-3-haiku": (0.00025, 0.00125),
-    # AWS Bedrock models
-    "amazon.nova-micro": (0.000035, 0.00014),
-    "amazon.nova-lite": (0.00006, 0.00024),
-    "meta.llama3-2-1b": (0.0001, 0.0001),
-    "meta.llama3-2-3b": (0.00015, 0.00015),
-    "meta.llama3-1-8b": (0.0002, 0.0002),
-    # Local Ollama models — no API cost
-    "llama3.1": (0.0, 0.0),
-    "llama3.2": (0.0, 0.0),
-    "qwen2.5": (0.0, 0.0),
-    "phi4-mini": (0.0, 0.0),
-    "gemma3": (0.0, 0.0),
-    "mistral": (0.0, 0.0),
-    "smollm2": (0.0, 0.0),
-}
-
-
-def _model_cost(model: str, prompt_tokens: int, completion_tokens: int) -> float:
-    for prefix, (p_rate, c_rate) in _COST_TABLE.items():
-        if model.startswith(prefix):
-            return (prompt_tokens / 1000) * p_rate + (completion_tokens / 1000) * c_rate
-    return 0.0
 
 
 class RawLLMRunner(WorkflowRunner):
@@ -113,7 +82,7 @@ class RawLLMRunner(WorkflowRunner):
             output = self._run_sequential_fallback(gene, input, trace, total_tokens)
 
         for model, usage in total_tokens.items():
-            total_cost += _model_cost(model, usage["prompt"], usage["completion"])
+            total_cost += llm_cost_usd(model, usage["prompt"], usage["completion"])
 
         latency_ms = int((time.monotonic() - start) * 1000)
         return RunResult(

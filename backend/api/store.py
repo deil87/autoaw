@@ -57,6 +57,14 @@ _ALTER_EXPERIMENTS_STOP_REASON = """
 ALTER TABLE experiments ADD COLUMN stop_reason TEXT
 """
 
+_ALTER_TRIALS_EVAL_COST = """
+ALTER TABLE trials ADD COLUMN eval_cost_usd REAL NOT NULL DEFAULT 0.0
+"""
+
+_ALTER_EVAL_ROWS_EVAL_COST = """
+ALTER TABLE eval_rows ADD COLUMN eval_cost_usd REAL NOT NULL DEFAULT 0.0
+"""
+
 _CREATE_DEMO_REQUESTS = """
 CREATE TABLE IF NOT EXISTS demo_requests (
     id          TEXT PRIMARY KEY,
@@ -116,6 +124,8 @@ class LocalStore:
             _ALTER_TRIALS_MUTATION_OP,
             _ALTER_EXPERIMENTS_PROGRESS,
             _ALTER_EXPERIMENTS_STOP_REASON,
+            _ALTER_TRIALS_EVAL_COST,
+            _ALTER_EVAL_ROWS_EVAL_COST,
         ):
             try:
                 conn.execute(stmt)
@@ -213,9 +223,9 @@ class LocalStore:
         self._conn().execute(
             "INSERT INTO trials "
             "(id, experiment_id, generation, gene_id, gene_json, "
-            " fitness, quality, cost_usd, latency_ms, created_at, "
+            " fitness, quality, cost_usd, eval_cost_usd, latency_ms, created_at, "
             " parent_gene_ids, mutation_op) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 trial_id,
                 experiment_id,
@@ -225,6 +235,7 @@ class LocalStore:
                 result.fitness,
                 result.pareto.quality,
                 result.pareto.cost_usd,
+                result.eval_cost_usd,
                 result.pareto.latency_ms,
                 now,
                 json.dumps(result.parent_gene_ids),
@@ -235,8 +246,8 @@ class LocalStore:
             self._conn().execute(
                 "INSERT INTO eval_rows "
                 "(id, trial_id, row_index, input_json, output_text, score, "
-                " score_reasoning, latency_ms, cost_usd) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                " score_reasoning, latency_ms, cost_usd, eval_cost_usd) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     str(uuid.uuid4()),
                     trial_id,
@@ -247,6 +258,7 @@ class LocalStore:
                     row.score_reasoning,
                     row.latency_ms,
                     row.cost_usd,
+                    row.eval_cost_usd,
                 ),
             )
         self._conn().commit()

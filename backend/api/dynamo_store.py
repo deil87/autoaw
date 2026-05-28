@@ -184,6 +184,7 @@ class DynamoStore:
                 "fitness": result.fitness,
                 "quality": result.pareto.quality,
                 "cost_usd": result.pareto.cost_usd,
+                "eval_cost_usd": result.eval_cost_usd,
                 "latency_ms": result.pareto.latency_ms,
                 "created_at": now,
                 "parent_gene_ids": json.dumps(result.parent_gene_ids),
@@ -206,6 +207,7 @@ class DynamoStore:
                             "score_reasoning": row.score_reasoning,
                             "latency_ms": row.latency_ms,
                             "cost_usd": row.cost_usd,
+                            "eval_cost_usd": row.eval_cost_usd,
                         }
                     )
                 )

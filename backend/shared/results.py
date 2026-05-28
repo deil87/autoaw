@@ -7,6 +7,7 @@ from backend.shared.experiment import ObjectiveWeights
 @dataclass
 class Score:
     quality: float
+    cost_usd: float = 0.0
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -14,11 +15,11 @@ class Score:
             raise ValueError(f"quality must be between 0.0 and 1.0, got {self.quality}")
 
     def to_dict(self) -> dict[str, Any]:
-        return {"quality": self.quality, "metadata": dict(self.metadata)}
+        return {"quality": self.quality, "cost_usd": self.cost_usd, "metadata": dict(self.metadata)}
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Score:
-        return cls(quality=d["quality"], metadata=dict(d.get("metadata", {})))
+        return cls(quality=d["quality"], cost_usd=d.get("cost_usd", 0.0), metadata=dict(d.get("metadata", {})))
 
 
 @dataclass
@@ -29,7 +30,8 @@ class EvalRowResult:
     score: float  # quality 0–1
     score_reasoning: str  # LLM judge reason or empty string
     latency_ms: int
-    cost_usd: float
+    cost_usd: float        # workflow execution cost (running gene agents)
+    eval_cost_usd: float = 0.0  # evaluator cost (e.g. LLM judge scoring call)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -40,6 +42,7 @@ class EvalRowResult:
             "score_reasoning": self.score_reasoning,
             "latency_ms": self.latency_ms,
             "cost_usd": self.cost_usd,
+            "eval_cost_usd": self.eval_cost_usd,
         }
 
     @classmethod
@@ -52,6 +55,7 @@ class EvalRowResult:
             score_reasoning=d.get("score_reasoning", ""),
             latency_ms=d["latency_ms"],
             cost_usd=d["cost_usd"],
+            eval_cost_usd=d.get("eval_cost_usd", 0.0),
         )
 
 

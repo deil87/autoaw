@@ -53,6 +53,44 @@ _REGION_PREFIX_MAP = {
 }
 
 
+# Cost per 1k tokens (prompt, completion) by model ID prefix.
+# More-specific prefixes MUST appear before less-specific ones so that
+# e.g. "gpt-4o-mini" is matched before "gpt-4o".
+# Imported by both the runner and evaluators so all LLM calls use the same rates.
+_COST_TABLE: dict[str, tuple[float, float]] = {
+    # OpenAI — specific entries first
+    "gpt-4o-mini": (0.000150, 0.000600),
+    "gpt-4.1-nano": (0.000100, 0.000400),
+    "gpt-4.1-mini": (0.000400, 0.001600),
+    "gpt-4o": (0.005, 0.015),
+    # Anthropic
+    "claude-3-5-sonnet": (0.003, 0.015),
+    "claude-3-haiku": (0.00025, 0.00125),
+    # AWS Bedrock
+    "amazon.nova-micro": (0.000035, 0.00014),
+    "amazon.nova-lite": (0.00006, 0.00024),
+    "meta.llama3-2-1b": (0.0001, 0.0001),
+    "meta.llama3-2-3b": (0.00015, 0.00015),
+    "meta.llama3-1-8b": (0.0002, 0.0002),
+    # Local Ollama — no API cost
+    "llama3.1": (0.0, 0.0),
+    "llama3.2": (0.0, 0.0),
+    "qwen2.5": (0.0, 0.0),
+    "phi4-mini": (0.0, 0.0),
+    "gemma3": (0.0, 0.0),
+    "mistral": (0.0, 0.0),
+    "smollm2": (0.0, 0.0),
+}
+
+
+def llm_cost_usd(model: str, prompt_tokens: int, completion_tokens: int) -> float:
+    """Return the USD cost for a single LLM call given token counts."""
+    for prefix, (p_rate, c_rate) in _COST_TABLE.items():
+        if model.startswith(prefix):
+            return (prompt_tokens / 1000) * p_rate + (completion_tokens / 1000) * c_rate
+    return 0.0
+
+
 def _resolve_bedrock_model_id(model: str, region: str) -> str:
     """Return the inference profile ID for models that require it."""
     if model in _NOVA_PROFILE_MODELS:

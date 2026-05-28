@@ -25,7 +25,8 @@ def test_llm_judge_returns_score_between_0_and_1(monkeypatch):
                         content='{"score": 0.82, "reason": "mostly correct"}'
                     )
                 )
-            ]
+            ],
+            usage=MagicMock(prompt_tokens=100, completion_tokens=50),
         )
 
     monkeypatch.setattr(evaluator, "_call_llm", fake_chat)
@@ -34,12 +35,31 @@ def test_llm_judge_returns_score_between_0_and_1(monkeypatch):
     assert "reason" in score.metadata
 
 
+def test_llm_judge_reports_eval_cost(monkeypatch):
+    """LLMJudgeEvaluator populates Score.cost_usd from token usage."""
+    evaluator = LLMJudgeEvaluator(model="gpt-4o-mini", rubric="Rate 0-1.")
+
+    def fake_chat(model, messages, temperature):
+        return MagicMock(
+            choices=[MagicMock(message=MagicMock(content='{"score": 0.9, "reason": "ok"}'))],
+            usage=MagicMock(prompt_tokens=200, completion_tokens=80),
+        )
+
+    monkeypatch.setattr(evaluator, "_call_llm", fake_chat)
+    score = evaluator.score(input="q", output="a", expected=None)
+    # gpt-4o-mini: 0.000150/1k prompt + 0.000600/1k completion
+    expected_cost = (200 / 1000) * 0.000150 + (80 / 1000) * 0.000600
+    assert score.cost_usd == pytest.approx(expected_cost, rel=1e-6)
+    assert score.cost_usd > 0.0
+
+
 def test_llm_judge_handles_malformed_json(monkeypatch):
     evaluator = LLMJudgeEvaluator(model="gpt-4o-mini", rubric="Rate 0-1.")
 
     def fake_chat(model, messages, temperature):
         return MagicMock(
-            choices=[MagicMock(message=MagicMock(content="Score: 0.7 - looks good"))]
+            choices=[MagicMock(message=MagicMock(content="Score: 0.7 - looks good"))],
+            usage=MagicMock(prompt_tokens=50, completion_tokens=20),
         )
 
     monkeypatch.setattr(evaluator, "_call_llm", fake_chat)
@@ -81,7 +101,8 @@ def test_llm_judge_retries_on_rate_limit():
     evaluator = LLMJudgeEvaluator(model="gpt-4o-mini", rubric="Rate 0-1.")
 
     good_response = MagicMock(
-        choices=[MagicMock(message=MagicMock(content='{"score": 0.9, "reason": "ok"}'))]
+        choices=[MagicMock(message=MagicMock(content='{"score": 0.9, "reason": "ok"}'))],
+        usage=MagicMock(prompt_tokens=100, completion_tokens=40),
     )
     rate_err = _make_rate_limit_error("Please wait 1 seconds before retrying.")
     call_results = iter([rate_err, good_response])
