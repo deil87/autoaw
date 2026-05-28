@@ -20,6 +20,7 @@ from backend.engine.gp.operators import (
     mutate_inject_critique,
     mutate_compact,
     crossover_subgraph,
+    crossover_prompt,
     run_split_detection,
 )
 from backend.engine.gp.population import seed_population
@@ -332,7 +333,7 @@ class GPLoop:
                 op = random.choice([
                     "mutate_structure", "mutate_prompt", "mutate_param",
                     "mutate_expand", "mutate_inject_critique", "mutate_compact",
-                    "crossover",
+                    "crossover", "crossover_prompt",
                 ])
                 if op == "mutate_structure":
                     child = mutate_structure(
@@ -382,6 +383,14 @@ class GPLoop:
                     run_split_detection(child1, provider_config=self.config.provider)
                     new_population.append(
                         (child1, [parent1.id, parent2.id], "crossover_subgraph")
+                    )
+                elif op == "crossover_prompt" and len(survivors) > 1:
+                    parent2 = random.choice(
+                        [s for s in survivors if s is not parent1] or survivors
+                    )
+                    child1, _ = crossover_prompt(parent1, parent2)
+                    new_population.append(
+                        (child1, [parent1.id, parent2.id], "crossover_prompt")
                     )
                 else:
                     child = mutate_param(parent1)

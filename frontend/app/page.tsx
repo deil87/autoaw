@@ -342,6 +342,111 @@ function BeforeAfter() {
   );
 }
 
+/* ---- Ecosystem ---- */
+function EcosystemSection() {
+  const tools = [
+    {
+      name: "DSPy",
+      tag: "prompt compilation",
+      origin: "Stanford NLP · Databricks",
+      color: "#6366f1",
+      desc: "Treats system prompts as hyperparameters. Given a dataset and a metric, it compiles the best instructions and few-shot examples for a fixed agent topology.",
+      role: "Optimizes what each agent says — within a topology AutoAW already chose.",
+    },
+    {
+      name: "Inspect",
+      tag: "evaluation harness",
+      origin: "UK AI Safety Institute",
+      color: "#f59e0b",
+      desc: "Runs agents in secure sandboxed environments (Docker / k8s), tracks every tool call and reasoning step, and scores outcomes against rigorous benchmarks.",
+      role: "Provides the ground-truth fitness signal that drives AutoAW's selection step.",
+    },
+    {
+      name: "AutoAW",
+      tag: "topology search",
+      origin: "AutoAW Labs",
+      color: "#119760",
+      desc: "Uses genetic programming and SMBO to evolve agent architectures — which agents exist, how they connect, which models they use, and how prompts are inherited across generations.",
+      role: "The outer loop: searches the space that DSPy and Inspect don't cover.",
+    },
+  ];
+
+  return (
+    <section className="page" style={{ paddingTop: 56, paddingBottom: 28 }}>
+      <div style={{ marginBottom: 32 }}>
+        <div className="section-eyebrow">03 · ecosystem</div>
+        <h2 className="section-title">AutoAW is the missing third layer.</h2>
+        <p className="section-lede">
+          DSPy compiles prompts. Inspect evaluates agents. Neither searches over architectures.
+          AutoAW evolves the topology itself — then hands the winner to DSPy and Inspect to polish and verify.
+        </p>
+      </div>
+
+      {/* Stack diagram */}
+      <div style={{ border: "1px solid var(--border)", borderRadius: "var(--r-3)", overflow: "hidden", marginBottom: 24, background: "var(--bg-alt)" }}>
+        <svg viewBox="0 0 700 200" width="100%" style={{ display: "block" }}>
+          <defs>
+            <marker id="eco-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/>
+            </marker>
+            <marker id="eco-arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#119760"/>
+            </marker>
+          </defs>
+
+          {/* AutoAW outer box */}
+          <rect x="18" y="12" width="664" height="176" rx="8" fill="white" stroke="#119760" strokeWidth="1.5"/>
+          <text x="34" y="32" fontFamily="Geist Mono, monospace" fontSize="11" fontWeight="700" fill="#119760">AutoAW</text>
+          <text x="105" y="32" fontFamily="Geist Mono, monospace" fontSize="10" fill="#9ca3af">topology · models · structure · GP evolution</text>
+
+          {/* DSPy box */}
+          <rect x="40" y="50" width="238" height="116" rx="6" fill="#f8f7ff" stroke="#6366f1" strokeWidth="1.2"/>
+          <text x="159" y="74" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="11" fontWeight="700" fill="#6366f1">DSPy</text>
+          <text x="159" y="90" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9.5" fill="#6b7280">prompt compilation</text>
+          <text x="159" y="108" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">BootstrapFewShot · MIPROv2</text>
+          <text x="159" y="124" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">optimizes prompts within</text>
+          <text x="159" y="138" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">a fixed topology</text>
+
+          {/* Arrow DSPy → Inspect */}
+          <line x1="280" y1="108" x2="392" y2="108" stroke="#cbd0d6" strokeWidth="1.2" markerEnd="url(#eco-arr)"/>
+          <text x="336" y="101" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="8.5" fill="#9ca3af">compiled</text>
+          <text x="336" y="118" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="8.5" fill="#9ca3af">agent</text>
+
+          {/* Inspect box */}
+          <rect x="394" y="50" width="264" height="116" rx="6" fill="#fffbeb" stroke="#f59e0b" strokeWidth="1.2"/>
+          <text x="526" y="74" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="11" fontWeight="700" fill="#d97706">Inspect</text>
+          <text x="526" y="90" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9.5" fill="#6b7280">sandboxed evaluation</text>
+          <text x="526" y="108" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">Docker · Solvers · Scorers</text>
+          <text x="526" y="124" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">returns fitness score</text>
+          <text x="526" y="138" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">back to AutoAW GP</text>
+
+          {/* Fitness score arrow back (curved, bottom) */}
+          <path d="M 526 168 Q 526 188 350 188 Q 174 188 159 168" fill="none" stroke="#119760" strokeWidth="1.2" strokeDasharray="4 3" markerEnd="url(#eco-arr-green)"/>
+          <text x="350" y="185" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="8.5" fill="#119760">fitness score → next generation</text>
+        </svg>
+      </div>
+
+      {/* Three cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        {tools.map(t => (
+          <div key={t.name} className="card" style={{ padding: "18px 20px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10 }}>
+              <span className="mono" style={{ fontWeight: 700, fontSize: 15, color: t.color }}>{t.name}</span>
+              <span className="chip" style={{ fontSize: 10, color: "var(--muted)" }}>{t.tag}</span>
+            </div>
+            <div className="mono faint" style={{ fontSize: 10, marginBottom: 10 }}>{t.origin}</div>
+            <p style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6, marginBottom: 12 }}>{t.desc}</p>
+            <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+              <span style={{ color: t.color, flexShrink: 0, marginTop: 1 }}>→</span>
+              <span className="mono" style={{ fontSize: 11.5, color: "var(--text)" }}>{t.role}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ---- Architecture Comparison ---- */
 function CommitteeGraph({ height = 148 }: { height?: number }) {
   const agents = [
@@ -883,6 +988,19 @@ function FinalCTA() {
   );
 }
 
+/* ---- Social icons ---- */
+const SOCIAL_LINKS = [
+  {
+    label: "X / Twitter",
+    href: "https://x.com/autoaw_app",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+    ),
+  },
+];
+
 /* ---- Footer ---- */
 function Footer() {
   return (
@@ -894,13 +1012,26 @@ function Footer() {
           <span className="faint">·</span>
           <span>v0.4.1</span>
         </div>
-        <div style={{ display: "flex", gap: 18, color: "var(--faint)", fontSize: 12.5 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18, color: "var(--faint)", fontSize: 12.5 }}>
           <a href="https://github.com/deil87/autoaw" target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "none" }}>GitHub</a>
           <span style={{ cursor: "default" }}>Docs</span>
           <span style={{ cursor: "default" }}>API</span>
           <span style={{ cursor: "default" }}>Status</span>
           <span style={{ color: "var(--border)" }}>·</span>
           <a href="mailto:admin@optimetrics.ai" style={{ color: "inherit", textDecoration: "none" }}>Investors welcome</a>
+          <span style={{ color: "var(--border)" }}>·</span>
+          <div style={{ display: "flex", gap: 12 }}>
+            {SOCIAL_LINKS.map(s => (
+              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
+                aria-label={s.label}
+                style={{ color: "inherit", textDecoration: "none", display: "flex", alignItems: "center", opacity: 0.7, transition: "opacity 0.15s" }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+                onMouseLeave={e => (e.currentTarget.style.opacity = "0.7")}
+              >
+                {s.icon}
+              </a>
+            ))}
+          </div>
         </div>
       </div>
     </footer>
@@ -913,6 +1044,7 @@ export default function HomePage() {
     <div>
       <Hero/>
       <BeforeAfter/>
+      <EcosystemSection/>
       <ArchitectureComparison/>
       <HowItWorks/>
       <BenchmarkNumbers/>
