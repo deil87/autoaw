@@ -696,6 +696,63 @@ input[type=range].aw-slider::-webkit-slider-thumb {
 .ba-stats { display: flex; gap: 18px; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 14px; }
 .ba-stats b { color: var(--text); font-weight: 500; }
 
+/* ---- Ecosystem ---- */
+.eco-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  background: var(--bg);
+  overflow: hidden;
+}
+.eco-cell {
+  padding: 18px 20px 16px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.eco-cell:last-child { border-right: none; }
+.eco-cell-featured { background: var(--bg-alt); }
+.eco-cell-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.eco-cell-name {
+  font-family: var(--sans);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text);
+}
+.eco-cell-role {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.eco-cell-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-wrap: pretty;
+  margin: 0;
+}
+.eco-cell-featured .eco-cell-name::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 99px;
+  margin-right: 8px;
+  vertical-align: middle;
+  transform: translateY(-1px);
+}
+
 /* ---- Steps ---- */
 .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .step { border: 1px solid var(--border); border-radius: var(--r-3); padding: 18px; background: var(--bg); position: relative; min-height: 220px; }
@@ -889,6 +946,11 @@ input[type=range].aw-slider::-webkit-slider-thumb {
   /* Tradeoff table: allow horizontal scroll (text-heavy, can't drop columns) */
   .arch-table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .arch-table-card table.t { min-width: 460px; }
+
+  /* Ecosystem: stack cells vertically */
+  .eco-row { grid-template-columns: 1fr; }
+  .eco-cell { border-right: none; border-bottom: 1px solid var(--border); }
+  .eco-cell:last-child { border-bottom: none; }
 }
 @media (min-width: 769px) {
   .aw-mobile-menu { display: none !important; }

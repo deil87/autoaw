@@ -344,104 +344,47 @@ function BeforeAfter() {
 
 /* ---- Ecosystem ---- */
 function EcosystemSection() {
-  const tools = [
-    {
-      name: "DSPy",
-      tag: "prompt compilation",
-      origin: "Stanford NLP · Databricks",
-      color: "#6366f1",
-      desc: "Treats system prompts as hyperparameters. Given a dataset and a metric, it compiles the best instructions and few-shot examples for a fixed agent topology.",
-      role: "Optimizes what each agent says — within a topology AutoAW already chose.",
-    },
-    {
-      name: "Inspect",
-      tag: "evaluation harness",
-      origin: "UK AI Safety Institute",
-      color: "#f59e0b",
-      desc: "Runs agents in secure sandboxed environments (Docker / k8s), tracks every tool call and reasoning step, and scores outcomes against rigorous benchmarks.",
-      role: "Provides the ground-truth fitness signal that drives AutoAW's selection step.",
-    },
-    {
-      name: "AutoAW",
-      tag: "topology search",
-      origin: "AutoAW Labs",
-      color: "#119760",
-      desc: "Uses genetic programming and SMBO to evolve agent architectures — which agents exist, how they connect, which models they use, and how prompts are inherited across generations.",
-      role: "The outer loop: searches the space that DSPy and Inspect don't cover.",
-    },
-  ];
-
   return (
-    <section className="page" style={{ paddingTop: 56, paddingBottom: 28 }}>
-      <div style={{ marginBottom: 32 }}>
+    <section className="page" style={{ paddingTop: 40, paddingBottom: 28 }}>
+      <div style={{ marginBottom: 20 }}>
         <div className="section-eyebrow">03 · ecosystem</div>
-        <h2 className="section-title">AutoAW is the missing third layer.</h2>
+        <h2 className="section-title">The missing third layer.</h2>
         <p className="section-lede">
-          DSPy compiles prompts. Inspect evaluates agents. Neither searches over architectures.
-          AutoAW evolves the topology itself — then hands the winner to DSPy and Inspect to polish and verify.
+          DSPy compiles prompts. Inspect evaluates agents. Neither searches
+          over architectures — AutoAW does.
         </p>
       </div>
 
-      {/* Stack diagram */}
-      <div style={{ border: "1px solid var(--border)", borderRadius: "var(--r-3)", overflow: "hidden", marginBottom: 24, background: "var(--bg-alt)" }}>
-        <svg viewBox="0 0 700 200" width="100%" style={{ display: "block" }}>
-          <defs>
-            <marker id="eco-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/>
-            </marker>
-            <marker id="eco-arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#119760"/>
-            </marker>
-          </defs>
-
-          {/* AutoAW outer box */}
-          <rect x="18" y="12" width="664" height="176" rx="8" fill="white" stroke="#119760" strokeWidth="1.5"/>
-          <text x="34" y="32" fontFamily="Geist Mono, monospace" fontSize="11" fontWeight="700" fill="#119760">AutoAW</text>
-          <text x="105" y="32" fontFamily="Geist Mono, monospace" fontSize="10" fill="#9ca3af">topology · models · structure · GP evolution</text>
-
-          {/* DSPy box */}
-          <rect x="40" y="50" width="238" height="116" rx="6" fill="#f8f7ff" stroke="#6366f1" strokeWidth="1.2"/>
-          <text x="159" y="74" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="11" fontWeight="700" fill="#6366f1">DSPy</text>
-          <text x="159" y="90" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9.5" fill="#6b7280">prompt compilation</text>
-          <text x="159" y="108" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">BootstrapFewShot · MIPROv2</text>
-          <text x="159" y="124" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">optimizes prompts within</text>
-          <text x="159" y="138" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">a fixed topology</text>
-
-          {/* Arrow DSPy → Inspect */}
-          <line x1="280" y1="108" x2="392" y2="108" stroke="#cbd0d6" strokeWidth="1.2" markerEnd="url(#eco-arr)"/>
-          <text x="336" y="101" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="8.5" fill="#9ca3af">compiled</text>
-          <text x="336" y="118" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="8.5" fill="#9ca3af">agent</text>
-
-          {/* Inspect box */}
-          <rect x="394" y="50" width="264" height="116" rx="6" fill="#fffbeb" stroke="#f59e0b" strokeWidth="1.2"/>
-          <text x="526" y="74" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="11" fontWeight="700" fill="#d97706">Inspect</text>
-          <text x="526" y="90" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9.5" fill="#6b7280">sandboxed evaluation</text>
-          <text x="526" y="108" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">Docker · Solvers · Scorers</text>
-          <text x="526" y="124" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">returns fitness score</text>
-          <text x="526" y="138" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="9" fill="#9ca3af">back to AutoAW GP</text>
-
-          {/* Fitness score arrow back (curved, bottom) */}
-          <path d="M 526 168 Q 526 188 350 188 Q 174 188 159 168" fill="none" stroke="#119760" strokeWidth="1.2" strokeDasharray="4 3" markerEnd="url(#eco-arr-green)"/>
-          <text x="350" y="185" textAnchor="middle" fontFamily="Geist Mono, monospace" fontSize="8.5" fill="#119760">fitness score → next generation</text>
-        </svg>
-      </div>
-
-      {/* Three cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-        {tools.map(t => (
-          <div key={t.name} className="card" style={{ padding: "18px 20px" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10 }}>
-              <span className="mono" style={{ fontWeight: 700, fontSize: 15, color: t.color }}>{t.name}</span>
-              <span className="chip" style={{ fontSize: 10, color: "var(--muted)" }}>{t.tag}</span>
-            </div>
-            <div className="mono faint" style={{ fontSize: 10, marginBottom: 10 }}>{t.origin}</div>
-            <p style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6, marginBottom: 12 }}>{t.desc}</p>
-            <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-              <span style={{ color: t.color, flexShrink: 0, marginTop: 1 }}>→</span>
-              <span className="mono" style={{ fontSize: 11.5, color: "var(--text)" }}>{t.role}</span>
-            </div>
+      <div className="eco-row">
+        <div className="eco-cell">
+          <div className="eco-cell-head">
+            <span className="eco-cell-name">DSPy</span>
+            <span className="eco-cell-role">prompt compile</span>
           </div>
-        ))}
+          <p className="eco-cell-body">
+            Tunes instructions and few-shot examples for a <em>fixed</em> agent topology.
+          </p>
+        </div>
+
+        <div className="eco-cell">
+          <div className="eco-cell-head">
+            <span className="eco-cell-name">Inspect</span>
+            <span className="eco-cell-role">eval harness</span>
+          </div>
+          <p className="eco-cell-body">
+            Runs agents in sandboxed environments and scores them against benchmarks.
+          </p>
+        </div>
+
+        <div className="eco-cell eco-cell-featured">
+          <div className="eco-cell-head">
+            <span className="eco-cell-name">AutoAW</span>
+            <span className="eco-cell-role">topology search</span>
+          </div>
+          <p className="eco-cell-body">
+            Evolves the architecture itself — which agents exist, how they connect, which models they use.
+          </p>
+        </div>
       </div>
     </section>
   );
