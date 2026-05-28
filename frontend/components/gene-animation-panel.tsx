@@ -177,6 +177,7 @@ export function GeneAnimationPanel({ trials }: Props) {
     [trials],
   );
 
+  // Stats: absolute latest trial (may have gene_json: "{}" from WebSocket push)
   const latest    = sorted[0];
   const mutOp     = latest?.mutation_op ?? "";
   const fitness   = latest?.fitness  ?? 0;
@@ -184,15 +185,21 @@ export function GeneAnimationPanel({ trials }: Props) {
   const generation = latest?.generation ?? 0;
   const mutColor  = MUTATION_COLORS[mutOp] ?? "#6366f1";
 
+  // Layout: first trial that actually has a real gene (skip WebSocket stubs)
+  const latestWithGene = useMemo(
+    () => sorted.find((t) => t.gene_json && t.gene_json !== "{}"),
+    [sorted],
+  );
+
   const layout = useMemo(() => {
-    if (latest?.gene_json && latest.gene_json !== "{}") {
+    if (latestWithGene?.gene_json) {
       try {
-        const gene = JSON.parse(latest.gene_json) as Gene;
+        const gene = JSON.parse(latestWithGene.gene_json) as Gene;
         return buildLayout(gene) ?? fallbackLayout();
       } catch { /* fall through */ }
     }
     return fallbackLayout();
-  }, [latest?.gene_json]);
+  }, [latestWithGene?.gene_json]);
 
   const nodeMap = useMemo(
     () => Object.fromEntries(layout.nodes.map((n: LayoutNode) => [n.id, n])) as Record<string, LayoutNode>,
@@ -400,6 +407,20 @@ export function GeneAnimationPanel({ trials }: Props) {
               opacity="0.85"
             >
               {MUTATION_LABELS[flashOp] ?? flashOp}
+            </text>
+          )}
+
+          {/* "demo" watermark when no real gene data yet */}
+          {!latestWithGene && (
+            <text
+              x={SVG_W - 8} y={SVG_H - 8}
+              textAnchor="end"
+              fontFamily="var(--mono, monospace)"
+              fontSize="9"
+              fill="#94a3b8"
+              opacity="0.6"
+            >
+              demo layout
             </text>
           )}
         </svg>
