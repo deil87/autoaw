@@ -27,7 +27,7 @@ const CLOUD_MODELS: ModelDef[] = [
 const OPEN_SOURCE_MODELS: ModelDef[] = [
   { id: "llama3.1:8b",   label: "Llama 3.1 8B",  note: "~5 GB",   quality: "≈ gpt-4o-mini" },
   { id: "qwen2.5:7b",    label: "Qwen 2.5 7B",   note: "~4.5 GB", quality: "≈ gpt-4o-mini" },
-  { id: "mistral:7b",    label: "Mistral 7B",     note: "~4 GB",   quality: "≈ gpt-4o-mini" },
+  { id: "mistral:latest", label: "Mistral 7B",     note: "~4 GB",   quality: "≈ gpt-4o-mini" },
   { id: "phi4-mini",     label: "Phi-4 mini",     note: "~2.5 GB", quality: "slightly below" },
   { id: "gemma3:4b",     label: "Gemma 3 4B",     note: "~3 GB",   quality: "slightly below" },
   { id: "llama3.2:3b",   label: "Llama 3.2 3B",   note: "~2 GB",   quality: "fast / cheap" },

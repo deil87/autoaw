@@ -32,7 +32,6 @@ _OLLAMA_MODELS: frozenset[str] = frozenset({
     "phi4-mini",
     "gemma3:4b",
     "gemma3:1b",
-    "mistral:7b",
     "mistral:latest",
     "smollm2:1.7b",
 })
