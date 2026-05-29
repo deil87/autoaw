@@ -208,6 +208,7 @@ class DynamoStore:
                             "latency_ms": row.latency_ms,
                             "cost_usd": row.cost_usd,
                             "eval_cost_usd": row.eval_cost_usd,
+                            "sub_scores": json.dumps(row.sub_scores),
                         }
                     )
                 )
@@ -265,6 +266,12 @@ class DynamoStore:
 
         rows = [_from_dynamo(i) for i in items]
         rows.sort(key=lambda r: r.get("row_index", 0))
+        for row in rows:
+            raw = row.get("sub_scores", "{}")
+            try:
+                row["sub_scores"] = json.loads(raw) if raw else {}
+            except (json.JSONDecodeError, TypeError):
+                row["sub_scores"] = {}
         return rows
 
     # ── Demo requests ────────────────────────────────────────────────────────

@@ -14,6 +14,30 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function scoreColor(val: number) {
+  return val >= 0.7 ? "text-green-600" : val >= 0.4 ? "text-yellow-600" : "text-red-600";
+}
+
+function SubScoresDisplay({ subScores }: { subScores: Record<string, number> }) {
+  const entries = Object.entries(subScores);
+  if (entries.length === 0) return null;
+  return (
+    <div>
+      <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Metric Scores</p>
+      <div className="flex flex-wrap gap-2">
+        {entries.map(([dim, val]) => (
+          <div key={dim} className="flex items-center gap-1 rounded border px-2 py-1 bg-background">
+            <span className="text-xs text-muted-foreground">{dim}</span>
+            <span className={`text-xs font-mono font-semibold ${scoreColor(val)}`}>
+              {(val * 100).toFixed(0)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function EvalRowsTable({ rows }: { rows: EvalRow[] }) {
   const [expanded, setExpanded] = useState<number | null>(null);
 
@@ -25,6 +49,11 @@ function EvalRowsTable({ rows }: { rows: EvalRow[] }) {
     );
   }
 
+  // Collect all sub-score dimension keys present across all rows
+  const subScoreKeys = Array.from(
+    new Set(rows.flatMap((r) => Object.keys(r.sub_scores ?? {})))
+  );
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse">
@@ -33,6 +62,11 @@ function EvalRowsTable({ rows }: { rows: EvalRow[] }) {
             <th className="text-left py-2 pr-4 w-12 font-medium text-muted-foreground">#</th>
             <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Input</th>
             <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Output</th>
+            {subScoreKeys.map((key) => (
+              <th key={key} className="text-right py-2 pr-4 w-24 font-medium text-muted-foreground whitespace-nowrap">
+                {key}
+              </th>
+            ))}
             <th className="text-right py-2 w-20 font-medium text-muted-foreground">Score</th>
           </tr>
         </thead>
@@ -46,6 +80,7 @@ function EvalRowsTable({ rows }: { rows: EvalRow[] }) {
               // keep raw
             }
             const isExpanded = expanded === row.row_index;
+            const sub = row.sub_scores ?? {};
             return (
               <>
                 <tr
@@ -56,23 +91,26 @@ function EvalRowsTable({ rows }: { rows: EvalRow[] }) {
                   <td className="py-2 pr-4 text-muted-foreground">{row.row_index}</td>
                   <td className="py-2 pr-4 max-w-xs truncate">{inputDisplay}</td>
                   <td className="py-2 pr-4 max-w-xs truncate">{row.output_text}</td>
+                  {subScoreKeys.map((key) => (
+                    <td key={key} className="py-2 pr-4 text-right">
+                      {sub[key] !== undefined ? (
+                        <span className={`font-mono text-xs ${scoreColor(sub[key])}`}>
+                          {(sub[key] * 100).toFixed(0)}%
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  ))}
                   <td className="py-2 text-right">
-                    <span
-                      className={`font-mono ${
-                        row.score >= 0.7
-                          ? "text-green-600"
-                          : row.score >= 0.4
-                          ? "text-yellow-600"
-                          : "text-red-600"
-                      }`}
-                    >
+                    <span className={`font-mono ${scoreColor(row.score)}`}>
                       {(row.score * 100).toFixed(0)}%
                     </span>
                   </td>
                 </tr>
                 {isExpanded && (
                   <tr key={`${row.row_index}-expanded`} className="bg-muted/20">
-                    <td colSpan={4} className="py-4 px-4">
+                    <td colSpan={4 + subScoreKeys.length} className="py-4 px-4">
                       <div className="space-y-2">
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground uppercase">Full Input</p>
@@ -82,6 +120,9 @@ function EvalRowsTable({ rows }: { rows: EvalRow[] }) {
                           <p className="text-xs font-semibold text-muted-foreground uppercase">Full Output</p>
                           <pre className="mt-1 text-xs whitespace-pre-wrap break-all">{row.output_text}</pre>
                         </div>
+                        {Object.keys(sub).length > 0 && (
+                          <SubScoresDisplay subScores={sub} />
+                        )}
                         {row.score_reasoning && (
                           <div>
                             <p className="text-xs font-semibold text-muted-foreground uppercase">Judge Reasoning</p>
