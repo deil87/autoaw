@@ -454,6 +454,22 @@ export default function MonitorPage() {
             />
           </div>
 
+          {/* Error banner — shown when experiment failed */}
+          {experiment.status === "failed" && (
+            <div className="card" style={{ marginBottom: 18, borderColor: "rgba(239,68,68,0.45)", background: "rgba(239,68,68,0.06)" }}>
+              <div className="card-header">
+                <div className="card-title" style={{ color: "var(--err, #ef4444)" }}>Experiment failed</div>
+              </div>
+              {experiment.error_message && (
+                <div className="card-body">
+                  <pre style={{ margin: 0, fontSize: 12, fontFamily: "var(--mono)", color: "var(--err, #ef4444)", whiteSpace: "pre-wrap", wordBreak: "break-word", opacity: 0.9 }}>
+                    {experiment.error_message}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Launch progress — shown while user-initiated Fargate launch is in flight */}
           {launching && (
             <LaunchProgress ecsStatus={ecsStatus} experimentStatus={experiment.status} />
