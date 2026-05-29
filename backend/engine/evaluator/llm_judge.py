@@ -74,7 +74,9 @@ class LLMJudgeEvaluator(Evaluator):
             "You are a rigorous, critical evaluator. Score strictly.\n"
             "1.0 = absolutely flawless (rare). 0.75 = good with minor issues. "
             "0.5 = acceptable with clear flaws. 0.25 = poor. 0.0 = fails completely.\n"
-            "Be a skeptic: cite specific evidence; do not assume quality."
+            "Be a skeptic: cite specific evidence; do not assume quality.\n"
+            "JSON INDEXING: Any numeric index in the output (e.g. correct_index) is ZERO-BASED — "
+            "0 = first element, 1 = second, etc. Verify the indexed element is actually correct."
         )
         user_msg = (
             f"Score the following AI output using this rubric:\n{self.rubric}\n\n"
@@ -114,7 +116,10 @@ class LLMJudgeEvaluator(Evaluator):
             "- 0.0 means completely fails the criterion.\n"
             "If the rubric uses a discrete scale (e.g. '4 - Excellent / 3 - Good / 2 - Developing / 1 - Poor'), "
             "determine which level best describes the output, then map: 4→1.0, 3→0.75, 2→0.5, 1→0.25.\n"
-            "Be a skeptic: if you cannot confirm the output meets the top level with specific evidence, score lower."
+            "Be a skeptic: if you cannot confirm the output meets the top level with specific evidence, score lower.\n\n"
+            "JSON INDEXING NOTE: Any numeric index field in the output (e.g. correct_index, answer_index) is "
+            "ZERO-BASED. Index 0 = first element, 1 = second, 2 = third, etc. "
+            "Always verify that the indexed element actually matches the stated correct answer."
         )
         user_msg = (
             f"Score this AI output on each dimension below.\n\n"
@@ -122,8 +127,9 @@ class LLMJudgeEvaluator(Evaluator):
             f"INPUT: {input}\n\nAI OUTPUT: {output}{expected_section}\n\n"
             "For each dimension:\n"
             "1. Find specific evidence (or absence of evidence) in the output.\n"
-            "2. Determine the applicable rubric level.\n"
-            "3. Assign the mapped score.\n\n"
+            "2. If the output contains a JSON index field, verify: options[correct_index] is the correct answer (0-based).\n"
+            "3. Determine the applicable rubric level.\n"
+            "4. Assign the mapped score.\n\n"
             "Return ONLY a JSON object in exactly this format (no prose outside JSON):\n"
             f'{{"scores": {dim_score_keys}, '
             f'"reasoning": {dim_reasoning_keys}, '
