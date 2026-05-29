@@ -16,6 +16,8 @@ from backend.engine.llm_client import (
 
 def _parse_rubric_dimensions(rubric: str) -> dict[str, str] | None:
     """Return dict of {dimension: description} if rubric is a JSON object, else None."""
+    if not rubric or not isinstance(rubric, str):
+        return None
     try:
         parsed = json.loads(rubric)
         if isinstance(parsed, dict) and all(isinstance(v, str) for v in parsed.values()):
