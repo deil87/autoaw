@@ -193,7 +193,7 @@ def seed_population(config: ExperimentConfig) -> list[Gene]:
         base.id = "seed_user"
     else:
         base = _generate_base_gene(config.task_description, config.provider, models)
-    run_split_detection(base, provider_config=config.provider, task_description=config.task_description)
+    run_split_detection(base, provider_config=config.provider)
     population.append(base)
 
     # Step 2: one variant per remaining topology

@@ -147,9 +147,10 @@ def detect_subtasks(
     Args:
         agent: The agent to analyse.
         provider_config: LLM provider config; falls back to env vars if None.
-        content: Text to decompose. Defaults to agent.system_prompt when not
-            supplied. Pass the raw task_description at seeding time so the LLM
-            decomposes the *task* rather than the cohesive system prompt.
+        content: Override text to decompose. When omitted, agent.system_prompt
+            is used. agent.system_prompt is preferred over raw task_description
+            because generated prompts embed explicit numbered steps that the
+            LLM can cleanly split into per-agent subtasks.
     """
     if agent.subtasks:
         return agent
@@ -157,14 +158,18 @@ def detect_subtasks(
     text = content if content is not None else agent.system_prompt
 
     system = (
-        "You are a task analyser. Given a task description, decompose it into "
-        "distinct subtasks that could be handled by separate agents.\n"
+        "You are a task decomposer. Split the given agent system prompt into "
+        "the smallest distinct subtasks that could each be handled by a separate agent.\n"
+        "Rules:\n"
+        "- Numbered steps, bullet points, or named phases each become their own subtask.\n"
+        "- Every subtask must be actionable by an independent agent.\n"
+        "- Aim for 2–6 subtasks; only return exactly one entry if the task is truly atomic "
+        "(a single indivisible action with no internal phases).\n"
         "Return a JSON object with key \"subtasks\": an array of objects, each with:\n"
         "  id: string (\"s0\", \"s1\", \"s2\" ...)\n"
-        "  prompt: string (the isolated subtask instruction)\n"
+        "  prompt: string (the isolated, self-contained subtask instruction)\n"
         "  depends_on: array of id strings (empty if independent)\n"
-        "If the task is truly atomic (cannot be meaningfully split), return exactly "
-        "one entry with the full text. Return ONLY valid JSON, no explanation."
+        "Return ONLY valid JSON, no explanation."
     )
 
     try:
@@ -197,24 +202,16 @@ def detect_subtasks(
 def run_split_detection(
     gene: Gene,
     provider_config: ProviderConfig | None = None,
-    task_description: str | None = None,
 ) -> Gene:
     """Run detect_subtasks on every agent in the gene.
 
     Idempotent — agents with subtasks already populated are skipped.
     Call this once when a gene enters the population for the first time.
-
-    Args:
-        gene: Gene whose agents will be analysed.
-        provider_config: LLM provider config.
-        task_description: When provided, the first agent is analysed against
-            the raw task description rather than its system_prompt. This
-            ensures seed genes — whose single agent has a cohesive monolithic
-            prompt — still receive meaningful multi-subtask decomposition.
+    Each agent is decomposed against its own system_prompt, which for
+    generated seed genes already embeds explicit numbered steps.
     """
-    for i, agent in enumerate(gene.agents):
-        content = task_description if (i == 0 and task_description) else None
-        detect_subtasks(agent, provider_config, content=content)
+    for agent in gene.agents:
+        detect_subtasks(agent, provider_config)
     return gene
 
 
