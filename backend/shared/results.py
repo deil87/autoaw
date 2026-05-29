@@ -9,17 +9,28 @@ class Score:
     quality: float
     cost_usd: float = 0.0
     metadata: dict[str, Any] = field(default_factory=dict)
+    sub_scores: dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not (0.0 <= self.quality <= 1.0):
             raise ValueError(f"quality must be between 0.0 and 1.0, got {self.quality}")
 
     def to_dict(self) -> dict[str, Any]:
-        return {"quality": self.quality, "cost_usd": self.cost_usd, "metadata": dict(self.metadata)}
+        return {
+            "quality": self.quality,
+            "cost_usd": self.cost_usd,
+            "metadata": dict(self.metadata),
+            "sub_scores": dict(self.sub_scores),
+        }
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Score:
-        return cls(quality=d["quality"], cost_usd=d.get("cost_usd", 0.0), metadata=dict(d.get("metadata", {})))
+        return cls(
+            quality=d["quality"],
+            cost_usd=d.get("cost_usd", 0.0),
+            metadata=dict(d.get("metadata", {})),
+            sub_scores=dict(d.get("sub_scores", {})),
+        )
 
 
 @dataclass
@@ -27,11 +38,14 @@ class EvalRowResult:
     row_index: int
     input_json: str  # JSON string of the dataset row dict
     output_text: str
-    score: float  # quality 0–1
+    score: float  # quality 0–1 (average across all evaluators)
     score_reasoning: str  # LLM judge reason or empty string
     latency_ms: int
     cost_usd: float        # workflow execution cost (running gene agents)
     eval_cost_usd: float = 0.0  # evaluator cost (e.g. LLM judge scoring call)
+    # Per-metric scores: dimension names → [0, 1].
+    # Populated when using a multi-dimensional rubric or multiple evaluators.
+    sub_scores: dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -43,6 +57,7 @@ class EvalRowResult:
             "latency_ms": self.latency_ms,
             "cost_usd": self.cost_usd,
             "eval_cost_usd": self.eval_cost_usd,
+            "sub_scores": dict(self.sub_scores),
         }
 
     @classmethod
@@ -56,6 +71,7 @@ class EvalRowResult:
             latency_ms=d["latency_ms"],
             cost_usd=d["cost_usd"],
             eval_cost_usd=d.get("eval_cost_usd", 0.0),
+            sub_scores=dict(d.get("sub_scores", {})),
         )
 
 

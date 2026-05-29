@@ -75,3 +75,47 @@ def test_eval_row_result_roundtrip_with_eval_cost():
     row2 = EvalRowResult.from_dict(d)
     assert row2.eval_cost_usd == pytest.approx(0.00042)
     assert row2.cost_usd == 0.0
+
+
+def test_score_sub_scores_default_empty():
+    s = Score(quality=0.8)
+    assert s.sub_scores == {}
+
+
+def test_score_sub_scores_roundtrip():
+    s = Score(quality=0.8, sub_scores={"accuracy": 0.9, "fluency": 0.7})
+    d = s.to_dict()
+    assert d["sub_scores"] == {"accuracy": 0.9, "fluency": 0.7}
+    s2 = Score.from_dict(d)
+    assert s2.sub_scores == {"accuracy": 0.9, "fluency": 0.7}
+
+
+def test_eval_row_sub_scores_default_empty():
+    row = EvalRowResult(
+        row_index=0, input_json="{}", output_text="ans",
+        score=0.8, score_reasoning="ok", latency_ms=100, cost_usd=0.001,
+    )
+    assert row.sub_scores == {}
+
+
+def test_eval_row_sub_scores_roundtrip():
+    row = EvalRowResult(
+        row_index=0, input_json="{}", output_text="ans",
+        score=0.8, score_reasoning="ok", latency_ms=100, cost_usd=0.001,
+        sub_scores={"coherence": 0.85, "accuracy": 0.75},
+    )
+    d = row.to_dict()
+    assert d["sub_scores"] == {"coherence": 0.85, "accuracy": 0.75}
+    row2 = EvalRowResult.from_dict(d)
+    assert row2.sub_scores == {"coherence": 0.85, "accuracy": 0.75}
+
+
+def test_eval_row_from_dict_missing_sub_scores_defaults_empty():
+    """Backwards compatibility: rows without sub_scores deserialise to {}."""
+    d = {
+        "row_index": 0, "input_json": "{}", "output_text": "a",
+        "score": 0.5, "score_reasoning": "", "latency_ms": 0,
+        "cost_usd": 0.0,
+    }
+    row = EvalRowResult.from_dict(d)
+    assert row.sub_scores == {}

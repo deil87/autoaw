@@ -103,6 +103,10 @@ class GeneFromDescriptionRequest(BaseModel):
     text: str
 
 
+class RubricParseRequest(BaseModel):
+    text: str
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 _BENCHMARKS = [
@@ -355,6 +359,78 @@ def gene_from_description(req: GeneFromDescriptionRequest):
     return {
         "gene": validated.to_dict(),
         "topology": validated.topology.value,
+        "notes": result.get("notes", []),
+    }
+
+
+_RUBRIC_PARSE_SYSTEM = """You convert evaluation rubrics from any format (CSV, markdown table, plain text, numbered lists) into a structured JSON object used by an LLM judge.
+
+The JSON object maps each criterion/dimension name to a concise description that includes the scoring scale mapped to the 0–1 range.
+
+Input may look like:
+- CSV rows: "Criteria,4-Excellent,3-Good,2-Developing,1-Poor\\n1. Criterion name,..."
+- Markdown tables
+- Numbered lists with scale descriptions
+- Free-form prose describing what to evaluate
+
+Output format — a JSON object where each key is a short dimension name and each value describes the 0–1 scale:
+
+{
+  "Plausibility of Distractors": "Score 0–1 measuring how plausible the wrong answers are. 1.0 (Excellent): All 3 wrong answers are highly plausible, grammatically fitting, and target common learner misconceptions. 0.75 (Good): 2 wrong answers are plausible; 1 is easily eliminated or slightly out of context. 0.5 (Developing): Only 1 wrong answer is plausible; others are obvious giveaways. 0.25 (Poor): All wrong answers are completely implausible or irrelevant.",
+  ...
+}
+
+Rules:
+- Strip leading numbering from criterion names (e.g. "1. Plausibility" → "Plausibility of Distractors")
+- Map the highest scale level (e.g. 4, Excellent, 5/5) to 1.0
+- Map the lowest scale level to 0.0 or 0.25 (never negative)
+- Map intermediate levels evenly spaced between 0 and 1
+- Keep descriptions concise but include all scale level details
+- Dimension names should be short and clear (3-6 words max)
+
+Output ONLY valid JSON — no markdown, no commentary:
+{"rubric": {<dimension>: <description>, ...}, "notes": ["<any interpretation note>"]}"""
+
+
+@app.post("/rubric/parse")
+def parse_rubric(req: RubricParseRequest):
+    import openai as openai_lib
+
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
+
+    base_url = os.environ.get("OPENAI_BASE_URL") or None
+    client = openai_lib.OpenAI(api_key=api_key, base_url=base_url)
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        max_tokens=4096,
+        messages=[
+            {"role": "system", "content": _RUBRIC_PARSE_SYSTEM},
+            {"role": "user", "content": req.text},
+        ],
+    )
+
+    raw = (response.choices[0].message.content or "").strip()
+    if raw.startswith("```"):
+        parts = raw.split("```")
+        raw = parts[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=422, detail=f"LLM returned invalid JSON: {exc}")
+
+    rubric_dict = result.get("rubric")
+    if not rubric_dict or not isinstance(rubric_dict, dict):
+        raise HTTPException(status_code=422, detail="LLM response missing 'rubric' field")
+
+    return {
+        "rubric_json": json.dumps(rubric_dict, indent=2),
+        "dimensions": list(rubric_dict.keys()),
         "notes": result.get("notes", []),
     }
 

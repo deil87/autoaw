@@ -127,3 +127,89 @@ def test_llm_judge_retries_on_rate_limit():
 
     assert score.quality == pytest.approx(0.9)
     assert mock_sleep.call_count == 1  # one sleep before the retry
+
+
+import json
+
+
+def test_evaluator_has_name_property():
+    evaluator = LLMJudgeEvaluator(model="gpt-4o-mini", rubric="Rate 0-1.")
+    assert evaluator.name == "LLM Judge"
+
+
+def test_llm_judge_multidim_rubric_detected():
+    rubric = json.dumps({
+        "accuracy": "How accurate is the answer?",
+        "completeness": "How complete is the answer?",
+    })
+    evaluator = LLMJudgeEvaluator(model="gpt-4o-mini", rubric=rubric)
+    assert evaluator._dimensions is not None
+    assert "accuracy" in evaluator._dimensions
+
+
+def test_llm_judge_plain_rubric_not_multidim():
+    evaluator = LLMJudgeEvaluator(model="gpt-4o-mini", rubric="Rate 0-1.")
+    assert evaluator._dimensions is None
+
+
+def test_llm_judge_multidim_returns_sub_scores(monkeypatch):
+    rubric = json.dumps({
+        "accuracy": "How accurate?",
+        "fluency": "How fluent?",
+    })
+    evaluator = LLMJudgeEvaluator(model="gpt-4o-mini", rubric=rubric)
+
+    def fake_chat(model, messages, temperature):
+        return MagicMock(
+            choices=[MagicMock(message=MagicMock(content=json.dumps({
+                "scores": {"accuracy": 0.9, "fluency": 0.8},
+                "reason": "good overall",
+            })))],
+            usage=MagicMock(prompt_tokens=100, completion_tokens=50),
+        )
+
+    monkeypatch.setattr(evaluator, "_call_llm", fake_chat)
+    score = evaluator.score(input="What is 2+2?", output="4", expected="4")
+
+    assert score.sub_scores == {"accuracy": 0.9, "fluency": 0.8}
+    assert score.quality == pytest.approx(0.85)  # mean of 0.9 and 0.8
+    assert score.metadata.get("reason") == "good overall"
+
+
+def test_llm_judge_multidim_quality_is_mean(monkeypatch):
+    rubric = json.dumps({
+        "a": "dim a",
+        "b": "dim b",
+        "c": "dim c",
+    })
+    evaluator = LLMJudgeEvaluator(model="gpt-4o-mini", rubric=rubric)
+
+    def fake_chat(model, messages, temperature):
+        return MagicMock(
+            choices=[MagicMock(message=MagicMock(content=json.dumps({
+                "scores": {"a": 1.0, "b": 0.6, "c": 0.8},
+                "reason": "",
+            })))],
+            usage=MagicMock(prompt_tokens=100, completion_tokens=50),
+        )
+
+    monkeypatch.setattr(evaluator, "_call_llm", fake_chat)
+    score = evaluator.score(input="q", output="a", expected=None)
+    assert score.quality == pytest.approx((1.0 + 0.6 + 0.8) / 3)
+
+
+def test_llm_judge_multidim_malformed_response_fallback(monkeypatch):
+    rubric = json.dumps({"accuracy": "How accurate?", "fluency": "How fluent?"})
+    evaluator = LLMJudgeEvaluator(model="gpt-4o-mini", rubric=rubric)
+
+    def fake_chat(model, messages, temperature):
+        return MagicMock(
+            choices=[MagicMock(message=MagicMock(content="sorry, I can't score that"))],
+            usage=MagicMock(prompt_tokens=50, completion_tokens=20),
+        )
+
+    monkeypatch.setattr(evaluator, "_call_llm", fake_chat)
+    score = evaluator.score(input="q", output="a", expected=None)
+    # Fallback: 0.5 per dimension
+    assert score.sub_scores == {"accuracy": 0.5, "fluency": 0.5}
+    assert score.quality == pytest.approx(0.5)

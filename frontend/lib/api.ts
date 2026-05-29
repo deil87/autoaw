@@ -1,4 +1,4 @@
-import type { Experiment, ExperimentConfig, Trial, EvalRow, LineageNode, BenchmarkDescriptor, EvaluatorTypeDescriptor, EcsStatus, GeneConversionResult } from "@/lib/types";
+import type { Experiment, ExperimentConfig, Trial, EvalRow, LineageNode, BenchmarkDescriptor, EvaluatorTypeDescriptor, EcsStatus, GeneConversionResult, RubricParseResult } from "@/lib/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -95,6 +95,14 @@ export const api = {
   genes: {
     fromDescription: (text: string) =>
       request<GeneConversionResult>("/genes/from_description", {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      }),
+  },
+
+  rubric: {
+    parse: (text: string) =>
+      request<RubricParseResult>("/rubric/parse", {
         method: "POST",
         body: JSON.stringify({ text }),
       }),

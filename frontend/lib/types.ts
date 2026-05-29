@@ -102,6 +102,12 @@ export interface GeneConversionResult {
   notes: string[];
 }
 
+export interface RubricParseResult {
+  rubric_json: string;          // JSON string ready to paste into the rubric field
+  dimensions: string[];         // extracted dimension names
+  notes: string[];              // LLM interpretation notes
+}
+
 export interface ExperimentProgress {
   rows_done: number;
   rows_total: number;
@@ -165,6 +171,7 @@ export interface EvalRow {
   latency_ms: number;
   cost_usd: number;       // workflow execution cost for this row
   eval_cost_usd: number;  // evaluator cost for this row
+  sub_scores?: Record<string, number>;  // per-metric/dimension scores (empty when single evaluator without dimensions)
 }
 
 export interface EcsTaskContainer {
