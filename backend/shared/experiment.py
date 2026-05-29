@@ -21,7 +21,11 @@ DEFAULT_CLOUD_MODELS: list[str] = [
 ]
 
 DEFAULT_LOCAL_MODELS: list[str] = [
-    "llama3.2:1b",  # small Ollama model; point OPENAI_BASE_URL at your local server
+    "command-r",          # Cohere Command R 35B — default; best multilingual + JSON output
+    "command-r-plus",     # Cohere Command R+ 104B — highest quality, needs ~60 GB RAM
+    "mistral-nemo",       # Mistral Nemo 12B — strong multilingual, low footprint
+    "llama3.1:8b",        # Meta Llama 3.1 8B — solid reasoning, English-primary
+    "mistral:v0.3",       # Mistral 7B Instruct v0.3 — lightweight baseline
 ]
 
 
