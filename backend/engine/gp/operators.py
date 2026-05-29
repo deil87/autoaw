@@ -135,26 +135,36 @@ def mutate_param(gene: Gene) -> Gene:
 def detect_subtasks(
     agent: Agent,
     provider_config: ProviderConfig | None = None,
+    content: str | None = None,
 ) -> Agent:
-    """Detect and populate subtasks from an agent's system_prompt (idempotent).
+    """Detect and populate subtasks for an agent (idempotent).
 
     Runs once per agent — skipped if agent.subtasks is already populated.
     Single-task prompts produce a one-entry list wrapping the full prompt, so
     callers can always assume agent.subtasks is non-empty after this runs.
     On LLM error falls back to the same single-entry behaviour.
+
+    Args:
+        agent: The agent to analyse.
+        provider_config: LLM provider config; falls back to env vars if None.
+        content: Text to decompose. Defaults to agent.system_prompt when not
+            supplied. Pass the raw task_description at seeding time so the LLM
+            decomposes the *task* rather than the cohesive system prompt.
     """
     if agent.subtasks:
         return agent
 
+    text = content if content is not None else agent.system_prompt
+
     system = (
-        "You are a task analyser. Given an agent system prompt, detect whether it "
-        "contains multiple distinct subtasks.\n"
+        "You are a task analyser. Given a task description, decompose it into "
+        "distinct subtasks that could be handled by separate agents.\n"
         "Return a JSON object with key \"subtasks\": an array of objects, each with:\n"
         "  id: string (\"s0\", \"s1\", \"s2\" ...)\n"
         "  prompt: string (the isolated subtask instruction)\n"
         "  depends_on: array of id strings (empty if independent)\n"
-        "If the prompt describes only one task, return exactly one entry with the "
-        "full prompt. Return ONLY valid JSON, no explanation."
+        "If the task is truly atomic (cannot be meaningfully split), return exactly "
+        "one entry with the full text. Return ONLY valid JSON, no explanation."
     )
 
     try:
@@ -164,7 +174,7 @@ def detect_subtasks(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user", "content": agent.system_prompt},
+                {"role": "user", "content": text},
             ],
             temperature=0.0,
             response_format={"type": "json_object"},
@@ -187,14 +197,24 @@ def detect_subtasks(
 def run_split_detection(
     gene: Gene,
     provider_config: ProviderConfig | None = None,
+    task_description: str | None = None,
 ) -> Gene:
     """Run detect_subtasks on every agent in the gene.
 
     Idempotent — agents with subtasks already populated are skipped.
     Call this once when a gene enters the population for the first time.
+
+    Args:
+        gene: Gene whose agents will be analysed.
+        provider_config: LLM provider config.
+        task_description: When provided, the first agent is analysed against
+            the raw task description rather than its system_prompt. This
+            ensures seed genes — whose single agent has a cohesive monolithic
+            prompt — still receive meaningful multi-subtask decomposition.
     """
-    for agent in gene.agents:
-        detect_subtasks(agent, provider_config)
+    for i, agent in enumerate(gene.agents):
+        content = task_description if (i == 0 and task_description) else None
+        detect_subtasks(agent, provider_config, content=content)
     return gene
 
 
@@ -261,6 +281,10 @@ def mutate_expand(
         )
         for i, st in enumerate(selected)
     ]
+    # Populate subtasks on sub-agents so future mutate_expand calls have
+    # material to work with (chains of decomposition across generations).
+    for a in new_agents:
+        detect_subtasks(a, provider_config)
     for e in g.edges:
         if e.to_agent == source.id:
             e.to_agent = new_agents[0].id
