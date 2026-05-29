@@ -47,6 +47,15 @@ class Agent:
     model: str
     system_prompt: str
     tools: list[str] = field(default_factory=list)
+    memory: dict[str, Any] = field(default_factory=dict)
+    """Memory configuration. Empty dict means no memory.
+
+    Examples:
+      ``{}``                              — stateless (default)
+      ``{"type": "buffer", "window": 10}`` — sliding-window conversation history
+      ``{"type": "summary"}``             — LLM-summarised long-term memory
+      ``{"type": "vector", "store": "…"}`` — vector-store retrieval
+    """
     temperature: float = 0.7
     subtasks: list[Subtask] = field(default_factory=list)
     """Subtasks detected in system_prompt by split detection. Empty means the
@@ -65,6 +74,7 @@ class Agent:
             "model": self.model,
             "system_prompt": self.system_prompt,
             "tools": list(self.tools),
+            "memory": dict(self.memory),
             "temperature": self.temperature,
             "subtasks": [s.to_dict() for s in self.subtasks],
         }
@@ -77,6 +87,7 @@ class Agent:
             model=d["model"],
             system_prompt=d["system_prompt"],
             tools=list(d.get("tools", [])),
+            memory=dict(d.get("memory", {})),
             temperature=d.get("temperature", 0.7),
             subtasks=[Subtask.from_dict(s) for s in d.get("subtasks", [])],
         )
