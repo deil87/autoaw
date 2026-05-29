@@ -435,7 +435,7 @@ def parse_rubric(req: RubricParseRequest):
     }
 
 
-
+@app.post("/experiments", status_code=201)
 def create_experiment(req: CreateExperimentRequest):
     exp_id = f"exp_{uuid.uuid4().hex[:12]}"
     config = ExperimentConfig(
