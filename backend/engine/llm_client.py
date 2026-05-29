@@ -361,17 +361,21 @@ def chat_with_retry(
     model: str,
     messages: list[dict],
     temperature: float,
+    response_format: dict | None = None,
 ) -> Any:
     """Call LLM with exponential-backoff retry. Routes Bedrock and Ollama model IDs automatically."""
     if is_bedrock_model(model):
         return bedrock_chat_with_retry(model, messages, temperature)
     if is_ollama_model(model):
         return ollama_chat_with_retry(model, messages, temperature)
+    extra: dict = {}
+    if response_format is not None:
+        extra["response_format"] = response_format
     delay = _RETRY_BASE_DELAY
     for attempt in range(_MAX_RETRIES + 1):
         try:
             return client.chat.completions.create(
-                model=model, messages=messages, temperature=temperature
+                model=model, messages=messages, temperature=temperature, **extra
             )
         except RateLimitError as exc:
             if attempt == _MAX_RETRIES:
