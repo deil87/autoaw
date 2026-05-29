@@ -25,16 +25,21 @@ const CLOUD_MODELS: ModelDef[] = [
 ];
 
 const OPEN_SOURCE_MODELS: ModelDef[] = [
-  { id: "llama3.1:8b",   label: "Llama 3.1 8B",  note: "~5 GB",   quality: "≈ gpt-4o-mini" },
-  { id: "qwen2.5:7b",    label: "Qwen 2.5 7B",   note: "~4.5 GB", quality: "≈ gpt-4o-mini" },
-  { id: "mistral:latest", label: "Mistral 7B",     note: "~4 GB",   quality: "≈ gpt-4o-mini" },
-  { id: "phi4-mini",     label: "Phi-4 mini",     note: "~2.5 GB", quality: "slightly below" },
-  { id: "gemma3:4b",     label: "Gemma 3 4B",     note: "~3 GB",   quality: "slightly below" },
-  { id: "llama3.2:3b",   label: "Llama 3.2 3B",   note: "~2 GB",   quality: "fast / cheap" },
-  { id: "qwen2.5:3b",    label: "Qwen 2.5 3B",    note: "~2 GB",   quality: "fast / cheap" },
-  { id: "gemma3:1b",     label: "Gemma 3 1B",     note: "~1 GB",   quality: "simple tasks" },
-  { id: "llama3.2:1b",   label: "Llama 3.2 1B",   note: "~1.3 GB", quality: "simple tasks" },
-  { id: "smollm2:1.7b",  label: "SmolLM2 1.7B",   note: "~1 GB",   quality: "simple tasks" },
+  // Ranked by multilingual + structured-output performance
+  { id: "command-r",      label: "Command R",       note: "~20 GB",  quality: "best multilingual" },
+  { id: "command-r-plus", label: "Command R+",      note: "~60 GB",  quality: "best multilingual" },
+  { id: "mistral-nemo",   label: "Mistral Nemo 12B", note: "~7 GB",  quality: "≈ gpt-4o-mini" },
+  { id: "llama3.1:8b",    label: "Llama 3.1 8B",    note: "~5 GB",  quality: "≈ gpt-4o-mini" },
+  { id: "mistral:v0.3",   label: "Mistral 7B v0.3", note: "~4 GB",  quality: "slightly below" },
+  { id: "mistral:latest", label: "Mistral 7B",      note: "~4 GB",  quality: "slightly below" },
+  { id: "qwen2.5:7b",     label: "Qwen 2.5 7B",     note: "~4.5 GB", quality: "≈ gpt-4o-mini" },
+  { id: "phi4-mini",      label: "Phi-4 mini",      note: "~2.5 GB", quality: "slightly below" },
+  { id: "gemma3:4b",      label: "Gemma 3 4B",      note: "~3 GB",  quality: "slightly below" },
+  { id: "llama3.2:3b",    label: "Llama 3.2 3B",    note: "~2 GB",  quality: "fast / cheap" },
+  { id: "qwen2.5:3b",     label: "Qwen 2.5 3B",     note: "~2 GB",  quality: "fast / cheap" },
+  { id: "gemma3:1b",      label: "Gemma 3 1B",      note: "~1 GB",  quality: "simple tasks" },
+  { id: "llama3.2:1b",    label: "Llama 3.2 1B",    note: "~1.3 GB", quality: "simple tasks" },
+  { id: "smollm2:1.7b",   label: "SmolLM2 1.7B",    note: "~1 GB",  quality: "simple tasks" },
 ];
 
 type Tab = "cloud" | "opensource";
