@@ -7,7 +7,26 @@ def test_agent_defaults():
         id="a0", role="planner", model="gpt-4o", system_prompt="You are a planner."
     )
     assert agent.tools == []
+    assert agent.memory == {}
     assert agent.temperature == 0.7
+
+
+def test_agent_memory_roundtrip():
+    memory = {"type": "buffer", "window": 10}
+    agent = Agent(
+        id="a0", role="planner", model="gpt-4o", system_prompt="Plan.", memory=memory
+    )
+    d = agent.to_dict()
+    assert d["memory"] == memory
+    agent2 = Agent.from_dict(d)
+    assert agent2.memory == memory
+
+
+def test_agent_memory_defaults_on_legacy_dict():
+    """Agents serialised before memory was added should deserialise cleanly."""
+    d = {"id": "a0", "role": "r", "model": "gpt-4o", "system_prompt": "s"}
+    agent = Agent.from_dict(d)
+    assert agent.memory == {}
 
 
 def test_agent_rejects_invalid_temperature():
