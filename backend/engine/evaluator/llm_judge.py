@@ -76,10 +76,7 @@ class LLMJudgeEvaluator(Evaluator):
             "0.5 = acceptable with clear flaws. 0.25 = poor. 0.0 = fails completely.\n"
             "Be a skeptic: cite specific evidence; do not assume quality.\n"
             "JSON INDEXING: Any numeric index in the output (e.g. correct_index) is ZERO-BASED — "
-            "0 = first element, 1 = second, etc. Verify the indexed element is actually correct.\n"
-            "LITERAL EVALUATION: Judge only what is LITERALLY present in the output. "
-            "Do NOT give credit for things the output merely describes or claims. "
-            "If a criterion requires valid JSON and the output is prose, score that criterion 0."
+            "0 = first element, 1 = second, etc. Verify the indexed element is actually correct."
         )
         user_msg = (
             f"Score the following AI output using this rubric:\n{self.rubric}\n\n"
@@ -122,29 +119,22 @@ class LLMJudgeEvaluator(Evaluator):
             "Be a skeptic: if you cannot confirm the output meets the top level with specific evidence, score lower.\n\n"
             "JSON INDEXING NOTE: Any numeric index field in the output (e.g. correct_index, answer_index) is "
             "ZERO-BASED. Index 0 = first element, 1 = second, 2 = third, etc. "
-            "Always verify that the indexed element actually matches the stated correct answer.\n\n"
-            "LITERAL EVALUATION RULE: Judge only what is LITERALLY present in the AI output. "
-            "Do NOT give credit for things the output merely describes, claims, or promises to have done. "
-            "For example: if a rubric criterion requires valid JSON and the output is prose describing JSON "
-            "rather than actual JSON, that criterion scores 0. "
-            "If the output says 'the answer index is X' but the actual field is absent or wrong, score low. "
-            "The output must DELIVER, not DESCRIBE."
+            "Always verify that the indexed element actually matches the stated correct answer."
         )
         user_msg = (
             f"Score this AI output on each dimension below.\n\n"
             f"RUBRIC DIMENSIONS:\n{dim_lines}\n\n"
             f"INPUT: {input}\n\nAI OUTPUT:\n{output}{expected_section}\n\n"
             "For each dimension:\n"
-            "1. Look at what is LITERALLY present in the output (not what it describes or claims).\n"
-            "2. If the output contains a JSON structure, verify: options[correct_index] is the correct answer (0-based).\n"
-            "3. If a criterion requires structured data (e.g. JSON) and the output is plain prose instead, score that criterion 0.\n"
-            "4. Determine the applicable rubric level based on literal evidence.\n"
-            "5. Assign the mapped score.\n\n"
+            "1. Find specific evidence (or absence of evidence) in the output.\n"
+            "2. If the output contains a JSON index field, verify: options[correct_index] is the correct answer (0-based).\n"
+            "3. Determine the applicable rubric level.\n"
+            "4. Assign the mapped score.\n\n"
             "Return ONLY a JSON object in exactly this format (no prose outside JSON):\n"
             f'{{"scores": {dim_score_keys}, '
             f'"reasoning": {dim_reasoning_keys}, '
             '"reason": "<one sentence overall summary>"}}\n'
-            "Replace each 0.0 with the actual float score and each \"\" with a one-sentence justification citing literal evidence from the output."
+            "Replace each 0.0 with the actual float score and each \"\" with a one-sentence justification citing evidence from the output."
         )
         response = self._call_llm(
             self.model,
