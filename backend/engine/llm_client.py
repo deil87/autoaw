@@ -24,15 +24,23 @@ _BEDROCK_PREFIXES = ("amazon.", "eu.amazon.", "us.amazon.", "ap.amazon.", "meta.
 
 # Ollama model IDs (served locally via http://localhost:11434/v1 by default)
 _OLLAMA_MODELS: frozenset[str] = frozenset({
+    # Cohere Command R family — top multilingual/structured-output performers
+    "command-r",
+    "command-r-plus",
+    # Mistral family
+    "mistral-nemo",       # 12B — strong multilingual, Tekken tokenizer
+    "mistral:v0.3",       # 7B Instruct v0.3 — improved function-calling baseline
+    "mistral:latest",
+    # Meta Llama family
     "llama3.1:8b",
     "llama3.2:3b",
     "llama3.2:1b",
+    # Other
     "qwen2.5:7b",
     "qwen2.5:3b",
     "phi4-mini",
     "gemma3:4b",
     "gemma3:1b",
-    "mistral:latest",
     "smollm2:1.7b",
 })
 
@@ -73,8 +81,10 @@ _COST_TABLE: dict[str, tuple[float, float]] = {
     "meta.llama3-2-3b": (0.00015, 0.00015),
     "meta.llama3-1-8b": (0.0002, 0.0002),
     # Local Ollama — no API cost
+    "command-r": (0.0, 0.0),
     "llama3.1": (0.0, 0.0),
     "llama3.2": (0.0, 0.0),
+    "mistral-nemo": (0.0, 0.0),
     "qwen2.5": (0.0, 0.0),
     "phi4-mini": (0.0, 0.0),
     "gemma3": (0.0, 0.0),
