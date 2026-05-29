@@ -119,7 +119,7 @@ class ExperimentConfig:
         if provider_dict:
             provider = ProviderConfig.from_dict(provider_dict)
         else:
-            provider = _provider_from_env()
+            provider = None
         return cls(
             name=d["name"],
             task_description=d["task_description"],

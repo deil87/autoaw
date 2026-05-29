@@ -30,7 +30,27 @@ def _generate_base_gene(
 
     Falls back to a minimal generic agent on any LLM error.
     """
-    cfg = provider_config or provider_from_env()
+    try:
+        cfg = provider_config or provider_from_env()
+    except Exception:
+        # No provider configured — fall back to generic gene below.
+        return Gene(
+            id="seed_base",
+            topology=TopologyType.FIXED_PIPELINE,
+            agents=[
+                Agent(
+                    id="task_solver",
+                    role="task_solver",
+                    model=random.choice(allowed_models),
+                    system_prompt=(
+                        f"Complete the following task accurately and thoroughly: "
+                        f"{task_description[:400]}"
+                    ),
+                    temperature=0.7,
+                )
+            ],
+            edges=[],
+        )
     system = (
         "You are a prompt engineer.\n"
         "Write a single-agent system prompt that instructs one LLM agent to "

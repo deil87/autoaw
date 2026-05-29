@@ -42,41 +42,40 @@ def test_experiment_config_parses_provider():
     assert cfg.allowed_models == ["gpt-4o-mini"]
 
 
-def test_experiment_config_defaults_github_from_env(monkeypatch):
+def test_experiment_config_defaults_provider_none_when_missing(monkeypatch):
+    """from_dict keeps provider=None when no provider key is in the dict.
+
+    Provider resolution is lazy: the engine calls provider_from_env() at the
+    point it actually needs an LLM client, not at deserialization time.
+    """
     monkeypatch.setenv("GITHUB_TOKEN", "ghp_env")
-    monkeypatch.delenv("GITHUB_API_KEY", raising=False)
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     cfg = ExperimentConfig.from_dict(_base_dict())
-    assert cfg.provider.provider == "github"
-    assert cfg.provider.api_key == "ghp_env"
+    assert cfg.provider is None
 
 
 def test_experiment_config_defaults_github_api_key_from_env(monkeypatch):
+    """provider=None when no provider key is present, regardless of env vars."""
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.setenv("GITHUB_API_KEY", "ghp_apikey")
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     cfg = ExperimentConfig.from_dict(_base_dict())
-    assert cfg.provider.provider == "github"
-    assert cfg.provider.api_key == "ghp_apikey"
+    assert cfg.provider is None
 
 
 def test_experiment_config_defaults_openai_from_env(monkeypatch):
+    """provider=None when no provider key is present, regardless of env vars."""
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.delenv("GITHUB_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-env")
-    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
     cfg = ExperimentConfig.from_dict(_base_dict())
-    assert cfg.provider.provider == "openai"
-    assert cfg.provider.api_key == "sk-env"
-    assert cfg.provider.base_url is None
+    assert cfg.provider is None
 
 
 def test_experiment_config_defaults_openai_with_base_url_from_env(monkeypatch):
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_API_KEY", raising=False)
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-env")
-    monkeypatch.setenv("OPENAI_BASE_URL", "https://api.githubcopilot.com")
-    cfg = ExperimentConfig.from_dict(_base_dict())
+    """Explicit provider in dict is parsed regardless of env vars."""
+    d = _base_dict(
+        provider={"provider": "openai", "api_key": "sk-env", "base_url": "https://api.githubcopilot.com"}
+    )
+    cfg = ExperimentConfig.from_dict(d)
     assert cfg.provider.provider == "openai"
     assert cfg.provider.base_url == "https://api.githubcopilot.com"
 
@@ -106,9 +105,13 @@ def test_experiment_config_roundtrip_with_provider(monkeypatch):
     assert cfg2.allowed_models == ["gpt-4o-mini"]
 
 
-def test_experiment_config_no_provider_no_env_raises(monkeypatch):
+def test_experiment_config_no_provider_no_env_returns_none(monkeypatch):
+    """from_dict returns provider=None when no provider in dict, even with no env creds.
+
+    Provider resolution is deferred to the engine; from_dict never raises.
+    """
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.delenv("GITHUB_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    with pytest.raises(ValueError, match="No LLM provider"):
-        ExperimentConfig.from_dict(_base_dict())
+    cfg = ExperimentConfig.from_dict(_base_dict())
+    assert cfg.provider is None

@@ -40,7 +40,7 @@ def test_on_progress_callback_fires():
 
     gene = MagicMock(spec=Gene)
     gene.id = "g001"
-    loop._evaluate_gene(gene, generation=1)
+    loop._run_gene(gene, 1)
 
     # Should have fired at rows_done=10 and rows_done=20
     assert len(progress_calls) == 2
