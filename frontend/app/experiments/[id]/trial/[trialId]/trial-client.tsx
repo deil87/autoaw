@@ -18,17 +18,27 @@ function scoreColor(val: number) {
   return val >= 0.7 ? "text-green-600" : val >= 0.4 ? "text-yellow-600" : "text-red-600";
 }
 
-function SubScoresDisplay({ subScores }: { subScores: Record<string, number> }) {
+function barColor(val: number) {
+  return val >= 0.7 ? "bg-green-500" : val >= 0.4 ? "bg-yellow-500" : "bg-red-500";
+}
+
+function SubScoresBarChart({ subScores }: { subScores: Record<string, number> }) {
   const entries = Object.entries(subScores);
   if (entries.length === 0) return null;
   return (
     <div>
-      <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Metric Scores</p>
-      <div className="flex flex-wrap gap-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Metric Scores</p>
+      <div className="space-y-2 max-w-lg">
         {entries.map(([dim, val]) => (
-          <div key={dim} className="flex items-center gap-1 rounded border px-2 py-1 bg-background">
-            <span className="text-xs text-muted-foreground">{dim}</span>
-            <span className={`text-xs font-mono font-semibold ${scoreColor(val)}`}>
+          <div key={dim} className="grid items-center gap-2" style={{ gridTemplateColumns: "minmax(8rem,1fr) 8rem 3rem" }}>
+            <span className="text-xs text-foreground truncate" title={dim}>{dim}</span>
+            <div className="h-3 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${barColor(val)}`}
+                style={{ width: `${Math.max(2, val * 100).toFixed(1)}%` }}
+              />
+            </div>
+            <span className={`text-xs font-mono font-semibold text-right ${scoreColor(val)}`}>
               {(val * 100).toFixed(0)}%
             </span>
           </div>
@@ -121,7 +131,7 @@ function EvalRowsTable({ rows }: { rows: EvalRow[] }) {
                           <pre className="mt-1 text-xs whitespace-pre-wrap break-all">{row.output_text}</pre>
                         </div>
                         {Object.keys(sub).length > 0 && (
-                          <SubScoresDisplay subScores={sub} />
+                          <SubScoresBarChart subScores={sub} />
                         )}
                         {row.score_reasoning && (
                           <div>

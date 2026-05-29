@@ -51,16 +51,16 @@ class LLMJudgeEvaluator(Evaluator):
         self._provider_config = provider_config  # None = lazy env lookup
         self._dimensions = _parse_rubric_dimensions(rubric)
 
-    def _call_llm(self, model: str, messages: list[dict], temperature: float) -> Any:
+    def _call_llm(self, model: str, messages: list[dict], temperature: float, response_format: dict | None = None) -> Any:
         from backend.engine.llm_client import is_ollama_model
         if is_ollama_model(model):
-            # Ollama models are routed directly by chat_with_retry; no provider client needed
             from backend.engine.llm_client import ollama_chat_with_retry
             return ollama_chat_with_retry(model, messages, temperature)
         cfg = self._provider_config or provider_from_env()
         client = make_client(cfg)
         return chat_with_retry(
-            client, model=model, messages=messages, temperature=temperature
+            client, model=model, messages=messages, temperature=temperature,
+            response_format=response_format,
         )
 
     def score(self, input: str, output: str, expected: str | None) -> Score:
@@ -71,15 +71,17 @@ class LLMJudgeEvaluator(Evaluator):
     def _score_single(self, input: str, output: str, expected: str | None) -> Score:
         expected_section = f"\n\nExpected answer: {expected}" if expected else ""
         prompt = (
-            f"You are an evaluator. Score the following AI output using this rubric:\n{self.rubric}\n\n"
+            f"You are a strict evaluator. Score the following AI output using this rubric:\n{self.rubric}\n\n"
             f"Input: {input}\n\nAI Output: {output}{expected_section}\n\n"
-            "Respond ONLY with valid JSON in this format: "
-            '{"score": <float between 0 and 1>, "reason": "<brief explanation>"}'
+            "Return ONLY a JSON object in exactly this format: "
+            '{"score": 0.0, "reason": "<one sentence>"}\n'
+            "Replace 0.0 with the actual float score between 0.0 and 1.0."
         )
         response = self._call_llm(
             self.model,
             [{"role": "user", "content": prompt}],
-            temperature=0.1,
+            temperature=0.0,
+            response_format={"type": "json_object"},
         )
         content = response.choices[0].message.content
         quality, metadata = self._parse_score(content)
@@ -94,18 +96,20 @@ class LLMJudgeEvaluator(Evaluator):
         dim_lines = "\n".join(
             f"- {dim}: {desc}" for dim, desc in self._dimensions.items()
         )
-        dim_keys_json = json.dumps({dim: "<float 0-1>" for dim in self._dimensions})
+        dim_keys_json = json.dumps({dim: 0.0 for dim in self._dimensions})
         prompt = (
-            "You are an evaluator. Score the following AI output on each dimension:\n"
-            f"{dim_lines}\n\n"
+            "You are a strict evaluator. Score the AI output on each dimension below using a float from 0.0 to 1.0.\n\n"
+            f"Scoring dimensions:\n{dim_lines}\n\n"
             f"Input: {input}\n\nAI Output: {output}{expected_section}\n\n"
-            "Respond ONLY with valid JSON in this format: "
-            f'{{"scores": {dim_keys_json}, "reason": "<brief overall explanation>"}}'
+            "Return ONLY a JSON object — no explanation outside the JSON — in exactly this format:\n"
+            f'{{"scores": {dim_keys_json}, "reason": "<one sentence overall summary>"}}\n'
+            "Replace each 0.0 with the actual float score for that dimension."
         )
         response = self._call_llm(
             self.model,
             [{"role": "user", "content": prompt}],
-            temperature=0.1,
+            temperature=0.0,
+            response_format={"type": "json_object"},
         )
         content = response.choices[0].message.content
         sub_scores, reason = self._parse_multidim_score(content)
