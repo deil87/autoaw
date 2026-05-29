@@ -394,21 +394,24 @@ Output ONLY valid JSON — no markdown, no commentary:
 
 @app.post("/rubric/parse")
 def parse_rubric(req: RubricParseRequest):
-    import anthropic
+    import openai as openai_lib
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
-        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
 
-    client = anthropic.Anthropic(api_key=api_key)
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
+    base_url = os.environ.get("OPENAI_BASE_URL") or None
+    client = openai_lib.OpenAI(api_key=api_key, base_url=base_url)
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
         max_tokens=4096,
-        system=_RUBRIC_PARSE_SYSTEM,
-        messages=[{"role": "user", "content": req.text}],
+        messages=[
+            {"role": "system", "content": _RUBRIC_PARSE_SYSTEM},
+            {"role": "user", "content": req.text},
+        ],
     )
 
-    raw = message.content[0].text.strip()
+    raw = (response.choices[0].message.content or "").strip()
     if raw.startswith("```"):
         parts = raw.split("```")
         raw = parts[1]
