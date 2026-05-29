@@ -102,6 +102,12 @@ export interface GeneConversionResult {
   notes: string[];
 }
 
+export interface RubricParseResult {
+  rubric_json: string;          // JSON string ready to paste into the rubric field
+  dimensions: string[];         // extracted dimension names
+  notes: string[];              // LLM interpretation notes
+}
+
 export interface ExperimentProgress {
   rows_done: number;
   rows_total: number;
