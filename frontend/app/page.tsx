@@ -222,9 +222,9 @@ function Hero() {
             <Link href="/demo" className="btn btn-primary btn-lg">
               Request a demo <Icon name="arrow-right" size={13}/>
             </Link>
-            <Link href="/experiments" className="btn btn-lg">
-              See experiments
-            </Link>
+            <a href="https://github.com/deil87/autoaw#quick-start" target="_blank" rel="noopener noreferrer" className="btn btn-lg">
+              Try locally with ollama
+            </a>
           </div>
           <div className="hero-meta">
             <span><b className="mono tabular">74.1%</b> on GAIA · <span className="faint">vs 69.2% Sonnet 4.5 baseline</span></span>
