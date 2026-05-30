@@ -25,7 +25,7 @@ describe("BenchmarkCard", () => {
   it("calls onSelect with the benchmark when button clicked", () => {
     const onSelect = vi.fn();
     render(<BenchmarkCard benchmark={wb} onSelect={onSelect} />);
-    fireEvent.click(screen.getByRole("button"));
+    fireEvent.click(screen.getByRole("button", { name: /use this benchmark/i }));
     expect(onSelect).toHaveBeenCalledWith(wb);
   });
 });
