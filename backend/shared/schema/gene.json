@@ -23,6 +23,10 @@
           "system_prompt": { "type": "string", "minLength": 1 },
           "tools":         { "type": "array", "items": { "type": "string" } },
           "temperature":   { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+          "meta_type": {
+            "type": "string",
+            "enum": ["profiler", "author", "critic", "synthesizer", "agent"]
+          },
           "memory": {
             "type": "object",
             "properties": {

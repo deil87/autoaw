@@ -1,4 +1,4 @@
-from backend.shared.gene import Gene, Agent, Edge, TopologyType
+from backend.shared.gene import Gene, Agent, Edge, TopologyType, AgentMetaType, TEMPERATURE_BOUNDS
 from backend.shared.experiment import (
     ExperimentConfig,
     ObjectiveWeights,
@@ -9,6 +9,8 @@ from backend.shared.validator import validate_gene, GeneValidationError
 from backend.shared.fixtures import load_fixture
 
 __all__ = [
+    "AgentMetaType",
+    "TEMPERATURE_BOUNDS",
     "Gene",
     "Agent",
     "Edge",

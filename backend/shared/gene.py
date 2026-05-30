@@ -15,6 +15,29 @@ class TopologyType(str, Enum):
     HYBRID = "hybrid"
 
 
+class AgentMetaType(str, Enum):
+    """Functional meta-category of an agent.
+
+    Each meta type carries a fixed allowed temperature range that is enforced
+    at construction time and respected by the GP mutation operators and SMBO polish.
+    """
+    PROFILER = "profiler"       # strict analytics — low temperature
+    AUTHOR = "author"           # controlled creativity — mid-high temperature
+    CRITIC = "critic"           # ruthless audit — zero temperature
+    SYNTHESIZER = "synthesizer" # reduction / aggregation — low-mid temperature
+    AGENT = "agent"             # generic — full range
+
+
+# (min, max) inclusive temperature bounds per meta type.
+TEMPERATURE_BOUNDS: dict[AgentMetaType, tuple[float, float]] = {
+    AgentMetaType.PROFILER:    (0.0, 0.2),
+    AgentMetaType.AUTHOR:      (0.5, 0.7),
+    AgentMetaType.CRITIC:      (0.0, 0.0),
+    AgentMetaType.SYNTHESIZER: (0.2, 0.5),
+    AgentMetaType.AGENT:       (0.0, 1.0),
+}
+
+
 # Alias for backwards compatibility
 TopologyParams = dict
 
@@ -61,18 +84,30 @@ class Agent:
                                              chunks are injected before the user msg
     """
     temperature: float = 0.7
+    meta_type: AgentMetaType | None = None
+    """Optional functional category. When set, temperature must fall within
+    the range defined in ``TEMPERATURE_BOUNDS`` for that meta type.
+    GP mutation operators and SMBO polish respect these bounds automatically."""
     subtasks: list[Subtask] = field(default_factory=list)
     """Subtasks detected in system_prompt by split detection. Empty means the
     prompt was not yet analysed or contains only a single task."""
 
     def __post_init__(self) -> None:
-        if not (0.0 <= self.temperature <= 1.0):
-            raise ValueError(
-                f"temperature must be between 0.0 and 1.0, got {self.temperature}"
-            )
+        if self.meta_type is not None:
+            lo, hi = TEMPERATURE_BOUNDS[self.meta_type]
+            if not (lo <= self.temperature <= hi):
+                raise ValueError(
+                    f"temperature {self.temperature} is outside the allowed range "
+                    f"[{lo}, {hi}] for meta_type '{self.meta_type}'"
+                )
+        else:
+            if not (0.0 <= self.temperature <= 1.0):
+                raise ValueError(
+                    f"temperature must be between 0.0 and 1.0, got {self.temperature}"
+                )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "id": self.id,
             "role": self.role,
             "model": self.model,
@@ -82,9 +117,13 @@ class Agent:
             "temperature": self.temperature,
             "subtasks": [s.to_dict() for s in self.subtasks],
         }
+        if self.meta_type is not None:
+            d["meta_type"] = self.meta_type.value
+        return d
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Agent:
+        raw_meta = d.get("meta_type")
         return cls(
             id=d["id"],
             role=d["role"],
@@ -93,6 +132,7 @@ class Agent:
             tools=list(d.get("tools", [])),
             memory=dict(d.get("memory", {})),
             temperature=d.get("temperature", 0.7),
+            meta_type=AgentMetaType(raw_meta) if raw_meta is not None else None,
             subtasks=[Subtask.from_dict(s) for s in d.get("subtasks", [])],
         )
 

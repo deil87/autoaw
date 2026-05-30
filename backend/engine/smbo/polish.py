@@ -4,7 +4,7 @@ import optuna
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-from backend.shared.gene import Gene
+from backend.shared.gene import Gene, AgentMetaType, TEMPERATURE_BOUNDS
 from backend.shared.experiment import ExperimentConfig
 from backend.engine.runner.base import WorkflowRunner
 from backend.engine.evaluator.base import Evaluator
@@ -30,11 +30,16 @@ def smbo_polish(
         nonlocal best_gene, best_fitness
         candidate = gene.copy()
 
-        # Tune temperature for each agent independently
+        # Tune temperature for each agent independently, within meta type bounds
         for agent in candidate.agents:
-            agent.temperature = trial.suggest_float(
-                f"temp_{agent.id}", 0.0, 1.0, step=0.05
-            )
+            lo, hi = TEMPERATURE_BOUNDS[agent.meta_type] if agent.meta_type is not None else (0.0, 1.0)
+            if lo == hi:
+                # Fixed temperature (e.g. critic) — pin it, nothing to optimise
+                agent.temperature = lo
+            else:
+                agent.temperature = trial.suggest_float(
+                    f"temp_{agent.id}", lo, hi, step=0.05
+                )
 
         # Tune max_rounds if present in topology_params
         if "max_rounds" in candidate.topology_params:

@@ -60,3 +60,29 @@ def test_smbo_polish_temperatures_in_range():
     )
     for agent in result.agents:
         assert 0.0 <= agent.temperature <= 1.0
+
+
+def test_smbo_polish_respects_meta_type_bounds():
+    from backend.shared.gene import AgentMetaType, TEMPERATURE_BOUNDS
+    gene = Gene.from_dict(load_fixture("fixed_pipeline"))
+    # Assign meta types so SMBO must respect them
+    gene.agents[0].meta_type = AgentMetaType.PROFILER
+    gene.agents[0].temperature = 0.1   # within profiler range
+    gene.agents[1].meta_type = AgentMetaType.CRITIC
+    gene.agents[1].temperature = 0.0   # critic must stay 0.0
+
+    result = smbo_polish(
+        gene=gene,
+        config=make_config(),
+        runner=make_mock_runner(),
+        evaluators=[make_mock_evaluator()],
+        dataset=[{"input": "doc", "expected": "summary"}],
+        n_trials=5,
+    )
+    profiler = next(a for a in result.agents if a.meta_type == AgentMetaType.PROFILER)
+    critic   = next(a for a in result.agents if a.meta_type == AgentMetaType.CRITIC)
+
+    lo, hi = TEMPERATURE_BOUNDS[AgentMetaType.PROFILER]
+    assert lo <= profiler.temperature <= hi
+
+    assert critic.temperature == 0.0

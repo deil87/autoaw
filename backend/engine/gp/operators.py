@@ -2,7 +2,10 @@ from __future__ import annotations
 import json
 import os
 import random
-from backend.shared.gene import Gene, Agent, Edge, Subtask, TopologyType
+from backend.shared.gene import (
+    Gene, Agent, Edge, Subtask, TopologyType,
+    AgentMetaType, TEMPERATURE_BOUNDS,
+)
 from backend.engine.llm_client import ProviderConfig, make_client, provider_from_env
 from backend.shared.experiment import DEFAULT_CLOUD_MODELS
 
@@ -39,6 +42,7 @@ def _ensure_single_sink(
             f"Synthesize the outputs of the following parallel tasks into one "
             f"coherent final response:\n{task_list}"
         ),
+        meta_type=AgentMetaType.SYNTHESIZER,
         temperature=0.3,
     ))
     for sink_id in sink_ids:
@@ -124,11 +128,15 @@ def mutate_prompt(
 
 
 def mutate_param(gene: Gene) -> Gene:
-    """Apply Gaussian perturbation to temperature of one random agent."""
+    """Apply Gaussian perturbation to temperature of one random agent, clamped to its meta type bounds."""
     g = gene.copy()
     agent = random.choice(g.agents)
+    lo, hi = TEMPERATURE_BOUNDS[agent.meta_type] if agent.meta_type is not None else (0.0, 1.0)
+    if lo == hi:
+        # Fixed temperature (e.g. critic) — nothing to mutate
+        return g
     delta = random.gauss(0, 0.1)
-    agent.temperature = max(0.0, min(1.0, round(agent.temperature + delta, 3)))
+    agent.temperature = max(lo, min(hi, round(agent.temperature + delta, 3)))
     return g
 
 
@@ -237,7 +245,8 @@ def mutate_inject_critique(
             f"Identify specific inaccuracies, gaps, or logical flaws. "
             f"If the output is satisfactory, confirm it and explain why."
         ),
-        temperature=0.3,
+        meta_type=AgentMetaType.CRITIC,
+        temperature=0.0,
     ))
     for e in g.edges:
         if e.from_agent == target.id:
