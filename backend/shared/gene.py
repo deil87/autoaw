@@ -48,13 +48,17 @@ class Agent:
     system_prompt: str
     tools: list[str] = field(default_factory=list)
     memory: dict[str, Any] = field(default_factory=dict)
-    """Memory configuration. Empty dict means no memory.
+    """Per-agent memory configuration. Empty dict means stateless (default).
 
-    Examples:
-      ``{}``                              — stateless (default)
-      ``{"type": "buffer", "window": 10}`` — sliding-window conversation history
-      ``{"type": "summary"}``             — LLM-summarised long-term memory
-      ``{"type": "vector", "store": "…"}`` — vector-store retrieval
+    Supported types:
+      ``{}``                               — stateless (default)
+      ``{"type": "buffer", "window": 10}`` — sliding-window conversation history;
+                                             last N [user, assistant] pairs prepended
+      ``{"type": "summary"}``              — LLM-compressed running summary prepended
+                                             to system prompt on each call
+      ``{"type": "vector", "top_k": 3}``  — ephemeral in-run semantic retrieval;
+                                             earlier outputs are indexed and top-K
+                                             chunks are injected before the user msg
     """
     temperature: float = 0.7
     subtasks: list[Subtask] = field(default_factory=list)
@@ -122,6 +126,16 @@ class Gene:
     edges: list[Edge]
     id: str = field(default_factory=lambda: f"gene_{uuid.uuid4().hex[:8]}")
     topology_params: dict[str, Any] = field(default_factory=dict)
+    shared_memory: dict[str, Any] = field(default_factory=dict)
+    """Gene-level shared memory store — accessible to all agents in the run.
+
+    Supported types:
+      ``{}``                    — off (default)
+      ``{"type":"scratchpad"}`` — plaintext key→value store; agents write facts
+                                  during execution and all subsequent agents receive
+                                  the accumulated scratchpad as context, enabling
+                                  non-linear knowledge passing across the topology
+    """
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -130,6 +144,7 @@ class Gene:
             "agents": [a.to_dict() for a in self.agents],
             "edges": [e.to_dict() for e in self.edges],
             "topology_params": dict(self.topology_params),
+            "shared_memory": dict(self.shared_memory),
         }
 
     @classmethod
@@ -140,6 +155,7 @@ class Gene:
             agents=[Agent.from_dict(a) for a in d["agents"]],
             edges=[Edge.from_dict(e) for e in d["edges"]],
             topology_params=dict(d.get("topology_params", {})),
+            shared_memory=dict(d.get("shared_memory", {})),
         )
 
     def copy(self) -> Gene:

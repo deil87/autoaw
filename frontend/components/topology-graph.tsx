@@ -12,6 +12,7 @@ import {
   type Edge as RFEdge,
 } from "@xyflow/react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Agent, Gene } from "@/lib/types";
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
@@ -100,8 +101,19 @@ const EDGE_TYPE_COLOR: Record<string, string> = {
   conditional:"bg-purple-500",
 };
 
+/** Return a short human-readable label for an agent's memory config. */
+function memoryLabel(memory: Record<string, unknown> | undefined): string | null {
+  if (!memory || Object.keys(memory).length === 0) return null;
+  const type = memory.type as string | undefined;
+  if (type === "buffer") return `buffer·${memory.window ?? "?"}`;
+  if (type === "summary") return "summary";
+  if (type === "vector") return `rag·${memory.top_k ?? "?"}`;
+  return type ?? null;
+}
+
 function AgentNode({ data, selected }: NodeProps) {
   const agent = data.agent as Agent;
+  const memLabel = memoryLabel(agent.memory);
   return (
     <div
       className={`rounded-xl border bg-card shadow-sm w-48 transition-shadow ${
@@ -114,6 +126,20 @@ function AgentNode({ data, selected }: NodeProps) {
         <div className="flex items-center gap-1 mt-1 flex-wrap">
           <Badge variant="secondary" className="text-xs px-1.5">{agent.model}</Badge>
           <span className="text-xs text-muted-foreground">t={agent.temperature}</span>
+          {memLabel && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300 text-[10px] px-1.5 py-0.5 font-medium cursor-default">
+                    🧠 {memLabel}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs max-w-[200px]">
+                  {JSON.stringify(agent.memory, null, 2)}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </div>
       <Handle type="source" position={Position.Right} className="!bg-muted-foreground" />
@@ -183,23 +209,33 @@ export function TopologyGraph({ gene, onSelectAgent, selectedAgentId }: Props) {
 
   const onPaneClick = useCallback(() => onSelectAgent(null), [onSelectAgent]);
 
+  const hasSharedScratchpad = gene.shared_memory?.type === "scratchpad";
+
   return (
-    <div className="w-full h-[420px] rounded-xl border overflow-hidden">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        onNodeClick={onNodeClick}
-        onPaneClick={onPaneClick}
-        fitView
-        fitViewOptions={{ padding: 0.3 }}
-        minZoom={0.3}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background gap={16} size={1} />
-        <Controls />
-        <MiniMap nodeStrokeWidth={3} zoomable pannable />
-      </ReactFlow>
+    <div className="w-full rounded-xl border overflow-hidden">
+      {hasSharedScratchpad && (
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-950 border-b text-xs text-cyan-700 dark:text-cyan-300 font-medium">
+          <span>🗂️</span>
+          <span>Shared scratchpad active — agents share a common key-value memory store</span>
+        </div>
+      )}
+      <div className="h-[420px]">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodeClick={onNodeClick}
+          onPaneClick={onPaneClick}
+          fitView
+          fitViewOptions={{ padding: 0.3 }}
+          minZoom={0.3}
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background gap={16} size={1} />
+          <Controls />
+          <MiniMap nodeStrokeWidth={3} zoomable pannable />
+        </ReactFlow>
+      </div>
     </div>
   );
 }

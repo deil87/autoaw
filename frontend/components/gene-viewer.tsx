@@ -12,7 +12,17 @@ const EDGE_TYPE_PILL: Record<string, string> = {
   conditional: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
 };
 
+function memoryDescription(memory: Record<string, unknown> | undefined): string | null {
+  if (!memory || Object.keys(memory).length === 0) return null;
+  const type = memory.type as string | undefined;
+  if (type === "buffer") return `Sliding-window buffer (last ${memory.window ?? "?"} exchanges)`;
+  if (type === "summary") return "LLM-compressed running summary";
+  if (type === "vector") return `Ephemeral semantic retrieval (top ${memory.top_k ?? "?"} chunks)`;
+  return JSON.stringify(memory);
+}
+
 function AgentDetail({ agent, onClose }: { agent: Agent; onClose: () => void }) {
+  const memDesc = memoryDescription(agent.memory);
   return (
     <Card className="border-primary/40">
       <CardHeader className="pb-2">
@@ -45,6 +55,14 @@ function AgentDetail({ agent, onClose }: { agent: Agent; onClose: () => void }) 
             </div>
           </div>
         )}
+        {memDesc && (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">Memory</p>
+            <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300 text-xs px-2 py-0.5 font-medium">
+              🧠 {memDesc}
+            </span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -56,9 +74,14 @@ export function GeneViewer({ gene }: { gene: Gene }) {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <span className="font-mono text-sm text-muted-foreground">{gene.id}</span>
         <Badge variant="outline">{gene.topology}</Badge>
+        {gene.shared_memory?.type === "scratchpad" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300 text-xs px-2 py-0.5 font-medium">
+            🗂️ shared scratchpad
+          </span>
+        )}
       </div>
 
       {/* Graph */}

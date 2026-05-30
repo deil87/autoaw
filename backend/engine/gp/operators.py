@@ -371,3 +371,47 @@ def crossover_prompt(gene1: Gene, gene2: Gene) -> tuple[Gene, Gene]:
             roles1[role].system_prompt = p2
             roles2[role].system_prompt = p1
     return g1, g2
+
+
+_BUFFER_WINDOWS = [3, 5, 10, 20]
+_VECTOR_TOP_KS = [1, 2, 3, 5]
+_MEMORY_TYPES = ["stateless", "buffer", "summary", "vector"]
+
+
+def mutate_memory(gene: Gene) -> Gene:
+    """Mutate the memory configuration of a randomly selected agent.
+
+    Operator behaviour:
+    - Picks one agent at random.
+    - Randomly assigns one of four per-agent memory types:
+        * stateless ``{}``
+        * buffer  ``{"type": "buffer", "window": N}``  — N ∈ {3, 5, 10, 20}
+        * summary ``{"type": "summary"}``
+        * vector  ``{"type": "vector", "top_k": K}``   — K ∈ {1, 2, 3, 5}
+    - With 30% probability also toggles the gene-level shared scratchpad
+      between off ``{}`` and active ``{"type": "scratchpad"}``.
+    """
+    g = gene.copy()
+    if not g.agents:
+        return g
+
+    agent = random.choice(g.agents)
+    mem_type = random.choice(_MEMORY_TYPES)
+
+    if mem_type == "stateless":
+        agent.memory = {}
+    elif mem_type == "buffer":
+        agent.memory = {"type": "buffer", "window": random.choice(_BUFFER_WINDOWS)}
+    elif mem_type == "summary":
+        agent.memory = {"type": "summary"}
+    elif mem_type == "vector":
+        agent.memory = {"type": "vector", "top_k": random.choice(_VECTOR_TOP_KS)}
+
+    # 30% chance to toggle gene-level shared scratchpad
+    if random.random() < 0.3:
+        if g.shared_memory.get("type") == "scratchpad":
+            g.shared_memory = {}
+        else:
+            g.shared_memory = {"type": "scratchpad"}
+
+    return g

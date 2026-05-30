@@ -13,6 +13,7 @@ export interface Agent {
   system_prompt: string;
   tools: string[];
   temperature: number;
+  memory?: Record<string, unknown>;
 }
 
 export interface Edge {
@@ -27,6 +28,7 @@ export interface Gene {
   agents: Agent[];
   edges: Edge[];
   topology_params: Record<string, unknown>;
+  shared_memory?: Record<string, unknown>;
 }
 
 export interface ObjectiveWeights {

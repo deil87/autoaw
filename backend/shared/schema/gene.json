@@ -23,6 +23,17 @@
           "system_prompt": { "type": "string", "minLength": 1 },
           "tools":         { "type": "array", "items": { "type": "string" } },
           "temperature":   { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+          "memory": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["buffer", "summary", "vector"]
+              },
+              "window": { "type": "integer", "minimum": 1 },
+              "top_k":  { "type": "integer", "minimum": 1 }
+            }
+          },
           "subtasks": {
             "type": "array",
             "items": {
@@ -52,6 +63,15 @@
         }
       }
     },
-    "topology_params": { "type": "object" }
+    "topology_params": { "type": "object" },
+    "shared_memory": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["scratchpad"]
+        }
+      }
+    }
   }
 }
