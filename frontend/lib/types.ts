@@ -1,10 +1,6 @@
 export type TopologyType =
   | "fixed_pipeline"
-  | "ai_orchestrated"
-  | "debate"
-  | "parallel_reduce"
-  | "human_in_loop"
-  | "hybrid";
+  | "ai_orchestrated";
 
 export interface Agent {
   id: string;

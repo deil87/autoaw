@@ -8,7 +8,7 @@
     "id": { "type": "string", "minLength": 1 },
     "topology": {
       "type": "string",
-      "enum": ["fixed_pipeline", "ai_orchestrated", "debate", "parallel_reduce", "human_in_loop", "hybrid"]
+      "enum": ["fixed_pipeline", "ai_orchestrated"]
     },
     "agents": {
       "type": "array",

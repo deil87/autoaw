@@ -113,43 +113,6 @@ const TOPOS = [
     ] as GN[],
     edges: [{ from: "a0", to: "a1" }, { from: "a0", to: "a2" }] as GE[],
   },
-  {
-    name: "debate", label: "Debate", desc: "advocate + critic → judge",
-    nodes: [
-      { id: "a0", x: 28, y: 22, role: "advocate" },
-      { id: "a1", x: 28, y: 88, role: "critic" },
-      { id: "a2", x: 152, y: 55, role: "judge" },
-    ] as GN[],
-    edges: [{ from: "a0", to: "a2" }, { from: "a1", to: "a2" }] as GE[],
-  },
-  {
-    name: "parallel_reduce", label: "Parallel Reduce", desc: "specialists → synthesize",
-    nodes: [
-      { id: "a0", x: 28, y: 22, role: "specialist_a" },
-      { id: "a1", x: 28, y: 88, role: "specialist_b" },
-      { id: "a2", x: 152, y: 55, role: "reducer" },
-    ] as GN[],
-    edges: [{ from: "a0", to: "a2" }, { from: "a1", to: "a2" }] as GE[],
-  },
-  {
-    name: "human_in_loop", label: "Human-in-Loop", desc: "human review mid-chain",
-    nodes: [{ id: "a0", x: 45, y: 45, role: "drafter" }, { id: "a1", x: 155, y: 45, role: "refiner" }] as GN[],
-    edges: [{ from: "a0", to: "a1" }] as GE[],
-    humanLoop: true,
-  },
-  {
-    name: "hybrid", label: "Hybrid", desc: "broadcast + reduce",
-    nodes: [
-      { id: "a0", x: 18, y: 55, role: "orchestrator" },
-      { id: "a1", x: 92, y: 18, role: "researcher" },
-      { id: "a2", x: 92, y: 92, role: "analyst" },
-      { id: "a3", x: 166, y: 55, role: "synthesizer" },
-    ] as GN[],
-    edges: [
-      { from: "a0", to: "a1" }, { from: "a0", to: "a2" },
-      { from: "a1", to: "a3" }, { from: "a2", to: "a3" },
-    ] as GE[],
-  },
 ];
 
 function SeedPhaseSection() {
@@ -168,12 +131,13 @@ function SeedPhaseSection() {
           Initial population
         </h2>
         <p style={{ margin: 0, fontSize: 13, color: "var(--muted)", lineHeight: 1.6, maxWidth: "70ch" }}>
-          The GP loop loads one canonical <span className="mono">gene</span> per topology type from a fixture file.
-          Each seed receives random temperature jitter across its agents before generation 0 begins.
+          Two structural archetypes seed the population. One task-specific base gene is generated per run,
+          then mutated into all remaining slots. Debate, parallel fan-out, and critique loops emerge
+          organically through the mutation operators below — they are not pre-seeded.
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 240px))", gap: 12, marginBottom: 16 }}>
         {TOPOS.map((t, i) => (
           <div key={t.name} className="card" style={{
             opacity: i < revealed ? 1 : 0,
@@ -182,7 +146,7 @@ function SeedPhaseSection() {
           }}>
             <div style={{ padding: "12px 14px 6px" }}>
               <div className="mono" style={{ fontSize: 9, color: "var(--faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                fixture {String(i + 1).padStart(2, "0")}
+                archetype {String(i + 1).padStart(2, "0")}
               </div>
               <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.01em", margin: "4px 0 2px" }}>
                 {t.label}
@@ -190,15 +154,8 @@ function SeedPhaseSection() {
               <div className="mono" style={{ fontSize: 10, color: "var(--muted)" }}>{t.desc}</div>
             </div>
 
-            <div style={{ padding: "6px 14px 8px", display: "flex", justifyContent: "center", position: "relative" }}>
+            <div style={{ padding: "6px 14px 8px", display: "flex", justifyContent: "center" }}>
               <MG nodes={t.nodes} edges={t.edges} w={188} h={100} />
-              {t.humanLoop && (
-                <svg width={188} height={28} viewBox="0 0 188 28"
-                  style={{ position: "absolute", bottom: 4, left: 14, overflow: "visible", pointerEvents: "none" }}>
-                  <path d="M157,4 Q95,26 45,4" fill="none" stroke="#bdc1c9" strokeWidth={1.2} strokeDasharray="4 3" />
-                  <text x={100} y={23} textAnchor="middle" fontSize={7.5} fill="#bdc1c9" fontFamily="var(--mono)">human</text>
-                </svg>
-              )}
             </div>
 
             <div style={{ padding: "6px 14px 10px", borderTop: "1px solid var(--border)", display: "flex", gap: 5 }}>
@@ -207,6 +164,15 @@ function SeedPhaseSection() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div style={{
+        padding: "10px 14px", borderRadius: "var(--r-2)",
+        background: "var(--surface)", border: "1px solid var(--border)",
+        fontSize: 12, color: "var(--muted)", lineHeight: 1.6, maxWidth: "70ch",
+      }}>
+        <span style={{ fontFamily: "var(--mono)", color: "var(--text)", marginRight: 6 }}>Emergent via mutations:</span>
+        debate (inject_critique + expand), parallel fan-out (structure + inject_critique), critique loops (inject_critique chain)
       </div>
     </div>
   );
@@ -268,12 +234,12 @@ function SwapTopologyAnim() {
     { id: "a1", x: 155, y: 55, role: "writer" },
   ];
   const pipeEdges: GE[] = [{ from: "a0", to: "a1" }];
-  const debateNodes: GN[] = [
-    { id: "b0", x: 28, y: 22, role: "advocate" },
-    { id: "b1", x: 28, y: 88, role: "critic" },
-    { id: "b2", x: 152, y: 55, role: "judge" },
+  const orchNodes: GN[] = [
+    { id: "b0", x: 28, y: 55, role: "orchestrator" },
+    { id: "b1", x: 132, y: 22, role: "analyst" },
+    { id: "b2", x: 132, y: 88, role: "writer" },
   ];
-  const debateEdges: GE[] = [{ from: "b0", to: "b2" }, { from: "b1", to: "b2" }];
+  const orchEdges: GE[] = [{ from: "b0", to: "b1" }, { from: "b0", to: "b2" }];
   return (
     <div style={{ padding: "14px 16px", borderRight: "1px solid var(--border)" }}>
       <div className="mono" style={{ fontSize: 9, color: "var(--faint)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>
@@ -284,10 +250,10 @@ function SwapTopologyAnim() {
           <MG nodes={pipeNodes} edges={pipeEdges} w={193} h={105} />
         </div>
         <div style={{ position: "absolute", inset: 0, opacity: p === 1 ? 1 : 0, transition: "opacity 0.5s ease" }}>
-          <MG nodes={debateNodes} edges={debateEdges} w={193} h={105} />
+          <MG nodes={orchNodes} edges={orchEdges} w={193} h={105} />
         </div>
       </div>
-      <PhLabel p={p} before="fixed_pipeline" after="→ debate (topology cleared & reseeded)" col="var(--warn)" />
+      <PhLabel p={p} before="fixed_pipeline" after="→ ai_orchestrated (topology swapped)" col="var(--warn)" />
     </div>
   );
 }

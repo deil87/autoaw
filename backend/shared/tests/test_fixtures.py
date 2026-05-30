@@ -7,10 +7,6 @@ from backend.shared.gene import Gene
 TOPOLOGY_TYPES = [
     "fixed_pipeline",
     "ai_orchestrated",
-    "debate",
-    "parallel_reduce",
-    "human_in_loop",
-    "hybrid",
 ]
 
 

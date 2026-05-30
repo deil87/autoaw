@@ -9,10 +9,6 @@ from typing import Any
 class TopologyType(str, Enum):
     FIXED_PIPELINE = "fixed_pipeline"
     AI_ORCHESTRATED = "ai_orchestrated"
-    DEBATE = "debate"
-    PARALLEL_REDUCE = "parallel_reduce"
-    HUMAN_IN_LOOP = "human_in_loop"
-    HYBRID = "hybrid"
 
 
 class AgentMetaType(str, Enum):
@@ -189,9 +185,15 @@ class Gene:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Gene:
+        try:
+            topology = TopologyType(d["topology"])
+        except ValueError:
+            # Legacy topology values (debate, parallel_reduce, human_in_loop, hybrid)
+            # fall back to fixed_pipeline so old genes remain runnable.
+            topology = TopologyType.FIXED_PIPELINE
         return cls(
             id=d["id"],
-            topology=TopologyType(d["topology"]),
+            topology=topology,
             agents=[Agent.from_dict(a) for a in d["agents"]],
             edges=[Edge.from_dict(e) for e in d["edges"]],
             topology_params=dict(d.get("topology_params", {})),

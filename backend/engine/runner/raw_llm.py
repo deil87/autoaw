@@ -183,13 +183,12 @@ class RawLLMRunner(WorkflowRunner):
         total_tokens: dict[str, dict[str, int]] = {}
         store = MemoryStore()
 
-        if gene.topology == TopologyType.FIXED_PIPELINE:
-            output = self._run_fixed_pipeline(gene, input, trace, total_tokens, store)
-        elif gene.topology == TopologyType.PARALLEL_REDUCE:
+        if gene.topology == TopologyType.AI_ORCHESTRATED:
+            output = self._run_sequential_fallback(gene, input, trace, total_tokens, store)
+        elif self._has_reduce_edges(gene):
             output = self._run_parallel_reduce(gene, input, trace, total_tokens, store)
         else:
-            # Fallback: run agents sequentially by edge order
-            output = self._run_sequential_fallback(gene, input, trace, total_tokens, store)
+            output = self._run_fixed_pipeline(gene, input, trace, total_tokens, store)
 
         for model, usage in total_tokens.items():
             total_cost += llm_cost_usd(model, usage["prompt"], usage["completion"])
@@ -334,10 +333,22 @@ class RawLLMRunner(WorkflowRunner):
             self._update_memory(agent, user_for_memory, current_input, store, gene, total_tokens)
         return current_input
 
+    def _has_reduce_edges(self, gene) -> bool:
+        """Return True if the gene contains reduce-type edges, indicating a parallel fan-in pattern."""
+        return any(e.type == "reduce" for e in gene.edges)
+
     def _run_parallel_reduce(self, gene, input, trace, total_tokens, store: MemoryStore) -> str:
         params = gene.topology_params
         reducer_id = params.get("reducer_id")
         parallel_ids = params.get("parallel_agent_ids", [])
+
+        # Infer from reduce edges when topology_params is not set (e.g. mutation-produced genes)
+        if not reducer_id or not parallel_ids:
+            reduce_edges = [e for e in gene.edges if e.type == "reduce"]
+            reducer_candidates = {e.to_agent for e in reduce_edges}
+            if len(reducer_candidates) == 1:
+                reducer_id = reducer_candidates.pop()
+                parallel_ids = [e.from_agent for e in reduce_edges]
         agent_map = {a.id: a for a in gene.agents}
 
         parallel_outputs: list[str] = []

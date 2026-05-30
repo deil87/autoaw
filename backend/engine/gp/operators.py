@@ -100,9 +100,8 @@ def mutate_structure(
             g.topology_params.pop("reducer_id")
 
     elif action == "swap_topology":
-        topologies = list(TopologyType)
-        topologies.remove(g.topology)
-        g.topology = random.choice(topologies)
+        other = [t for t in TopologyType if t != g.topology]
+        g.topology = random.choice(other)
         g.topology_params = {}
 
     elif action == "rewire_edge":

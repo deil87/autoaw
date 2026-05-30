@@ -7,10 +7,6 @@ import type { Gene, GeneConversionResult } from "@/lib/types";
 const TOPOLOGY_LABELS: Record<string, string> = {
   fixed_pipeline:   "Fixed Pipeline",
   ai_orchestrated:  "AI Orchestrated",
-  debate:           "Debate",
-  parallel_reduce:  "Parallel Reduce",
-  human_in_loop:    "Human-in-Loop",
-  hybrid:           "Hybrid",
 };
 
 const EXAMPLES = [

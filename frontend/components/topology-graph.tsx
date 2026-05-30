@@ -113,16 +113,24 @@ function memoryLabel(memory: Record<string, unknown> | undefined): string | null
 
 function AgentNode({ data, selected }: NodeProps) {
   const agent = data.agent as Agent;
+  const isOrchestrator = data.isOrchestrator as boolean;
   const memLabel = memoryLabel(agent.memory);
   return (
     <div
       className={`rounded-xl border bg-card shadow-sm w-48 transition-shadow ${
         selected ? "ring-2 ring-primary shadow-md" : ""
-      }`}
+      } ${isOrchestrator ? "border-purple-400 dark:border-purple-500" : ""}`}
     >
       <Handle type="target" position={Position.Left} className="!bg-muted-foreground" />
       <div className="px-3 py-2">
-        <p className="font-semibold text-sm capitalize truncate">{agent.role}</p>
+        <div className="flex items-center gap-1.5">
+          {isOrchestrator && (
+            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wide">
+              orch
+            </span>
+          )}
+          <p className="font-semibold text-sm capitalize truncate">{agent.role}</p>
+        </div>
         <div className="flex items-center gap-1 mt-1 flex-wrap">
           <Badge variant="secondary" className="text-xs px-1.5">{agent.model}</Badge>
           <span className="text-xs text-muted-foreground">t={agent.temperature}</span>
@@ -174,14 +182,20 @@ export function TopologyGraph({ gene, onSelectAgent, selectedAgentId }: Props) {
 
   const nodes: Node[] = useMemo(
     () =>
-      gene.agents.map((agent) => ({
-        id: agent.id,
-        type: "agent",
-        position: positions.get(agent.id) ?? { x: 0, y: 0 },
-        data: { agent },
-        selected: agent.id === selectedAgentId,
-      })),
-    [gene.agents, positions, selectedAgentId]
+      gene.agents.map((agent) => {
+        const orchestratorId = gene.topology_params?.orchestrator_id as string | undefined;
+        const isOrchestrator =
+          gene.topology === "ai_orchestrated" &&
+          (agent.role === "orchestrator" || agent.id === orchestratorId);
+        return {
+          id: agent.id,
+          type: "agent",
+          position: positions.get(agent.id) ?? { x: 0, y: 0 },
+          data: { agent, isOrchestrator },
+          selected: agent.id === selectedAgentId,
+        };
+      }),
+    [gene.agents, gene.topology, gene.topology_params, positions, selectedAgentId]
   );
 
   const edges: RFEdge[] = useMemo(

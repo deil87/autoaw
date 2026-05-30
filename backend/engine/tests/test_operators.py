@@ -58,7 +58,7 @@ def test_mutate_prompt_calls_llm(monkeypatch):
 
 def test_crossover_subgraph_returns_two_children():
     gene1 = make_gene("fixed_pipeline")
-    gene2 = make_gene("debate")
+    gene2 = make_gene("ai_orchestrated")
     child1, child2 = crossover_subgraph(gene1, gene2)
     assert isinstance(child1, Gene)
     assert isinstance(child2, Gene)

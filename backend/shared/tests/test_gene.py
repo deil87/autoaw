@@ -44,10 +44,7 @@ def test_edge_types():
 def test_topology_type_enum():
     assert TopologyType.FIXED_PIPELINE.value == "fixed_pipeline"
     assert TopologyType.AI_ORCHESTRATED.value == "ai_orchestrated"
-    assert TopologyType.DEBATE.value == "debate"
-    assert TopologyType.PARALLEL_REDUCE.value == "parallel_reduce"
-    assert TopologyType.HUMAN_IN_LOOP.value == "human_in_loop"
-    assert TopologyType.HYBRID.value == "hybrid"
+    assert len(list(TopologyType)) == 2
 
 
 def test_gene_to_dict_roundtrip():

@@ -287,7 +287,7 @@ _GENE_CONVERSION_SYSTEM = """You convert agent pipeline descriptions into AutoAW
 Gene schema — output exactly this shape:
 {
   "id": "imported_001",
-  "topology": "<one of: fixed_pipeline | ai_orchestrated | debate | parallel_reduce | human_in_loop | hybrid>",
+  "topology": "<one of: fixed_pipeline | ai_orchestrated>",
   "agents": [
     {"id": "a0", "role": "<role>", "model": "gpt-4o-mini", "system_prompt": "<1-2 sentence prompt>", "tools": [], "temperature": 0.7}
   ],
@@ -296,18 +296,15 @@ Gene schema — output exactly this shape:
 }
 
 Topology rules:
-- linear A→B→C chain → fixed_pipeline
-- one agent routes tasks to specialists → ai_orchestrated
-- pro/con/judge pattern → debate
-- fan-out to parallel workers then merge → parallel_reduce
-- requires a human approval step → human_in_loop
-- mix of the above → hybrid
+- linear A→B→C chain, pro/con/judge debate, or any sequential pattern → fixed_pipeline
+- one orchestrator agent dynamically routes to specialist agents → ai_orchestrated
+  (set topology_params: {"orchestrator_id": "<id>", "max_rounds": 5})
 
 Edge types:
 - sequential: one output feeds the next
 - broadcast: one output fans out to multiple agents simultaneously
 - reduce: multiple outputs merge into one agent
-- conditional: routing based on content
+- conditional: routing based on content (use with ai_orchestrated)
 
 Infer system_prompt from the role description. Keep system prompts to 1-2 sentences.
 Default model to "gpt-4o-mini" unless the input specifies otherwise.

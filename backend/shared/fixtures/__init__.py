@@ -7,10 +7,6 @@ _FIXTURES_DIR = Path(__file__).parent
 TOPOLOGY_FIXTURES = [
     "fixed_pipeline",
     "ai_orchestrated",
-    "debate",
-    "parallel_reduce",
-    "human_in_loop",
-    "hybrid",
 ]
 
 

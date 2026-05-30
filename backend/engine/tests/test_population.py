@@ -79,8 +79,8 @@ def test_seed_population_has_topology_diversity(monkeypatch):
 def test_seed_population_covers_all_topologies(monkeypatch):
     monkeypatch.setattr("backend.engine.gp.population._generate_base_gene", _fixture_base_gene)
     monkeypatch.setattr("backend.engine.gp.population._apply_mutations", _noop_apply_mutations)
-    # population_size >= 6 ensures all 6 TopologyTypes appear
-    config = make_config(population_size=6)
+    # population_size >= 2 ensures both TopologyTypes appear
+    config = make_config(population_size=2)
     pop = seed_population(config)
     topologies = {g.topology for g in pop}
     assert topologies == set(TopologyType)
@@ -88,7 +88,7 @@ def test_seed_population_covers_all_topologies(monkeypatch):
 
 def test_seed_population_uses_seed_gene_when_provided(monkeypatch):
     monkeypatch.setattr("backend.engine.gp.population._apply_mutations", _noop_apply_mutations)
-    seed = load_fixture("debate")
+    seed = load_fixture("ai_orchestrated")
     config = make_config(population_size=6)
     config.seed_gene = seed
     pop = seed_population(config)
